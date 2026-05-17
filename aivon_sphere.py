@@ -4279,22 +4279,33 @@ class AivonSphere(QWidget):
         try:
             startup_dir = os.path.join(os.environ["APPDATA"], "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
             shortcut = os.path.join(startup_dir, "AIVON Sphere.lnk")
-            
+
             if checked:
-                # Створити ярлик через PowerShell
-                target = f'"{sys.executable}" "{APP_DIR / "aivon_sphere.py"}"'
+                # Визначаємо що запускати
+                if getattr(sys, 'frozen', False):
+                    # Встановлена версія — запускаємо .exe напряму
+                    target_path = str(sys.executable)
+                    arguments   = ""
+                else:
+                    # Режим скрипта — pythonw + .py
+                    pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
+                    if not os.path.exists(pythonw):
+                        pythonw = sys.executable
+                    target_path = pythonw
+                    arguments   = f'"{APP_DIR / "aivon_sphere.py"}"'
+
                 ps = f'''
                 $ws = New-Object -ComObject WScript.Shell
                 $s = $ws.CreateShortcut("{shortcut}")
-                $s.TargetPath = "{sys.executable}"
-                $s.Arguments = '"{APP_DIR / "aivon_sphere.py"}"'
+                $s.TargetPath = "{target_path}"
+                $s.Arguments = '{arguments}'
                 $s.WorkingDirectory = "{APP_DIR}"
                 $s.Description = "AIVON Voice Assistant"
                 $s.Save()
                 '''
                 subprocess.run(['powershell', '-Command', ps],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                             creationflags=_NO_WINDOW)
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               creationflags=_NO_WINDOW)
                 self.respond("🚀 Автозапуск увімкнено! Sphere запускатиметься з Windows.")
             else:
                 if os.path.exists(shortcut):
@@ -4305,43 +4316,69 @@ class AivonSphere(QWidget):
     
     def open_panel(self):
         """Відкрити панель AXIS OS"""
-        # Шукаємо main.py або axis_ide.py — точки входу AXIS OS
-        panel_py = APP_DIR / "main.py"
-        if not panel_py.exists():
-            panel_py = APP_DIR / "axis_ide.py"
-        if not panel_py.exists():
-            self.respond("Панель AXIS OS не знайдена")
-            return
+        # ── Визначаємо що запускати ───────────────────────────────────────────
+        if getattr(sys, 'frozen', False):
+            # Встановлена версія — шукаємо AXIS_OS.exe поруч з Sphere
+            panel_exe = APP_DIR / "AXIS_OS.exe"
+            if not panel_exe.exists():
+                # Пробуємо папку вище (якщо Sphere в підпапці)
+                panel_exe = APP_DIR.parent / "AXIS_OS.exe"
+            if not panel_exe.exists():
+                self.respond("Панель AXIS OS не знайдена (AXIS_OS.exe)")
+                return
 
-        panel_name = panel_py.name
-        try:
-            import psutil
-            for proc in psutil.process_iter(['pid', 'cmdline']):
-                try:
-                    cmdline = ' '.join(proc.info.get('cmdline') or [])
-                    if panel_name in cmdline:
-                        self.respond("Панель AXIS OS вже відкрита!")
-                        return
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
-        except ImportError:
-            pass
+            # Перевіряємо чи вже запущена
+            try:
+                import psutil
+                for proc in psutil.process_iter(['pid', 'name']):
+                    try:
+                        if proc.info['name'] == 'AXIS_OS.exe':
+                            self.respond("Панель AXIS OS вже відкрита!")
+                            return
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                pass
 
-        try:
-            # pythonw.exe — без консолі, без мигання
-            if os.name == 'nt':
+            try:
+                flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
+                subprocess.Popen([str(panel_exe)], cwd=str(APP_DIR), creationflags=flags)
+                self.respond("Відкриваю AXIS OS!")
+            except Exception as e:
+                self.respond(f"Помилка запуску: {str(e)[:40]}")
+
+        else:
+            # Режим скрипта — шукаємо main.py
+            panel_py = APP_DIR / "main.py"
+            if not panel_py.exists():
+                panel_py = APP_DIR / "axis_ide.py"
+            if not panel_py.exists():
+                self.respond("Панель AXIS OS не знайдена (main.py)")
+                return
+
+            try:
+                import psutil
+                for proc in psutil.process_iter(['pid', 'cmdline']):
+                    try:
+                        cmdline = ' '.join(proc.info.get('cmdline') or [])
+                        if panel_py.name in cmdline:
+                            self.respond("Панель AXIS OS вже відкрита!")
+                            return
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+            except ImportError:
+                pass
+
+            try:
                 pythonw = sys.executable.replace('python.exe', 'pythonw.exe')
                 if not os.path.exists(pythonw):
                     pythonw = sys.executable
                 flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NO_WINDOW
                 subprocess.Popen([pythonw, str(panel_py)], cwd=str(APP_DIR),
-                                 creationflags=flags,
-                                 close_fds=True)
-            else:
-                subprocess.Popen([sys.executable, str(panel_py)], cwd=str(APP_DIR))
-            self.respond("Відкриваю AXIS OS!")
-        except Exception as e:
-            self.respond(f"Помилка запуску: {str(e)[:40]}")
+                                 creationflags=flags, close_fds=True)
+                self.respond("Відкриваю AXIS OS!")
+            except Exception as e:
+                self.respond(f"Помилка запуску: {str(e)[:40]}")
                 
     def start_wake_listener(self):
         """Запуск фонового прослуховування"""
