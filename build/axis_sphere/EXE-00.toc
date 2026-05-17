@@ -90,7 +90,7 @@
  [],
  False,
  False,
- 1778850158,
+ 1779047517,
  [('runw.exe',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',

@@ -202,7 +202,8 @@ class SystemHandlerMixin:
                          args=(url, version), daemon=True).start()
 
     def _download_github_worker(self, url: str, version: str):
-        from core.updater import download_github_asset, apply_github_update
+        from core.updater import (download_github_asset, apply_github_update,
+                                   apply_installer_update)
 
         def on_download_progress(done, total):
             pct = int(done * 100 / total) if total else 0
@@ -215,16 +216,24 @@ class SystemHandlerMixin:
                 {"status": status, "label": label, "pct": pct}))
 
         try:
-            # 1. Завантажуємо ZIP
+            is_installer = url.lower().endswith('.exe')
+            label_start  = "⬇ Завантажую інсталятор..." if is_installer \
+                           else "⬇ Завантажую архів..."
+
             self.push_to_js.emit("github_download_status",
                 json.dumps({"status": "downloading", "pct": 0,
-                            "label": "⬇ Завантажую архів..."}))
-            zip_path = download_github_asset(url, on_progress=on_download_progress)
+                            "label": label_start}))
 
-            # 2. Розпаковуємо + копіюємо + pip + перезапуск
-            #    Всі статуси тепер йдуть через on_apply_status колбек
-            apply_github_update(zip_path, restart=True, on_status=on_apply_status)
-            # apply_github_update робить sys.exit(0) — далі не дійде
+            file_path = download_github_asset(url, on_progress=on_download_progress)
+
+            if is_installer:
+                # Встановлений .exe → запускаємо інсталятор тихо
+                apply_installer_update(file_path, on_status=on_apply_status)
+            else:
+                # Запуск з вихідного коду → патч-оновлення файлів
+                apply_github_update(file_path, restart=True,
+                                    on_status=on_apply_status)
+            # обидві функції роблять sys.exit(0) — далі не дійде
 
         except Exception as e:
             self.push_to_js.emit("github_download_status",

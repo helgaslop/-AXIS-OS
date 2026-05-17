@@ -230,6 +230,34 @@ def download_github_asset(url: str, on_progress=None) -> str:
     return dest
 
 
+def _run_status(on_status, status, label, pct=100):
+    print(f"[Updater] {label}")
+    if on_status:
+        try:
+            on_status(status, label, pct)
+        except Exception:
+            pass
+
+
+def apply_installer_update(exe_path: str, on_status=None) -> bool:
+    """
+    Запускає Inno Setup інсталятор тихо (/SILENT).
+    Використовується коли застосунок встановлений через інсталятор.
+    """
+    if not os.path.exists(exe_path):
+        raise RuntimeError(f"Інсталятор не знайдено: {exe_path}")
+
+    _run_status(on_status, "restarting", "🔧 Запускаю інсталятор оновлення...", 100)
+    import time as _time
+    _time.sleep(0.6)   # даємо UI отримати статус
+
+    subprocess.Popen(
+        [exe_path, '/SILENT', '/CLOSEAPPLICATIONS'],
+        creationflags=subprocess.DETACHED_PROCESS | _NO_WINDOW
+    )
+    sys.exit(0)
+
+
 def apply_github_update(zip_path: str, restart: bool = True,
                          on_status=None) -> bool:
     """
@@ -242,12 +270,7 @@ def apply_github_update(zip_path: str, restart: bool = True,
     Перезапуск через .bat щоб уникнути блокування запущеного .exe на Windows.
     """
     def _st(status, label, pct=100):
-        print(f"[Updater] {label}")
-        if on_status:
-            try:
-                on_status(status, label, pct)
-            except Exception:
-                pass
+        _run_status(on_status, status, label, pct)
 
     try:
         _st("applying", "📂 Розпаковую архів...", 0)

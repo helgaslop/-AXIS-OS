@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build
+dist/
+build/
+*.spec.bak
+
+# Logs
+logs/
+*.log
+
+# Secrets (НІКОЛИ не пушити!)
+data/release.cfg
+data/wake_config.json
+.env
+
+# Editors
+.idea/
+.vscode/
+.claude/
+
+# OS
+Thumbs.db
+.DS_Store
