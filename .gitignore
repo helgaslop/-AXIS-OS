@@ -13,9 +13,16 @@ build/
 logs/
 *.log
 
-# Secrets (НІКОЛИ не пушити!)
+# ── SECRETS — НІКОЛИ не пушити! ──────────────────────────────────────────────
 data/release.cfg
+data/config.json
+data/sphere_config.json
 data/wake_config.json
+data/agent_config.json
+data/.spotify_token
+data/activity.json
+data/session_time.json
+data/app_cache.json
 .env
 
 # Editors
