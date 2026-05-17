@@ -15,8 +15,8 @@ AXIS OS — Full Release Script
 При першому запуску попросить GitHub токен.
 """
 
-import os, sys, re, json, ssl, time, shutil, zipfile
-import subprocess, urllib.request, urllib.error
+import os, sys, re, json, ssl, time, shutil, zipfile, http.client
+import subprocess, urllib.request, urllib.error, urllib.parse
 from pathlib import Path
 
 # ── UTF-8 консоль ────────────────────────────────────────────────────────────
@@ -292,22 +292,49 @@ def _gh(method, url, token, data=None, extra_headers=None) -> dict:
         raise RuntimeError(f"GitHub {e.code}: {e.read().decode('utf-8','replace')[:300]}")
 
 def _upload(upload_url, token, path: Path):
-    url  = upload_url.split("{")[0] + f"?name={path.name}"
-    mb   = path.stat().st_size / 1024 / 1024
-    info(f"Завантажую {path.name} ({mb:.1f} MB)...")
-    req  = urllib.request.Request(
-        url, data=path.read_bytes(), method="POST",
-        headers={
-            "Authorization": f"token {token}",
-            "Content-Type":  "application/octet-stream",
-            "User-Agent":    "AXIS-OS/release",
-        })
-    try:
-        with urllib.request.urlopen(req, context=_SSL, timeout=600) as r:
-            dl_url = json.loads(r.read()).get("browser_download_url", "")
-            ok(f"Завантажено → {dl_url}")
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f"Upload {e.code}: {e.read().decode('utf-8','replace')[:300]}")
+    """Стрімінговий upload з прогресом — не вантажить файл у RAM."""
+    import http.client, urllib.parse
+
+    url    = upload_url.split("{")[0] + f"?name={urllib.parse.quote(path.name)}"
+    parsed = urllib.parse.urlparse(url)
+    size   = path.stat().st_size
+    mb     = size / 1024 / 1024
+    info(f"Завантажую {path.name}  ({mb:.1f} MB)...")
+
+    # Стрімінг через http.client щоб не тримати 371 МБ в пам'яті
+    conn = http.client.HTTPSConnection(
+        parsed.netloc, timeout=7200, context=_SSL   # 2 години максимум
+    )
+    path_qs = parsed.path + ("?" + parsed.query if parsed.query else "")
+    conn.putrequest("POST", path_qs)
+    conn.putheader("Authorization",  f"token {token}")
+    conn.putheader("Content-Type",   "application/octet-stream")
+    conn.putheader("Content-Length", str(size))
+    conn.putheader("User-Agent",     "AXIS-OS/release")
+    conn.endheaders()
+
+    sent       = 0
+    chunk_size = 1024 * 1024   # 1 МБ чанки
+    last_pct   = -1
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            conn.send(chunk)
+            sent += len(chunk)
+            pct = int(sent * 100 / size)
+            if pct // 10 != last_pct // 10:   # кожні 10%
+                last_pct = pct
+                print(f"\r    {pct}%  ({sent/1024/1024:.0f}/{mb:.0f} MB)", end="", flush=True)
+
+    print()
+    resp = conn.getresponse()
+    body = resp.read().decode("utf-8", errors="replace")
+    if resp.status not in (200, 201):
+        raise RuntimeError(f"Upload HTTP {resp.status}: {body[:300]}")
+    dl_url = json.loads(body).get("browser_download_url", "")
+    ok(f"Завантажено → {dl_url}")
 
 def publish(repo, token, version, assets: list[Path]) -> str:
     tag = f"v{version}"
