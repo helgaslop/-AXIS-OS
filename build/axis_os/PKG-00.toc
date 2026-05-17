@@ -44,13 +44,13 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_inspect.py',
    'PYSOURCE'),
-  ('pyi_rth_cryptography_openssl',
-   'C:\\Users\\Acer Nitro '
-   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks\\pyi_rth_cryptography_openssl.py',
-   'PYSOURCE'),
   ('pyi_rth_setuptools',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_setuptools.py',
+   'PYSOURCE'),
+  ('pyi_rth_cryptography_openssl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks\\pyi_rth_cryptography_openssl.py',
    'PYSOURCE'),
   ('pyi_rth_multiprocessing',
    'C:\\Users\\Acer Nitro '
