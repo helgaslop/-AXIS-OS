@@ -291,50 +291,75 @@ def _gh(method, url, token, data=None, extra_headers=None) -> dict:
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"GitHub {e.code}: {e.read().decode('utf-8','replace')[:300]}")
 
-def _upload(upload_url, token, path: Path):
-    """Стрімінговий upload з прогресом — не вантажить файл у RAM."""
-    import http.client, urllib.parse
+class _ProgressFile:
+    """Обгортка над файлом що показує прогрес завантаження."""
+    def __init__(self, path: Path):
+        self._f    = open(path, "rb")
+        self._size = path.stat().st_size
+        self._sent = 0
+        self._last = -1
+        self._mb   = self._size / 1024 / 1024
 
-    url    = upload_url.split("{")[0] + f"?name={urllib.parse.quote(path.name)}"
-    parsed = urllib.parse.urlparse(url)
-    size   = path.stat().st_size
-    mb     = size / 1024 / 1024
+    def read(self, n=-1):
+        chunk = self._f.read(n)
+        if chunk:
+            self._sent += len(chunk)
+            pct = int(self._sent * 100 / self._size)
+            if pct // 5 != self._last // 5:
+                self._last = pct
+                print(f"\r    {pct}%  "
+                      f"({self._sent/1024/1024:.0f}/{self._mb:.0f} MB)  ",
+                      end="", flush=True)
+        return chunk
+
+    def __len__(self):   return self._size
+    def close(self):     self._f.close()
+    def __enter__(self): return self
+    def __exit__(self, *a): self.close()
+
+
+def _upload(upload_url, token, path: Path):
+    url  = upload_url.split("{")[0] + f"?name={urllib.parse.quote(path.name)}"
+    size = path.stat().st_size
+    mb   = size / 1024 / 1024
     info(f"Завантажую {path.name}  ({mb:.1f} MB)...")
 
-    # Стрімінг через http.client щоб не тримати 371 МБ в пам'яті
-    conn = http.client.HTTPSConnection(
-        parsed.netloc, timeout=7200, context=_SSL   # 2 години максимум
-    )
-    path_qs = parsed.path + ("?" + parsed.query if parsed.query else "")
-    conn.putrequest("POST", path_qs)
-    conn.putheader("Authorization",  f"token {token}")
-    conn.putheader("Content-Type",   "application/octet-stream")
-    conn.putheader("Content-Length", str(size))
-    conn.putheader("User-Agent",     "AXIS-OS/release")
-    conn.endheaders()
+    headers = {
+        "Authorization": f"token {token}",
+        "Content-Type":  "application/octet-stream",
+        "User-Agent":    "AXIS-OS/release",
+    }
 
-    sent       = 0
-    chunk_size = 1024 * 1024   # 1 МБ чанки
-    last_pct   = -1
-    with open(path, "rb") as f:
-        while True:
-            chunk = f.read(chunk_size)
-            if not chunk:
-                break
-            conn.send(chunk)
-            sent += len(chunk)
-            pct = int(sent * 100 / size)
-            if pct // 10 != last_pct // 10:   # кожні 10%
-                last_pct = pct
-                print(f"\r    {pct}%  ({sent/1024/1024:.0f}/{mb:.0f} MB)", end="", flush=True)
+    # Пробуємо через requests (краще для великих файлів + antivirus SSL)
+    try:
+        import requests as _req
+        import urllib3
+        urllib3.disable_warnings()
+        with _ProgressFile(path) as pf:
+            resp = _req.post(url, data=pf, headers=headers,
+                             verify=False, timeout=7200)
+        print()
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:300]}")
+        dl_url = resp.json().get("browser_download_url", "")
+        ok(f"Завантажено → {dl_url}")
+        return
+    except ImportError:
+        pass   # requests не встановлений — використовуємо urllib
 
-    print()
-    resp = conn.getresponse()
-    body = resp.read().decode("utf-8", errors="replace")
-    if resp.status not in (200, 201):
-        raise RuntimeError(f"Upload HTTP {resp.status}: {body[:300]}")
-    dl_url = json.loads(body).get("browser_download_url", "")
-    ok(f"Завантажено → {dl_url}")
+    # Fallback: urllib.request
+    with _ProgressFile(path) as pf:
+        req = urllib.request.Request(url, data=pf, method="POST",
+                                     headers=headers)
+        req.add_unredirected_header("Content-Length", str(size))
+        try:
+            with urllib.request.urlopen(req, context=_SSL, timeout=7200) as r:
+                print()
+                dl_url = json.loads(r.read()).get("browser_download_url", "")
+                ok(f"Завантажено → {dl_url}")
+        except urllib.error.HTTPError as e:
+            print()
+            raise RuntimeError(f"Upload {e.code}: {e.read().decode('utf-8','replace')[:300]}")
 
 def publish(repo, token, version, assets: list[Path]) -> str:
     tag = f"v{version}"
