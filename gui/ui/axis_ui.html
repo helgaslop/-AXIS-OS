@@ -17,6 +17,133 @@
 <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
 <!-- AXIS OS Stylesheet -->
 <link rel="stylesheet" href="css/main.css">
+<style>
+/* ═══ QUICK SEARCH ═══════════════════════════════════════════════════════════ */
+.qs-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 120px;
+}
+.qs-overlay.qs-visible { display: flex; animation: qsFadeIn .12s ease; }
+@keyframes qsFadeIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+
+.qs-box {
+  width: 600px;
+  max-width: calc(100vw - 40px);
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.qs-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #30363d;
+}
+.qs-search-icon { font-size: 18px; flex-shrink: 0; opacity: .6; }
+.qs-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #e6edf3;
+  font-family: inherit;
+}
+.qs-input::placeholder { color: #484f58; }
+.qs-hint-key {
+  font-size: 10px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: #6e7681;
+  flex-shrink: 0;
+}
+.qs-list { max-height: 360px; overflow-y: auto; padding: 6px 0; }
+.qs-cat {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #6e7681;
+  padding: 8px 16px 4px;
+}
+.qs-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background .1s;
+}
+.qs-result:hover, .qs-result.qs-selected { background: rgba(99,102,241,.12); }
+.qs-result-icon { font-size: 16px; flex-shrink: 0; width: 22px; text-align: center; }
+.qs-result-body { flex: 1; min-width: 0; }
+.qs-result-label { font-size: 13px; color: #e6edf3; }
+.qs-result-sub { font-size: 11px; color: #6e7681; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.qs-mark { background: rgba(99,102,241,.3); color: #a5b4fc; border-radius: 2px; padding: 0 1px; }
+.qs-empty { padding: 32px; text-align: center; color: #484f58; font-size: 13px; }
+.qs-footer {
+  display: flex;
+  gap: 16px;
+  padding: 8px 16px;
+  border-top: 1px solid #30363d;
+  background: #0d1117;
+}
+.qs-footer span { font-size: 11px; color: #6e7681; }
+.qs-footer kbd { background: #21262d; border: 1px solid #30363d; border-radius: 4px; padding: 1px 5px; font-size: 10px; color: #8b949e; }
+
+/* ═══ NOTIFICATION CENTER ════════════════════════════════════════════════════ */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid transparent;
+  transition: background .15s;
+}
+.notif-item:hover { background: rgba(255,255,255,.06); }
+.notif-item.notif-unread { border-color: rgba(99,102,241,.2); background: rgba(99,102,241,.06); }
+.notif-cat-dot {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  margin-top: 1px;
+  opacity: .85;
+}
+.notif-body { flex: 1; min-width: 0; }
+.notif-msg { font-size: 12px; color: #e6edf3; line-height: 1.4; word-break: break-word; }
+.notif-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.notif-badge { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,.08); color: #8b949e; }
+.notif-cat-ok { background: rgba(34,197,94,.12); color: #86efac; }
+.notif-cat-error { background: rgba(239,68,68,.12); color: #fca5a5; }
+.notif-cat-warning { background: rgba(245,158,11,.12); color: #fcd34d; }
+.notif-cat-ai { background: rgba(99,102,241,.15); color: #a5b4fc; }
+.notif-cat-update { background: rgba(59,130,246,.12); color: #93c5fd; }
+.notif-ts { font-size: 10px; color: #6e7681; }
+.notif-del { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; transition: color .15s; }
+.notif-del:hover { color: #ef4444; }
+.notif-empty { padding: 32px; text-align: center; color: #484f58; font-size: 13px; }
+</style>
 </head>
 <body>
 
@@ -47,6 +174,37 @@
   </div>
 </div>
 
+<!-- QUICK SEARCH OVERLAY -->
+<div id="quickSearch" class="qs-overlay" onclick="qsOverlayClick(event)">
+  <div class="qs-box">
+    <div class="qs-input-wrap">
+      <span class="qs-search-icon">🔍</span>
+      <input id="qsInput" class="qs-input" placeholder="Пошук сторінок, команд, макросів..." autocomplete="off"
+             oninput="qsOnInput(this.value)" onkeydown="qsKeyDown(event)">
+      <span class="qs-hint-key">Esc</span>
+    </div>
+    <div id="qsList" class="qs-list"></div>
+    <div class="qs-footer">
+      <span><kbd>↑↓</kbd> навігація</span>
+      <span><kbd>Enter</kbd> відкрити</span>
+      <span><kbd>Esc</kbd> закрити</span>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div id="notifPanel" style="display:none;position:fixed;top:56px;right:54px;width:340px;max-height:480px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;z-index:9900;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.55);">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <span style="font-size:13px;font-weight:700;color:var(--text);">🔔 Сповіщення</span>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-sm btn-d" style="font-size:10px;padding:3px 8px;" onclick="clearAllNotifs()">Очистити все</button>
+      <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;" onclick="toggleNotifPanel()">✕</button>
+    </div>
+  </div>
+  <div id="notifList" style="overflow-y:auto;flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:4px;"></div>
+  <div style="padding:6px 12px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);flex-shrink:0;">Зберігається останніх 50 сповіщень</div>
+</div>
+
 <!-- SIDEBAR -->
 <div class="sidebar">
   <div class="logo">
@@ -66,7 +224,9 @@
   <div class="nav-btn" data-page="commands"><span class="ico">📋</span>Команди</div>
   <div class="nav-btn" data-page="macros"><span class="ico">⚡</span>Автоматизація</div>
   <div class="nav-btn" data-page="network"><span class="ico">📝</span>Нотатки</div>
+  <div class="nav-btn" data-page="pomodoro"><span class="ico">🍅</span>Помодоро</div>
   <div class="nav-sect">Система</div>
+  <div class="nav-btn" data-page="processes"><span class="ico">⚙</span>Процеси</div>
   <div class="nav-btn" data-page="api"><span class="ico">🔑</span>API Ключі</div>
   <div class="nav-btn" data-page="settings"><span class="ico">⚙</span>Налаштування</div>
   <div class="nav-btn" data-page="logs"><span class="ico">📋</span>Логи</div>
@@ -95,6 +255,13 @@
     </div>
     <div class="header-status">● ONLINE</div>
     <div class="hbtn" onclick="showPalette()" title="⌘K">⌘K</div>
+    <div class="hbtn" onclick="openQuickSearch()" title="Швидкий пошук (Ctrl+Space)" style="font-size:14px;">🔍</div>
+    <!-- NOTIFICATION BELL -->
+    <div class="hbtn" id="notifBellBtn" onclick="toggleNotifPanel()" title="Сповіщення" style="position:relative;">
+      🔔
+      <span id="notifBadge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:8px;align-items:center;justify-content:center;padding:0 3px;line-height:1;"></span>
+    </div>
+    <div class="hbtn" id="themeToggleBtn" onclick="toggleTheme()" title="Тема">🌙</div>
     <div class="hbtn" onclick="toggleClipPanel()" title="Буфер обміну 📋" style="position:relative;">📋</div>
     <div class="hbtn" onclick="pyCall('minimize')" title="Згорнути">─</div>
     <div class="hbtn" onclick="pyCall('maximize')" title="Розгорнути">□</div>
@@ -104,126 +271,303 @@
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="dash-layout">
-        <div style="overflow-y:auto;">
-          <div class="dash-hero">
-            <div class="hex-orb-wrap" onclick="showPage('chat')">
-              <div class="hex-glow"></div>
-              <div class="hex-orb"></div>
-              <div class="hex-particles">
-                <div class="hex-p"></div><div class="hex-p"></div><div class="hex-p"></div>
-                <div class="hex-p"></div><div class="hex-p"></div>
+      <!-- Quick access bar -->
+      <div class="quick-grid" style="margin-bottom:16px;">
+        <div class="quick-card" onclick="showPage('chat')"><span class="qico">💬</span><span class="qlbl">AI Чат</span></div>
+        <div class="quick-card" onclick="showPage('ide')"><span class="qico">💻</span><span class="qlbl">IDE</span></div>
+        <div class="quick-card" onclick="showPage('agents')"><span class="qico">🤖</span><span class="qlbl">Агенти</span></div>
+        <div class="quick-card" onclick="showPage('macros')"><span class="qico">⚡</span><span class="qlbl">Макроси</span></div>
+        <div class="quick-card" onclick="showPage('pomodoro')"><span class="qico">🍅</span><span class="qlbl">Помодоро</span></div>
+        <div class="quick-card" onclick="showPage('processes')"><span class="qico">⚙</span><span class="qlbl">Процеси</span></div>
+      </div>
+      <!-- Widget grid — drag & drop -->
+      <div class="widget-grid" id="widgetGrid">
+
+        <!-- WIDGET: Clock -->
+        <div class="widget-card" data-widget="clock">
+          <div class="widget-header">
+            <span class="widget-title">🕐 Годинник</span>
+            <div class="widget-btns">
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('clock')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div id="wClockGreet" style="font-size:11px;color:var(--text3);margin-bottom:4px;">Доброго дня</div>
+            <div id="wClockTime" style="font-size:36px;font-weight:900;font-family:var(--mono);color:var(--accent);line-height:1;">--:--:--</div>
+            <div id="wClockDate" style="font-size:12px;color:var(--text2);margin-top:4px;text-transform:capitalize;">—</div>
+          </div>
+        </div>
+
+        <!-- WIDGET: System Monitor -->
+        <div class="widget-card" data-widget="sysmonitor">
+          <div class="widget-header">
+            <span class="widget-title">📊 Система</span>
+            <div class="widget-btns">
+              <button class="widget-btn" onclick="widgetRefresh('sysmonitor')" title="Оновити">↺</button>
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('sysmonitor')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+                  <span style="color:var(--text3)">CPU</span>
+                  <span id="cpuVal" style="color:var(--accent);font-weight:700;font-family:var(--mono);">—</span>
+                </div>
+                <div class="prog"><div class="prog-bar prog-green" id="cpuBar" style="width:0%"></div></div>
               </div>
-              <span class="hex-orb-text">AXIS</span>
-            </div>
-            <div class="dash-name">Вітаємо в AXIS OS</div>
-            <div class="dash-sub">AI OPERATING SYSTEM · v1.0</div>
-            <div class="dash-last" id="dashLast">Система готова до роботи</div>
-            <div class="quick-grid">
-              <div class="quick-card" onclick="showPage('chat')"><span class="qico">💬</span><span class="qlbl">AI Чат</span></div>
-              <div class="quick-card" onclick="showPage('ide')"><span class="qico">💻</span><span class="qlbl">IDE</span></div>
-              <div class="quick-card" onclick="showPage('agents')"><span class="qico">🤖</span><span class="qlbl">Агенти</span></div>
-              <div class="quick-card" onclick="showPage('macros')"><span class="qico">⚡</span><span class="qlbl">Макроси</span></div>
-            </div>
-          </div>
-          <div class="grid g2" style="margin-top:16px;">
-            <div class="card">
-              <div class="card-title"><span class="card-title-dot"></span>CPU</div>
-              <div class="stat-val" id="cpuVal">—</div>
-              <div class="stat-sub" id="cpuSub">Процесор</div>
-              <div class="prog"><div class="prog-bar prog-green" id="cpuBar" style="width:0%"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-title"><span class="card-title-dot" style="background:var(--indigo)"></span>RAM</div>
-              <div class="stat-val" id="ramVal" style="color:var(--indigo)">—</div>
-              <div class="stat-sub" id="ramSub">Оперативна пам'ять</div>
-              <div class="prog"><div class="prog-bar prog-indigo" id="ramBar" style="width:0%"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-title"><span class="card-title-dot" style="background:var(--orange)"></span>Диск</div>
-              <div class="stat-val" id="diskVal" style="color:var(--orange)">—</div>
-              <div class="stat-sub" id="diskSub">Зберігання</div>
-              <div class="prog"><div class="prog-bar prog-orange" id="diskBar" style="width:0%"></div></div>
-            </div>
-            <div class="card">
-              <div class="card-title"><span class="card-title-dot" style="background:var(--cyan)"></span>Мережа</div>
-              <div class="stat-val" id="netVal" style="color:var(--cyan)">—</div>
-              <div class="stat-sub">Трафік</div>
-              <div class="prog"><div class="prog-bar" style="background:linear-gradient(90deg,var(--cyan),var(--indigo));width:40%"></div></div>
-            </div>
-          </div>
-          <!-- RECENT COMMANDS -->
-          <div class="card" style="margin-top:16px;">
-            <div class="card-title" style="justify-content:space-between;">
-              <span><span class="card-title-dot" style="background:var(--orange)"></span>⚡ Нещодавні команди</span>
-              <button class="btn btn-sm" style="font-size:10px;padding:2px 8px;" onclick="showPage('commands')">Всі →</button>
-            </div>
-            <div id="recentCmdsList" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
-              <div style="font-size:11px;color:var(--text3);padding:6px 0;">Ще немає запусків — використайте команди</div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+                  <span style="color:var(--text3)">RAM</span>
+                  <span id="ramVal" style="color:var(--indigo);font-weight:700;font-family:var(--mono);">—</span>
+                </div>
+                <div class="prog"><div class="prog-bar prog-indigo" id="ramBar" style="width:0%"></div></div>
+                <div id="ramSub" style="font-size:9px;color:var(--text3);margin-top:2px;"></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+                  <span style="color:var(--text3)">Диск</span>
+                  <span id="diskVal" style="color:var(--orange);font-weight:700;font-family:var(--mono);">—</span>
+                </div>
+                <div class="prog"><div class="prog-bar prog-orange" id="diskBar" style="width:0%"></div></div>
+                <div id="diskSub" style="font-size:9px;color:var(--text3);margin-top:2px;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;">
+                <span style="color:var(--text3)">Мережа ↓</span>
+                <span id="netVal" style="color:var(--cyan);font-weight:700;font-family:var(--mono);">—</span>
+              </div>
             </div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <!-- МЕДІА КОНТРОЛІ -->
-          <div class="card" id="mediaCard">
-            <div class="card-title" style="justify-content:space-between;">
-              <span><span class="card-title-dot" style="background:#1db954"></span>🎵 Медіа</span>
-              <div style="display:flex;gap:4px;">
-                <button class="media-src-btn active" id="mediaSrcYt"  onclick="switchMediaSrc('yt')"  style="font-size:9px;padding:2px 7px;">▶ YouTube</button>
-                <button class="media-src-btn"        id="mediaSrcSpt" onclick="switchMediaSrc('spt')" style="font-size:9px;padding:2px 7px;">🎵 Spotify</button>
+
+        <!-- WIDGET: Weather -->
+        <div class="widget-card" data-widget="weather" id="weatherCard">
+          <div class="widget-header">
+            <span class="widget-title">🌤 Погода <span id="weatherCity" style="font-size:9px;color:var(--text3);font-weight:400;"></span></span>
+            <div class="widget-btns">
+              <button class="widget-btn" onclick="widgetRefresh('weather')" title="Оновити">↺</button>
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('weather')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div id="weatherBody" style="display:flex;align-items:center;gap:12px;">
+              <div id="weatherIcon" style="font-size:36px;line-height:1;">⏳</div>
+              <div>
+                <div id="weatherTemp" style="font-size:24px;font-weight:700;color:var(--accent);">—</div>
+                <div id="weatherDesc" style="font-size:11px;color:var(--text2);margin-top:2px;">Завантаження...</div>
+                <div id="weatherWind" style="font-size:10px;color:var(--text3);margin-top:2px;"></div>
               </div>
             </div>
-            <!-- Now playing display -->
-            <div id="mediaNowPlaying" style="display:flex;align-items:center;gap:10px;padding:6px 0 4px;">
-              <div id="mediaThumb" style="width:44px;height:44px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎵</div>
+            <div id="weatherForecast" style="display:flex;gap:6px;margin-top:8px;"></div>
+          </div>
+        </div>
+
+        <!-- WIDGET: Quick Notes -->
+        <div class="widget-card" data-widget="quicknotes">
+          <div class="widget-header">
+            <span class="widget-title">📝 Нотатки</span>
+            <div class="widget-btns">
+              <button class="widget-btn" onclick="widgetRefresh('quicknotes')" title="Оновити">↺</button>
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('quicknotes')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <textarea id="widgetNoteArea" placeholder="Швидкі нотатки... (автозбереження)" oninput="widgetNoteInput(this)" style="width:100%;height:100px;resize:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;transition:border-color .2s;"></textarea>
+          </div>
+        </div>
+
+        <!-- WIDGET: Pomodoro mini -->
+        <div class="widget-card" data-widget="pomodoro-mini">
+          <div class="widget-header">
+            <span class="widget-title">🍅 Помодоро</span>
+            <div class="widget-btns">
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('pomodoro-mini')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body" style="text-align:center;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:6px;" id="wPomStatus">🍅 Натисни для запуску</div>
+            <button class="btn btn-p" style="width:100%;font-size:13px;" onclick="showPage('pomodoro')">Відкрити таймер →</button>
+          </div>
+        </div>
+
+        <!-- WIDGET: Recent Commands -->
+        <div class="widget-card" data-widget="recentcmds">
+          <div class="widget-header">
+            <span class="widget-title">⚡ Нещодавні команди</span>
+            <div class="widget-btns">
+              <button class="widget-btn" onclick="widgetRefresh('recentcmds')" title="Оновити">↺</button>
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('recentcmds')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div id="wRecentCmds"></div>
+            <button class="btn btn-sm" style="width:100%;margin-top:8px;font-size:10px;" onclick="showPage('commands')">Всі команди →</button>
+          </div>
+        </div>
+
+        <!-- WIDGET: Activity -->
+        <div class="widget-card" data-widget="activity">
+          <div class="widget-header">
+            <span class="widget-title">📡 Активність</span>
+            <div class="widget-btns">
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('activity')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div id="activityFeed"></div>
+          </div>
+        </div>
+
+        <!-- WIDGET: TODO -->
+        <div class="widget-card" data-widget="todo">
+          <div class="widget-header">
+            <span class="widget-title">✅ Завдання</span>
+            <div class="widget-btns">
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('todo')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+              <input id="todoInput" placeholder="Нове завдання..." style="flex:1;padding:5px 10px;font-size:12px;" onkeydown="if(event.key==='Enter')addTodo()">
+              <button class="btn btn-sm" onclick="addTodo()" style="padding:5px 10px;flex-shrink:0;">+</button>
+            </div>
+            <div id="todoList" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;"></div>
+          </div>
+        </div>
+
+        <!-- WIDGET: Media -->
+        <div class="widget-card" data-widget="media" id="mediaCard">
+          <div class="widget-header">
+            <span class="widget-title">🎵 Медіа</span>
+            <div class="widget-btns">
+              <button class="widget-btn widget-min-btn" onclick="toggleWidgetMinimize('media')" title="Згорнути">▲</button>
+            </div>
+          </div>
+          <div class="widget-body">
+            <div id="mediaNowPlaying" style="display:flex;align-items:center;gap:10px;padding:4px 0;">
+              <div id="mediaThumb" style="width:40px;height:40px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🎵</div>
               <div style="min-width:0;flex:1;">
                 <div id="mediaTitle" style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Нічого не грає</div>
                 <div id="mediaArtist" style="font-size:10px;color:var(--text3);margin-top:1px;">—</div>
               </div>
             </div>
-            <!-- Controls -->
-            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaPrev()" title="Назад">⏮</button>
-              <button class="btn btn-sm" id="mediaPlayBtn" style="flex:1;font-size:14px;background:rgba(29,185,84,.12);color:#1db954;border-color:rgba(29,185,84,.3);" onclick="mediaPlayPause()" title="Грати/Пауза">⏯</button>
-              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaNext()" title="Далі">⏭</button>
-              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaVolDown()" title="Тихіше">🔉</button>
-              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaVolUp()" title="Гучніше">🔊</button>
+            <div style="display:flex;align-items:center;gap:5px;margin-top:6px;">
+              <button class="btn btn-sm" style="flex:1;font-size:13px;" onclick="mediaPrev()">⏮</button>
+              <button class="btn btn-sm" id="mediaPlayBtn" style="flex:1;font-size:13px;background:rgba(29,185,84,.12);color:#1db954;border-color:rgba(29,185,84,.3);" onclick="mediaPlayPause()">⏯</button>
+              <button class="btn btn-sm" style="flex:1;font-size:13px;" onclick="mediaNext()">⏭</button>
+              <button class="btn btn-sm" style="flex:1;font-size:13px;" onclick="mediaVolDown()">🔉</button>
+              <button class="btn btn-sm" style="flex:1;font-size:13px;" onclick="mediaVolUp()">🔊</button>
             </div>
-            <!-- Quick links -->
-            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
-              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenYt()">▶ YouTube</button>
-              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenSpotify()">🎵 Spotify</button>
-              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenYtMusic()">🎶 YT Music</button>
+            <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="font-size:9px;" onclick="mediaOpenYt()">▶ YouTube</button>
+              <button class="btn btn-sm" style="font-size:9px;" onclick="mediaOpenSpotify()">🎵 Spotify</button>
+              <button class="btn btn-sm" style="font-size:9px;" onclick="mediaOpenYtMusic()">🎶 YT Music</button>
             </div>
-          </div>
-          <!-- ПОГОДА -->
-          <div class="card" id="weatherCard">
-            <div class="card-title"><span class="card-title-dot" style="background:var(--cyan)"></span>🌤 Погода <span id="weatherCity" style="font-size:10px;color:var(--text3);margin-left:4px;"></span></div>
-            <div id="weatherBody" style="display:flex;align-items:center;gap:16px;padding:6px 0;">
-              <div id="weatherIcon" style="font-size:40px;line-height:1;">⏳</div>
-              <div>
-                <div id="weatherTemp" style="font-size:26px;font-weight:700;color:var(--accent);">—</div>
-                <div id="weatherDesc" style="font-size:12px;color:var(--text2);margin-top:2px;">Завантаження...</div>
-                <div id="weatherWind" style="font-size:11px;color:var(--text3);margin-top:2px;"></div>
-              </div>
-            </div>
-            <div id="weatherForecast" style="display:flex;gap:8px;margin-top:4px;"></div>
-          </div>
-          <!-- АКТИВНІСТЬ -->
-          <div class="card">
-            <div class="card-title"><span class="card-title-dot"></span>Активність</div>
-            <div id="activityFeed"></div>
-          </div>
-          <!-- TODO -->
-          <div class="card">
-            <div class="card-title"><span class="card-title-dot" style="background:var(--indigo)"></span>✅ Завдання</div>
-            <div style="display:flex;gap:6px;margin-bottom:8px;">
-              <input id="todoInput" placeholder="Нове завдання..." style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:12px;outline:none;" onkeydown="if(event.key==='Enter')addTodo()">
-              <button class="btn btn-sm" onclick="addTodo()" style="padding:5px 10px;">+</button>
-            </div>
-            <div id="todoList" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;"></div>
           </div>
         </div>
+
+      </div><!-- /widget-grid -->
+
+      <!-- Keep legacy IDs for dashboard.js compatibility (hidden) -->
+      <div style="display:none;">
+        <span id="cpuSub"></span>
+        <span id="diskSub"></span>
+        <span id="recentCmdsList"></span>
+      </div>
+    </div>
+
+    <!-- POMODORO -->
+    <div class="page" id="page-pomodoro">
+      <div style="max-width:560px;margin:0 auto;padding:10px 0;">
+        <!-- Mode buttons -->
+        <div style="display:flex;gap:8px;margin-bottom:20px;justify-content:center;">
+          <button class="btn btn-sm pom-mode-btn active" id="pomMode_work"  onclick="pomSetMode('work')"  style="min-width:110px;">🍅 Робота (25 хв)</button>
+          <button class="btn btn-sm pom-mode-btn"        id="pomMode_short" onclick="pomSetMode('short')" style="min-width:110px;">☕ Перерва (5 хв)</button>
+          <button class="btn btn-sm pom-mode-btn"        id="pomMode_long"  onclick="pomSetMode('long')"  style="min-width:130px;">🛋 Довга (15 хв)</button>
+        </div>
+        <!-- Timer circle -->
+        <div style="display:flex;justify-content:center;margin-bottom:20px;">
+          <div style="position:relative;width:220px;height:220px;">
+            <svg width="220" height="220" viewBox="0 0 220 220" style="transform:rotate(-90deg);">
+              <circle cx="110" cy="110" r="90" fill="none" stroke="var(--border)" stroke-width="10"/>
+              <circle cx="110" cy="110" r="90" fill="none" stroke="var(--accent)" stroke-width="10"
+                      stroke-linecap="round" id="pomArc"
+                      style="stroke-dasharray:565;stroke-dashoffset:0;transition:stroke-dashoffset .5s ease, stroke .3s;"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+              <div id="pomModeLabel" style="font-size:11px;color:var(--text3);">🍅 Робота</div>
+              <div id="pomTimerDisplay" style="font-size:48px;font-weight:900;font-family:var(--mono);color:var(--text);line-height:1;">25:00</div>
+              <div style="font-size:10px;color:var(--text3);">Space — старт/пауза</div>
+            </div>
+          </div>
+        </div>
+        <!-- Task input -->
+        <div style="margin-bottom:16px;">
+          <input id="pomTaskInput" placeholder="Над чим ти працюєш? (необов'язково)" style="text-align:center;font-size:13px;">
+        </div>
+        <!-- Controls -->
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;">
+          <button class="btn btn-p" id="pomStartBtn" onclick="pomStartPause()" style="min-width:130px;font-size:14px;padding:10px 20px;">▶ Старт</button>
+          <button class="btn" onclick="pomReset()" style="padding:10px 20px;font-size:13px;">↺ Скинути</button>
+        </div>
+        <!-- Session progress dots -->
+        <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:16px;">
+          <span style="font-size:11px;color:var(--text3);margin-right:4px;">Сесія:</span>
+          <div id="pomSessionDots" style="display:flex;gap:8px;align-items:center;"></div>
+          <span style="font-size:10px;color:var(--text3);margin-left:4px;">→ Довга перерва</span>
+        </div>
+        <!-- Stats cards -->
+        <div class="grid g2" style="margin-top:8px;">
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;margin-bottom:6px;">Сьогодні</div>
+            <div id="pomTodayCount" style="font-size:36px;font-weight:900;color:var(--accent);font-family:var(--mono);">0</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">помодоро 🍅</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;margin-bottom:6px;">Фокус сьогодні</div>
+            <div id="pomTodayMinutes" style="font-size:36px;font-weight:900;color:var(--indigo);font-family:var(--mono);">0 хв</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:4px;">загальний час</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCESSES -->
+    <div class="page" id="page-processes">
+      <!-- Toolbar -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <input id="procSearchInp" placeholder="🔍 Пошук (назва або PID)..." oninput="procFilter(this.value)" style="max-width:260px;font-size:12px;padding:7px 12px;">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="btn btn-sm proc-cat-btn active" onclick="procSetCat(this,'all')">🌐 Всі</button>
+          <button class="btn btn-sm proc-cat-btn" onclick="procSetCat(this,'system')">🖥 Система</button>
+          <button class="btn btn-sm proc-cat-btn" onclick="procSetCat(this,'browsers')">🌍 Браузери</button>
+          <button class="btn btn-sm proc-cat-btn" onclick="procSetCat(this,'games')">🎮 Ігри</button>
+          <button class="btn btn-sm proc-cat-btn" onclick="procSetCat(this,'dev')">💻 Dev</button>
+          <button class="btn btn-sm proc-cat-btn" onclick="procSetCat(this,'other')">📦 Інші</button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <span id="procCount" style="font-size:11px;color:var(--text3);">0 процесів</span>
+          <button class="btn btn-sm" onclick="procRefreshNow()">↺ Оновити</button>
+        </div>
+      </div>
+      <!-- Table -->
+      <div style="overflow-x:auto;">
+        <table id="procTable" style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="border-bottom:2px solid var(--border);">
+              <th data-col="name"   class="proc-th" onclick="procSortBy('name')"   style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;cursor:pointer;white-space:nowrap;">Назва <span class="sort-arrow"></span></th>
+              <th data-col="pid"    class="proc-th" onclick="procSortBy('pid')"    style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;cursor:pointer;">PID <span class="sort-arrow"></span></th>
+              <th data-col="cpu"    class="proc-th" onclick="procSortBy('cpu')"    style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;cursor:pointer;">CPU% <span class="sort-arrow"> ▼</span></th>
+              <th data-col="ram"    class="proc-th" onclick="procSortBy('ram')"    style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;cursor:pointer;">RAM (MB) <span class="sort-arrow"></span></th>
+              <th data-col="status" class="proc-th" onclick="procSortBy('status')" style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;cursor:pointer;">Статус <span class="sort-arrow"></span></th>
+              <th style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;">Категорія</th>
+              <th style="text-align:left;padding:7px 8px;color:var(--text3);font-weight:700;">Дія</th>
+            </tr>
+          </thead>
+          <tbody id="procTableBody">
+            <tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px 0;">Завантаження...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -1134,6 +1478,7 @@
           <div class="snav-item" onclick="showSSet(this,'sset-theme')"><span class="snav-ico">🎨</span>Вигляд</div>
           <div class="snav-divider"></div>
           <div class="snav-item" onclick="showSSet(this,'sset-data')"><span class="snav-ico">📊</span>Дані</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-backup')"><span class="snav-ico">💾</span>Резервна копія</div>
           <div class="snav-item" onclick="showSSet(this,'sset-about')"><span class="snav-ico">ℹ</span>Про систему</div>
         </div>
 
@@ -1799,6 +2144,50 @@
             </div>
           </div>
 
+          <!-- BACKUP / RESTORE -->
+          <div class="sset" id="sset-backup">
+            <div class="sgroup">
+              <div class="sgroup-title">💾 Резервна копія</div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.7;">
+                Зберігає та відновлює ваші налаштування, команди та макроси у вигляді ZIP-архіву.
+              </div>
+              <!-- WHAT'S INCLUDED -->
+              <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">📦 Що входить у бекап</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><span style="color:#22c55e;">✓</span>data/config.json</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><span style="color:#22c55e;">✓</span>data/commands.json</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><span style="color:#22c55e;">✓</span>data/macros.json</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><span style="color:#22c55e;">✓</span>data/user_commands.json</div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);"><span style="color:#22c55e;">✓</span>data/sphere_config.json</div>
+                </div>
+              </div>
+              <!-- EXPORT -->
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.4px;">⬇ Експорт</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <button class="btn btn-p" onclick="exportBackup()" style="font-size:13px;padding:8px 20px;">
+                    ⬇ Експортувати налаштування
+                  </button>
+                  <span id="backupExportStatus" style="font-size:11px;color:var(--text3);"></span>
+                </div>
+                <div style="font-size:10px;color:var(--text3);margin-top:6px;">Архів буде збережено на Робочому столі як <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">AXIS_OS_backup_ДАТА.zip</code></div>
+              </div>
+              <!-- IMPORT -->
+              <div style="border-top:1px solid var(--border);padding-top:14px;">
+                <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.4px;">⬆ Імпорт</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <button class="btn" onclick="R('backupImportFile').click()" style="font-size:13px;padding:8px 20px;">
+                    ⬆ Імпортувати налаштування
+                  </button>
+                  <input type="file" id="backupImportFile" accept=".zip" style="display:none" onchange="importBackup(this)">
+                  <span id="backupImportStatus" style="font-size:11px;color:var(--text3);"></span>
+                </div>
+                <div style="font-size:10px;color:var(--text3);margin-top:6px;">⚠ Поточні файли будуть перезаписані. Рекомендується спочатку зробити бекап.</div>
+              </div>
+            </div>
+          </div>
+
           <!-- ABOUT -->
           <div class="sset" id="sset-about">
             <div class="sgroup">
@@ -2015,7 +2404,13 @@
 
 <!-- AXIS OS Scripts — load order matters -->
 <script src="js/utils.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/quicksearch.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/widgets.js"></script>
+<script src="js/pomodoro.js"></script>
+<script src="js/processes.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/ide.js"></script>
 <script src="js/commands.js"></script>
@@ -2025,5 +2420,56 @@
 <script src="js/notes.js"></script>
 <script src="js/spotify_player.js"></script>
 <script src="js/app.js"></script>
+<script>
+// ── Settings Backup / Restore ───────────────────────────────────────────────
+function exportBackup() {
+  var st = R('backupExportStatus');
+  if (st) st.textContent = '⏳ Створення архіву...';
+  pyCall('export_backup', '{}');
+}
+
+function importBackup(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var st = R('backupImportStatus');
+  if (st) st.textContent = '⏳ Відновлення...';
+  // Pass file path to Python — WebEngine exposes file.path or use the name as a hint
+  // We use a FileReader to get the base64 content and send it
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    pyCall('import_backup', JSON.stringify({ filename: file.name, data: b64 }));
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+// Register push handlers for backup results
+(function() {
+  var _origPush2 = window.axisPush;
+  window.axisPush = function(type, jsonStr) {
+    _origPush2 && _origPush2(type, jsonStr);
+    try {
+      var d = JSON.parse(jsonStr);
+      if (type === 'backup_status') {
+        var op = d.op || '';
+        var msg = d.msg || '';
+        if (op === 'export') {
+          var st = R('backupExportStatus');
+          if (st) st.textContent = msg;
+        } else if (op === 'import') {
+          var st2 = R('backupImportStatus');
+          if (st2) st2.textContent = msg;
+          if (d.ok) {
+            // Reload config after import
+            pyCall('get_sphere');
+          }
+        }
+      }
+    } catch(e) {}
+  };
+})();
+</script>
 </body>
 </html>

@@ -115,6 +115,8 @@ window.axisPush = function(type, jsonStr) {
       spotify_track:   function(x) { if(typeof handleSpotifyTrack==='function') handleSpotifyTrack(x); },
       spotify_search:  function(x) { if(typeof handleSpotifySearch==='function') handleSpotifySearch(x); },
       log_line:        function(x) { appendLog(x.level, x.msg); },
+      search_results:  function(x) { if(typeof handleQuickSearchResults==='function') handleQuickSearchResults(x); },
+      backup_status:   function(x) { /* handled inline in HTML script block */ },
     };
     if (map[type]) map[type](d);
   } catch(e) { console.error('axisPush:', e); }
@@ -199,8 +201,8 @@ setInterval(updateClock, 1000); updateClock();
 })();
 
 // ═══ NAVIGATION ═══
-var pageTitles={dashboard:'Головна',monitor:'Системний монітор',agents:'AI Агенти',chat:'AI Чат',ide:'IDE',generator:'AI Генератор',music:'Музика',commands:'Команди',macros:'Автоматизація',network:'Нотатки',api:'API Ключі',settings:'Налаштування',logs:'Системні логи'};
-var pageSubs={dashboard:'/ Огляд системи',monitor:'/ Продуктивність',agents:'/ Платформа для програмування',chat:'/ Діалог з AI',ide:'/ Розробка',generator:'/ Генерація проектів',music:'/ Spotify плеєр',commands:'/ Управління командами',macros:'/ Задачі та макроси',network:'/ Записи та ідеї',api:'/ Ключі доступу',settings:'/ Конфігурація',logs:'/ Python stdout & stderr'};
+var pageTitles={dashboard:'Головна',monitor:'Системний монітор',agents:'AI Агенти',chat:'AI Чат',ide:'IDE',generator:'AI Генератор',music:'Музика',commands:'Команди',macros:'Автоматизація',network:'Нотатки',api:'API Ключі',settings:'Налаштування',logs:'Системні логи',pomodoro:'Помодоро',processes:'Менеджер процесів'};
+var pageSubs={dashboard:'/ Огляд системи',monitor:'/ Продуктивність',agents:'/ Платформа для програмування',chat:'/ Діалог з AI',ide:'/ Розробка',generator:'/ Генерація проектів',music:'/ Spotify плеєр',commands:'/ Управління командами',macros:'/ Задачі та макроси',network:'/ Записи та ідеї',api:'/ Ключі доступу',settings:'/ Конфігурація',logs:'/ Python stdout & stderr',pomodoro:'/ Фокус та продуктивність',processes:'/ Запущені процеси'};
 
 function showPage(id){
   document.querySelectorAll('.page,.page-flex').forEach(function(p){ p.classList.remove('active'); });

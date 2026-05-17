@@ -16,6 +16,7 @@ from .handlers import (
     SttTtsHandlerMixin,
     IdeHandlerMixin,
     SpotifyHandlerMixin,
+    DashboardHandlerMixin,
 )
 
 
@@ -27,6 +28,7 @@ class AxisBridge(
     SttTtsHandlerMixin,
     IdeHandlerMixin,
     SpotifyHandlerMixin,
+    DashboardHandlerMixin,
     QObject,
 ):
     """All JS calls come through pyCall(cmd, data).
@@ -122,6 +124,20 @@ class AxisBridge(
             # Updater (GitHub)
             "check_github_update":      self._check_github_update,
             "download_github_update":   self._download_github_update,
+            # Process Manager
+            "get_processes":            self._get_processes,
+            "kill_process":             self._kill_process,
+            # Pomodoro
+            "save_pomodoro_stat":       self._save_pomodoro_stat,
+            "get_pomodoro_stats":       self._get_pomodoro_stats,
+            # Quick Notes
+            "save_quick_notes":         self._save_quick_notes,
+            "get_quick_notes":          self._get_quick_notes,
+            # Quick Search
+            "search_quick":             self._search_quick,
+            # Settings Backup/Restore
+            "export_backup":            self._export_backup,
+            "import_backup":            self._import_backup,
         }
 
         fn = handlers.get(cmd)

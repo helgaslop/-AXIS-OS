@@ -1904,6 +1904,13 @@ SPHERE_CONFIG_DEFAULTS = {
     "sphere_particles":      True,
     "sphere_particle_count": 20,            # 5–50
     "sphere_autostart":      True,
+    # Ollama offline fallback
+    "ollama_model":          "llama3.2",
+    "ollama_fallback":       True,
+    # Mode profiles
+    "current_mode":          "normal",
+    # Automations
+    "automations":           [],
 }
 
 def load_sphere_config() -> dict:
@@ -3850,6 +3857,247 @@ class TTSThread(QThread):
 # ГОЛОВНА СФЕРА
 # ═══════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════
+# FEATURE: AUTOMATION ENGINE (Chain Triggers)
+# ═══════════════════════════════════════════════════════════
+
+class AutomationEngine:
+    """
+    Рушій автоматизацій — відстежує тригери та запускає ланцюги дій.
+
+    Структура автоматизації (з sphere_config.json, ключ "automations"):
+    {
+        "id": "auto_1",
+        "name": "Назва",
+        "trigger": {"type": "app_launch"|"app_close"|"time"|"voice_trigger"|"pc_idle",
+                    "app": "steam.exe",     # для app_launch/app_close
+                    "time": "09:00",        # для time
+                    "phrase": "слово",      # для voice_trigger
+                    "idle_minutes": 15},    # для pc_idle
+        "actions": [
+            {"type": "mode",  "value": "game"},
+            {"type": "macro", "name": "Назва макросу"},
+            {"type": "spotify", "action": "pause"|"play"},
+            {"type": "speak", "text": "Текст"},
+            {"type": "shell", "command": "notepad"},
+            {"type": "notification", "title": "Заголовок", "message": "Текст"},
+        ],
+        "enabled": true
+    }
+    """
+
+    CHECK_INTERVAL = 10  # seconds between app/idle checks
+
+    def __init__(self, sphere):
+        self._sphere = sphere
+        self._running = False
+        self._thread: threading.Thread | None = None
+        self._running_apps: set = set()
+        self._last_time_triggers: dict = {}  # id → last triggered date
+        self._last_input_check: float = time.time()
+
+    @property
+    def automations(self) -> list:
+        return self._sphere.config.get("automations", [])
+
+    def start(self):
+        """Запустити фоновий моніторинг тригерів."""
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self._thread.start()
+        print("[AutoEngine] Запущено")
+
+    def stop(self):
+        self._running = False
+
+    def _monitor_loop(self):
+        while self._running:
+            try:
+                self._check_app_triggers()
+                self._check_time_triggers()
+                self._check_idle_triggers()
+            except Exception as e:
+                print(f"[AutoEngine] Помилка моніторингу: {e}")
+            time.sleep(self.CHECK_INTERVAL)
+
+    def _get_running_processes(self) -> set:
+        """Повертає set імен запущених процесів (в нижньому регістрі)."""
+        names = set()
+        if HAS_PSUTIL:
+            try:
+                for p in _psutil.process_iter(['name']):
+                    n = (p.info.get('name') or '').lower()
+                    if n:
+                        names.add(n)
+            except Exception:
+                pass
+        elif sys.platform == "win32":
+            try:
+                out = subprocess.check_output(
+                    ["tasklist", "/FO", "CSV", "/NH"],
+                    creationflags=_NO_WINDOW, timeout=5
+                ).decode(errors="replace")
+                import csv, io
+                for row in csv.reader(io.StringIO(out)):
+                    if row:
+                        names.add(row[0].strip('"').lower())
+            except Exception:
+                pass
+        return names
+
+    def _check_app_triggers(self):
+        current_apps = self._get_running_processes()
+        launched = current_apps - self._running_apps
+        closed = self._running_apps - current_apps
+        self._running_apps = current_apps
+
+        for auto in self.automations:
+            if not auto.get("enabled", True):
+                continue
+            trigger = auto.get("trigger", {})
+            t_type = trigger.get("type", "")
+            app_name = (trigger.get("app") or "").lower()
+            if not app_name:
+                continue
+            if t_type == "app_launch" and any(app_name in a for a in launched):
+                print(f"[AutoEngine] Тригер app_launch: {app_name}")
+                self._run_automation(auto)
+            elif t_type == "app_close" and any(app_name in a for a in closed):
+                print(f"[AutoEngine] Тригер app_close: {app_name}")
+                self._run_automation(auto)
+
+    def _check_time_triggers(self):
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
+        today = now.date().isoformat()
+        for auto in self.automations:
+            if not auto.get("enabled", True):
+                continue
+            trigger = auto.get("trigger", {})
+            if trigger.get("type") != "time":
+                continue
+            t_time = trigger.get("time", "")
+            if t_time == current_time:
+                last = self._last_time_triggers.get(auto.get("id", ""))
+                if last != today:
+                    self._last_time_triggers[auto.get("id", "")] = today
+                    print(f"[AutoEngine] Тригер time: {t_time}")
+                    self._run_automation(auto)
+
+    def _check_idle_triggers(self):
+        """Перевірити idle-тригери (тільки Windows)."""
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+            class LASTINPUTINFO(ctypes.Structure):
+                _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+            lii = LASTINPUTINFO()
+            lii.cbSize = ctypes.sizeof(LASTINPUTINFO)
+            ctypes.windll.user32.GetLastInputInfo(ctypes.byref(lii))
+            elapsed_ms = ctypes.windll.kernel32.GetTickCount() - lii.dwTime
+            idle_min = elapsed_ms / 60000.0
+        except Exception:
+            return
+
+        for auto in self.automations:
+            if not auto.get("enabled", True):
+                continue
+            trigger = auto.get("trigger", {})
+            if trigger.get("type") != "pc_idle":
+                continue
+            threshold = float(trigger.get("idle_minutes", 15))
+            auto_id = auto.get("id", "")
+            if idle_min >= threshold:
+                # Only trigger once per idle session (reset when user returns)
+                if not self._last_time_triggers.get(f"idle_{auto_id}"):
+                    self._last_time_triggers[f"idle_{auto_id}"] = True
+                    print(f"[AutoEngine] Тригер pc_idle: {idle_min:.1f} хв")
+                    self._run_automation(auto)
+            else:
+                # User is active — reset idle flag
+                self._last_time_triggers.pop(f"idle_{auto_id}", None)
+
+    def trigger_voice(self, phrase: str):
+        """Перевірити voice_trigger автоматизації. Виклик з on_recognized."""
+        phrase_lower = phrase.lower()
+        for auto in self.automations:
+            if not auto.get("enabled", True):
+                continue
+            trigger = auto.get("trigger", {})
+            if trigger.get("type") != "voice_trigger":
+                continue
+            t_phrase = (trigger.get("phrase") or "").lower()
+            if t_phrase and t_phrase in phrase_lower:
+                print(f"[AutoEngine] Тригер voice_trigger: {t_phrase}")
+                self._run_automation(auto)
+                return True
+        return False
+
+    def _run_automation(self, automation: dict):
+        """Виконати всі дії автоматизації в фоновому потоці."""
+        threading.Thread(
+            target=self._execute_actions,
+            args=(automation,),
+            daemon=True
+        ).start()
+
+    def _execute_actions(self, automation: dict):
+        """Послідовно виконати дії автоматизації."""
+        sphere = self._sphere
+        name = automation.get("name", "Автоматизація")
+        actions = automation.get("actions", [])
+        print(f"[AutoEngine] Запуск '{name}' ({len(actions)} дій)")
+        for action in actions:
+            try:
+                a_type = action.get("type", "")
+                if a_type == "mode":
+                    mode_val = action.get("value", "normal")
+                    # Thread-safe call via Qt signal
+                    sphere._respond_signal.emit(f"_AUTO_MODE_{mode_val}")
+                    # Actually call directly since we're in daemon thread
+                    from PyQt6.QtCore import QTimer as _QT2
+                    _QT2.singleShot(0, lambda m=mode_val: sphere._set_mode(m))
+                elif a_type == "macro":
+                    macro_name = action.get("name", "")
+                    if macro_name:
+                        # Find macro by name and run it
+                        macros = sphere.config.get("macros", [])
+                        if hasattr(sphere, 'macro_engine'):
+                            sphere.macro_engine.run(macro_name)
+                elif a_type == "spotify":
+                    sp_action = action.get("action", "pause")
+                    try:
+                        subprocess.Popen(
+                            ['powershell', '-Command',
+                             '(new-object -com wscript.shell).SendKeys([char]179)'],
+                            creationflags=_NO_WINDOW
+                        )
+                    except Exception:
+                        pass
+                elif a_type == "speak":
+                    speak_text = action.get("text", "")
+                    if speak_text:
+                        sphere._respond_signal.emit(speak_text)
+                elif a_type == "shell":
+                    cmd = action.get("command", "")
+                    if cmd:
+                        subprocess.Popen(cmd, shell=True, creationflags=_NO_WINDOW)
+                elif a_type == "notification":
+                    title = action.get("title", "AIVON")
+                    message = action.get("message", "")
+                    try:
+                        from plyer import notification as _notif
+                        _notif.notify(title=title, message=message, timeout=8)
+                    except Exception:
+                        pass
+                time.sleep(0.3)  # Brief pause between actions
+            except Exception as e:
+                print(f"[AutoEngine] Помилка дії {action}: {e}")
+
+
 class AivonSphere(QWidget):
     IDLE, LISTENING, THINKING, SPEAKING = 0, 1, 2, 3
     # Сигнал для безпечної передачі відповіді з фонового потоку в GUI
@@ -3890,7 +4138,12 @@ class AivonSphere(QWidget):
         self.app_launcher = AppLauncher()
         self.macro_engine = MacroEngine()
         self.memory_enabled = self.config.get("memory_enabled", True)
-        self.reminders = []  # [(datetime, text), ...]
+        self.reminders = []  # [(datetime, reminder_dict), ...] where reminder_dict has keys: text, repeat, repeat_days
+        self._mode = self.config.get("current_mode", "normal")  # normal | work | game | quiet | focus
+
+        # Automation engine — chain triggers
+        self.automation_engine = AutomationEngine(self)
+        self.automation_engine.start()
         
         # ── Axis OS: немає окремого оркестратора ──
         self._orchestrator = None
@@ -4242,9 +4495,24 @@ class AivonSphere(QWidget):
             QMenu::item:selected { background: #00d4ff; color: black; }
         """)
         tray_menu.addAction("🔮 Показати", self.show_orb)
-        tray_menu.addAction("🔇 Тихий режим", self.hide_orb)
+        tray_menu.addAction("🔇 Сховати", self.hide_orb)
         tray_menu.addSeparator()
         tray_menu.addAction("🎛️ Панель керування", self.open_panel)
+        tray_menu.addSeparator()
+
+        # ── Mode submenu ──
+        mode_menu = tray_menu.addMenu("🎭 Режим")
+        mode_menu.setStyleSheet("""
+            QMenu { background: #1a1a2e; color: white; border: 1px solid #333; }
+            QMenu::item:selected { background: #00d4ff; color: black; }
+        """)
+        for _m_key, _m_cfg in self._MODE_CONFIGS.items():
+            _m_label = f"{_m_cfg['icon']} {_m_cfg['label']}"
+            _action = mode_menu.addAction(_m_label)
+            _action.setCheckable(True)
+            _action.setChecked(getattr(self, '_mode', 'normal') == _m_key)
+            # Use default arg to capture loop variable
+            _action.triggered.connect(lambda checked, mk=_m_key: self._set_mode(mk))
         tray_menu.addSeparator()
         # Автозапуск з Windows
         self.autostart_action = tray_menu.addAction("🚀 Автозапуск з Windows")
@@ -5430,6 +5698,10 @@ class AivonSphere(QWidget):
             QTimer.singleShot(1500, self.hide_orb)
             return
         
+        # ── Automation voice_trigger check ──
+        if hasattr(self, 'automation_engine'):
+            self.automation_engine.trigger_voice(text)
+
         print(f"[Cmd] Heard: '{text}' | mode={self.sphere_mode} → routing...")
         
         # ══ ВХІД в режим діалогу ══
@@ -5575,6 +5847,10 @@ class AivonSphere(QWidget):
 
         # ── Нові голосові команди (JARVIS) ──
         if self._handle_jarvis_commands(lower):
+            return
+
+        # ── Режими (work/game/quiet/focus) ──
+        if self._handle_mode_commands(lower):
             return
 
         # ── Нагадування ──
@@ -6120,13 +6396,19 @@ class AivonSphere(QWidget):
             hour = now.hour
             period = "ранок" if hour < 12 else "день" if hour < 18 else "вечір"
             reminders_count = len(self.reminders)
+            recurring_count = sum(
+                1 for e in self.reminders
+                if isinstance(e[1], dict) and e[1].get("repeat")
+            )
             apps_count = len(self.app_launcher.apps)
+            mode_str = getattr(self, '_mode', 'normal')
             report = (
                 f"📊 Звіт дня — {now.strftime('%d.%m.%Y %H:%M')}\n"
                 f"Добрий {period}! Зараз {now.strftime('%H:%M')}.\n"
                 f"Система працює стабільно.\n"
+                f"Режим: {mode_str}.\n"
                 f"Знайдено {apps_count} додатків.\n"
-                f"Активних нагадувань: {reminders_count}."
+                f"Активних нагадувань: {reminders_count} (🔄 {recurring_count} повторюваних)."
             )
             self.jarvis.play("science")
             self.respond_silent(report)
@@ -6157,6 +6439,80 @@ class AivonSphere(QWidget):
             self.respond("Режим ULTRON. Немає ниток... на маріонетці.")
             return True
         
+        # ── Автоматизації ──
+        if any(p in lower for p in ["покажи автоматизації", "список автоматизацій", "automations", "мої автоматизації"]):
+            automations = self.config.get("automations", [])
+            if not automations:
+                self.respond("📋 Автоматизацій немає. Додайте в sphere_config.json.")
+            else:
+                lines = []
+                for a in automations:
+                    enabled = "✅" if a.get("enabled", True) else "❌"
+                    trigger = a.get("trigger", {})
+                    t_type = trigger.get("type", "?")
+                    t_info = trigger.get("app") or trigger.get("time") or trigger.get("phrase") or ""
+                    n_actions = len(a.get("actions", []))
+                    lines.append(f"{enabled} {a.get('name','?')} [{t_type}: {t_info}] → {n_actions} дій")
+                self.respond("🔧 Автоматизації:\n" + "\n".join(lines))
+            return True
+
+        # Вимкнути автоматизацію по імені
+        disable_auto_m = re.search(r'(?:вимкни|disable)\s+автоматизацію\s+(.+)', lower)
+        if disable_auto_m:
+            target_name = disable_auto_m.group(1).strip()
+            automations = self.config.get("automations", [])
+            found = False
+            for a in automations:
+                if target_name.lower() in a.get("name", "").lower():
+                    a["enabled"] = False
+                    found = True
+            if found:
+                try:
+                    save_sphere_config({"automations": automations})
+                    self.config["automations"] = automations
+                except Exception:
+                    pass
+                self.jarvis.play("confirm")
+                self.respond(f"❌ Автоматизацію '{target_name}' вимкнено.")
+            else:
+                self.respond(f"⚠️ Автоматизацію '{target_name}' не знайдено.")
+            return True
+
+        # Увімкнути автоматизацію по імені
+        enable_auto_m = re.search(r'(?:увімкни|enable)\s+автоматизацію\s+(.+)', lower)
+        if enable_auto_m:
+            target_name = enable_auto_m.group(1).strip()
+            automations = self.config.get("automations", [])
+            found = False
+            for a in automations:
+                if target_name.lower() in a.get("name", "").lower():
+                    a["enabled"] = True
+                    found = True
+            if found:
+                try:
+                    save_sphere_config({"automations": automations})
+                    self.config["automations"] = automations
+                except Exception:
+                    pass
+                self.jarvis.play("confirm")
+                self.respond(f"✅ Автоматизацію '{target_name}' увімкнено.")
+            else:
+                self.respond(f"⚠️ Автоматизацію '{target_name}' не знайдено.")
+            return True
+
+        # ── Перевірка Ollama ──
+        if any(p in lower for p in ["перевір ollama", "check ollama", "ollama статус", "ollama status"]):
+            def _ollama_check():
+                available = self._check_ollama_available()
+                model = self.config.get("ollama_model", "llama3.2")
+                if available:
+                    self._respond_signal.emit(f"✅ Ollama доступна. Модель: {model}")
+                else:
+                    self._respond_signal.emit(f"❌ Ollama недоступна (localhost:11434). Запустіть: ollama serve")
+            self.jarvis.play("science")
+            threading.Thread(target=_ollama_check, daemon=True).start()
+            return True
+
         # ── Рандомна фраза ──
         if any(p in lower for p in ["скажи щось", "say something", "рандом", "фраза"]):
             personality = self.config.get("personality", "jarvis")
@@ -6763,27 +7119,181 @@ $w.Stop()
         except Exception:
             pass
     
+    # ═══════════════════════════════════════════════════════════
+    # FEATURE: MODE PROFILES
+    # ═══════════════════════════════════════════════════════════
+
+    _MODE_CONFIGS = {
+        "normal": {
+            "tts_enabled": True,
+            "tts_volume": 1.0,
+            "dnd": False,
+            "verbose": True,
+            "short_responses": False,
+            "label": "Звичайний режим",
+            "icon": "⚪",
+        },
+        "work": {
+            "tts_enabled": True,
+            "tts_volume": 1.0,
+            "dnd": False,
+            "verbose": True,
+            "short_responses": False,
+            "label": "Робочий режим",
+            "icon": "💼",
+        },
+        "game": {
+            "tts_enabled": True,
+            "tts_volume": 0.4,
+            "dnd": True,
+            "verbose": False,
+            "short_responses": True,
+            "label": "Ігровий режим",
+            "icon": "🎮",
+        },
+        "quiet": {
+            "tts_enabled": False,
+            "tts_volume": 0.1,
+            "dnd": True,
+            "verbose": False,
+            "short_responses": True,
+            "label": "Тихий режим",
+            "icon": "🔇",
+        },
+        "focus": {
+            "tts_enabled": True,
+            "tts_volume": 0.7,
+            "dnd": True,
+            "verbose": True,
+            "short_responses": False,
+            "label": "Режим фокусу",
+            "icon": "🎯",
+        },
+    }
+
+    def _set_mode(self, mode: str):
+        """Застосувати профіль режиму — змінює декілька налаштувань одразу."""
+        if mode not in self._MODE_CONFIGS:
+            self.respond(f"⚠️ Невідомий режим: {mode}. Доступні: normal, work, game, quiet, focus")
+            return
+        self._mode = mode
+        cfg = self._MODE_CONFIGS[mode]
+
+        # Apply settings
+        self.config["tts_enabled"] = cfg["tts_enabled"]
+        self.config["dnd_mode"] = cfg["dnd"]
+        self.config["current_mode"] = mode
+
+        # Volume — try pygame mixer if available
+        if cfg.get("tts_volume") is not None:
+            try:
+                import pygame
+                if pygame.mixer.get_init():
+                    pygame.mixer.music.set_volume(cfg["tts_volume"])
+            except Exception:
+                pass
+
+        # Spotify pause in game/quiet/focus modes
+        if mode in ("game", "quiet", "focus"):
+            try:
+                if self.spotify_ctrl:
+                    self.spotify_ctrl.pause()
+                else:
+                    # Media key pause
+                    subprocess.Popen(
+                        ['powershell', '-Command',
+                         '(new-object -com wscript.shell).SendKeys([char]179)'],
+                        creationflags=_NO_WINDOW
+                    )
+            except Exception:
+                pass
+
+        # Resume Spotify in work mode
+        if mode == "work":
+            try:
+                if self.spotify_ctrl:
+                    self.spotify_ctrl.play()
+            except Exception:
+                pass
+
+        # Persist to sphere_config.json
+        try:
+            save_sphere_config({"current_mode": mode})
+        except Exception:
+            pass
+
+        # Update tray tooltip
+        try:
+            tooltip = f"AIVON — {cfg['icon']} {cfg['label']}"
+            self.tray.setToolTip(tooltip)
+        except Exception:
+            pass
+
+        icon = cfg["icon"]
+        label = cfg["label"]
+        self.jarvis.play("ready")
+        self.respond(f"{icon} {label} увімкнено!")
+
+    def _handle_mode_commands(self, lower: str) -> bool:
+        """Перевіряє голосові команди для перемикання режимів. Повертає True якщо оброблено."""
+        # Trigger patterns for each mode
+        mode_triggers = {
+            "work":  ["робочий режим", "увімкни роботу", "work mode", "режим роботи"],
+            "game":  ["ігровий режим", "увімкни гру", "game mode", "режим гри", "увімкни ігровий"],
+            "quiet": ["тихий режим", "увімкни тишу", "quiet mode", "режим тиші"],
+            "focus": ["режим фокусу", "увімкни фокус", "focus mode", "фокус режим"],
+            "normal": ["вимкни режим", "звичайний режим", "normal mode", "вийди з режиму", "скасуй режим"],
+        }
+        for mode, triggers in mode_triggers.items():
+            if any(t in lower for t in triggers):
+                self._set_mode(mode)
+                return True
+        # "який зараз режим"
+        if any(p in lower for p in ["який режим", "поточний режим", "що за режим", "current mode"]):
+            cfg = self._MODE_CONFIGS.get(self._mode, self._MODE_CONFIGS["normal"])
+            self.respond(f"{cfg['icon']} Поточний режим: {cfg['label']}")
+            return True
+        return False
+
     def _check_reminders(self):
-        """Перевірка нагадувань"""
+        """Перевірка нагадувань (з підтримкою recurring)"""
         now = datetime.now()
         triggered = []
         remaining = []
-        for dt, text in self.reminders:
-            if now >= dt:
-                triggered.append(text)
+        for entry in self.reminders:
+            # Support both old tuple format (dt, text) and new dict format
+            if isinstance(entry, tuple):
+                dt, payload = entry
+                if isinstance(payload, dict):
+                    rdata = payload
+                else:
+                    rdata = {"text": payload, "repeat": None, "repeat_days": []}
             else:
-                remaining.append((dt, text))
+                continue
+            if now >= dt:
+                triggered.append((dt, rdata))
+                # Reschedule recurring reminders
+                repeat = rdata.get("repeat")
+                if repeat:
+                    next_dt = self._next_recurrence(dt, repeat, rdata.get("repeat_days", []))
+                    if next_dt:
+                        remaining.append((next_dt, rdata))
+            else:
+                remaining.append((dt, rdata))
         self.reminders = remaining
-        for text in triggered:
+        for dt, rdata in triggered:
+            text = rdata.get("text", "Нагадування!")
+            repeat = rdata.get("repeat")
+            icon = "🔄🔔" if repeat else "🔔"
             self.jarvis.play("confirm")
             self.show_orb()
-            self.respond(f"🔔 Нагадування: {text}")
+            self.respond(f"{icon} Нагадування: {text}")
             # bhv_desktop_reminder — показати Windows notification
             if self.config.get("bhv_desktop_reminder", True):
                 try:
                     from plyer import notification
                     notification.notify(
-                        title="🔔 AIVON Нагадування",
+                        title=f"{icon} AIVON Нагадування",
                         message=text,
                         timeout=10
                     )
@@ -6804,10 +7314,164 @@ $w.Stop()
                                         creationflags=_NO_WINDOW)
                     except Exception:
                         pass
+
+    def _next_recurrence(self, base_dt, repeat: str, repeat_days: list):
+        """Розрахувати наступну дату повторення нагадування."""
+        from datetime import timedelta
+        now = datetime.now()
+        if repeat == "daily":
+            next_dt = base_dt + timedelta(days=1)
+            # If we're behind, fast-forward to today at same time
+            while next_dt < now:
+                next_dt += timedelta(days=1)
+            return next_dt
+        elif repeat == "weekly":
+            next_dt = base_dt + timedelta(weeks=1)
+            while next_dt < now:
+                next_dt += timedelta(weeks=1)
+            return next_dt
+        elif repeat == "workdays":
+            # Mon–Fri only
+            next_dt = base_dt + timedelta(days=1)
+            while next_dt < now or next_dt.weekday() >= 5:
+                next_dt += timedelta(days=1)
+            return next_dt
+        elif repeat == "weekly_days" and repeat_days:
+            # Specific weekday(s) — find the nearest matching
+            next_dt = base_dt + timedelta(days=1)
+            for _ in range(14):
+                if next_dt.weekday() in repeat_days and next_dt > now:
+                    return next_dt
+                next_dt += timedelta(days=1)
+        return None
     
     def _add_reminder(self, lower, text):
-        """Обробка команди нагадування"""
-        # Формат: "нагадай через 30 хвилин зробити щось"
+        """Обробка команди нагадування (з підтримкою recurring)"""
+        from datetime import timedelta
+
+        # ── Видалення нагадування ──
+        # "видали нагадування", "скасуй нагадування [текст]"
+        del_m = re.search(r'(?:видали|скасуй|видалити|скасувати)\s+нагадування(?:\s+(.+))?', lower)
+        if del_m:
+            target_kw = (del_m.group(1) or "").strip()
+            if not target_kw:
+                # Видаляємо всі
+                count = len(self.reminders)
+                self.reminders.clear()
+                self.jarvis.play("confirm")
+                self.respond(f"🗑️ Видалено {count} нагадувань.")
+            else:
+                # Видаляємо за ключовим словом
+                before = len(self.reminders)
+                self.reminders = [
+                    e for e in self.reminders
+                    if target_kw not in (e[1].get("text", "") if isinstance(e[1], dict) else e[1]).lower()
+                ]
+                removed = before - len(self.reminders)
+                self.jarvis.play("confirm")
+                self.respond(f"🗑️ Видалено {removed} нагадувань '{target_kw}'.")
+            return True
+
+        # ── Показати всі нагадування ──
+        if any(p in lower for p in ["покажи нагадування", "список нагадувань", "мої нагадування"]):
+            if not self.reminders:
+                self.respond("📋 Нагадувань немає.")
+            else:
+                lines = []
+                for dt, rdata in self.reminders:
+                    if isinstance(rdata, dict):
+                        t = rdata.get("text", "?")
+                        repeat = rdata.get("repeat")
+                        icon = "🔄" if repeat else "🔔"
+                        repeat_str = f" [{repeat}]" if repeat else ""
+                    else:
+                        t = rdata
+                        icon = "🔔"
+                        repeat_str = ""
+                    lines.append(f"{icon} {dt.strftime('%d.%m %H:%M')} — {t}{repeat_str}")
+                self.respond("📋 Нагадування:\n" + "\n".join(lines))
+            return True
+
+        # ── Повторювані нагадування ──
+        # "нагадай кожного дня о 9 ранку випити воду"
+        # "нагадай щопонеділка о 10 нараду"
+        # "нагадай кожного робочого дня о 18:00 закінчити роботу"
+
+        repeat_type = None
+        repeat_days = []
+
+        # Щоденне нагадування
+        if re.search(r'кожного\s+дня|щодня|кожен\s+день|daily', lower):
+            repeat_type = "daily"
+        # Робочі дні
+        elif re.search(r'(?:кожного|кожен)\s+робочого?\s+дня?|робочі\s+дні|workday', lower):
+            repeat_type = "workdays"
+        # Щотижневе по дню
+        else:
+            day_map = {
+                "понеділк": 0, "вівторк": 1, "середу": 2, "середа": 2,
+                "четвер": 3, "п'ятниц": 4, "пятниц": 4,
+                "суботу": 5, "субота": 5, "неділю": 6, "неділя": 6,
+                "monday": 0, "tuesday": 1, "wednesday": 2,
+                "thursday": 3, "friday": 4, "saturday": 5, "sunday": 6,
+            }
+            if re.search(r'щопонеділка|щовівторка|щосереди|щочетверга|щоп\'ятниці|щосуботи|щонеділі', lower):
+                for key, idx in day_map.items():
+                    if key in lower:
+                        repeat_type = "weekly_days"
+                        repeat_days = [idx]
+                        break
+
+        # Parse time "о 9 ранку", "о 18:00", "о 10:30"
+        time_m = re.search(
+            r'о\s+(\d{1,2})(?::(\d{2}))?\s*(?:ранку|вечора|дня|ночі)?',
+            lower
+        )
+        if repeat_type and time_m:
+            hour = int(time_m.group(1))
+            minute = int(time_m.group(2) or 0)
+            # am/pm correction
+            if "вечора" in lower and hour < 12:
+                hour += 12
+            elif "ранку" in lower and hour == 12:
+                hour = 0
+
+            now = datetime.now()
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if target <= now:
+                target += timedelta(days=1)
+            # For weekly_days — find nearest matching weekday
+            if repeat_type == "weekly_days" and repeat_days:
+                for _ in range(8):
+                    if target.weekday() in repeat_days and target > now:
+                        break
+                    target += timedelta(days=1)
+
+            # Extract reminder text — everything after time
+            time_end = time_m.end()
+            reminder_text = text[time_end:].strip()
+            if not reminder_text:
+                # Try to extract after "ранку/вечора/дня" etc.
+                reminder_text = re.sub(
+                    r'.*(?:нагадай|нагадати|remind).*?(?:о\s+\d{1,2}(?::\d{2})?\s*(?:ранку|вечора|дня|ночі)?)',
+                    '', text, flags=re.IGNORECASE
+                ).strip()
+            if not reminder_text:
+                reminder_text = "Нагадування!"
+
+            rdata = {"text": reminder_text, "repeat": repeat_type, "repeat_days": repeat_days}
+            self.reminders.append((target, rdata))
+            self.jarvis.play("confirm")
+            repeat_label = {
+                "daily": "щодня",
+                "workdays": "кожного робочого дня",
+                "weekly_days": f"щотижня ({target.strftime('%A')})",
+                "weekly": "щотижня",
+            }.get(repeat_type, repeat_type)
+            self.respond(f"🔄🔔 Нагадування '{reminder_text}' о {hour:02d}:{minute:02d} {repeat_label}!")
+            return True
+
+        # ── Одноразове нагадування "через N хвилин/годин" ──
         m = re.search(r'(?:нагадай|remind|нагадати)\s+(?:через|in)\s+(\d+)\s*(?:хв|хвилин|мин|минут|min|год|годин|hour)', lower)
         if m:
             amount = int(m.group(1))
@@ -6817,20 +7481,39 @@ $w.Stop()
             else:
                 delta = amount * 60
                 unit = "хвилин"
-            
+
             # Витягти текст нагадування
             full_match = m.group(0)
             idx = lower.find(full_match)
             reminder_text = text[idx + len(full_match):].strip()
             if not reminder_text:
                 reminder_text = "Нагадування!"
-            
-            from datetime import timedelta
+
             target = datetime.now() + timedelta(seconds=delta)
-            self.reminders.append((target, reminder_text))
+            rdata = {"text": reminder_text, "repeat": None, "repeat_days": []}
+            self.reminders.append((target, rdata))
             self.jarvis.play("confirm")
             self.respond(f"🔔 Нагадаю через {amount} {unit}: {reminder_text}")
             return True
+
+        # ── Нагадування о конкретній годині (одноразово) ──
+        at_m = re.search(r'(?:нагадай|remind|нагадати)\s+(?:о|at)\s+(\d{1,2})(?::(\d{2}))?\s*(?:ранку|вечора|дня|ночі)?\s+(.+)', lower)
+        if at_m:
+            hour = int(at_m.group(1))
+            minute = int(at_m.group(2) or 0)
+            reminder_text = at_m.group(3).strip()
+            if "вечора" in lower and hour < 12:
+                hour += 12
+            now = datetime.now()
+            target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if target <= now:
+                target += timedelta(days=1)
+            rdata = {"text": reminder_text, "repeat": None, "repeat_days": []}
+            self.reminders.append((target, rdata))
+            self.jarvis.play("confirm")
+            self.respond(f"🔔 Нагадаю о {hour:02d}:{minute:02d}: {reminder_text}")
+            return True
+
         return False
     
     # ── КЕРУВАННЯ МУЗИКОЮ ──
@@ -7258,6 +7941,58 @@ $w.Stop()
             if self._telegram_bot:
                 ctx = get_pc_context()
                 self._telegram_bot.send_message(chat_id, f"🖥️ <b>Стан ПК:</b>\n{ctx[:1000]}")
+            return
+
+        # /automations — список автоматизацій
+        if text.strip().lower() in ("/automations", "/автоматизації"):
+            if self._telegram_bot:
+                automations = self.config.get("automations", [])
+                if not automations:
+                    msg = "📋 <b>Автоматизацій немає.</b>"
+                else:
+                    lines = ["📋 <b>Автоматизації:</b>"]
+                    for a in automations:
+                        enabled = "✅" if a.get("enabled", True) else "❌"
+                        trigger = a.get("trigger", {})
+                        t_type = trigger.get("type", "?")
+                        t_info = trigger.get("app") or trigger.get("time") or trigger.get("phrase") or ""
+                        n_actions = len(a.get("actions", []))
+                        a_id = a.get("id", "?")
+                        lines.append(f"{enabled} <b>{a.get('name','?')}</b> [<code>{t_type}: {t_info}</code>] → {n_actions} дій (id: {a_id})")
+                    msg = "\n".join(lines)
+                self._telegram_bot.send_message(chat_id, msg)
+            return
+
+        # /mode — поточний режим
+        if text.strip().lower() in ("/mode", "/режим"):
+            if self._telegram_bot:
+                mode = getattr(self, '_mode', 'normal')
+                cfg = getattr(AivonSphere, '_MODE_CONFIGS', {}).get(mode, {})
+                icon = cfg.get('icon', '⚪')
+                label = cfg.get('label', mode)
+                self._telegram_bot.send_message(chat_id, f"{icon} <b>Поточний режим:</b> {label}")
+            return
+
+        # /reminders — список нагадувань
+        if text.strip().lower() in ("/reminders", "/нагадування"):
+            if self._telegram_bot:
+                if not self.reminders:
+                    msg = "📋 <b>Нагадувань немає.</b>"
+                else:
+                    lines = ["📋 <b>Нагадування:</b>"]
+                    for dt, rdata in self.reminders:
+                        if isinstance(rdata, dict):
+                            t = rdata.get("text", "?")
+                            repeat = rdata.get("repeat")
+                            icon = "🔄" if repeat else "🔔"
+                            repeat_str = f" [{repeat}]" if repeat else ""
+                        else:
+                            t = str(rdata)
+                            icon = "🔔"
+                            repeat_str = ""
+                        lines.append(f"{icon} {dt.strftime('%d.%m %H:%M')} — {t}{repeat_str}")
+                    msg = "\n".join(lines)
+                self._telegram_bot.send_message(chat_id, msg)
             return
 
         # Всі інші — обробляємо як голосову команду
@@ -8062,16 +8797,98 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
         if self.sphere_mode == "dialog":
             QTimer.singleShot(500, self.start_listening)
     
+    # ═══════════════════════════════════════════════════════════
+    # FEATURE: OLLAMA OFFLINE FALLBACK
+    # ═══════════════════════════════════════════════════════════
+
+    def _check_ollama_available(self) -> bool:
+        """Перевірити чи Ollama запущена на localhost:11434."""
+        try:
+            import urllib.request
+            req = urllib.request.urlopen("http://localhost:11434/api/tags", timeout=2)
+            return req.status == 200
+        except Exception:
+            return False
+
+    def _start_ollama_server(self) -> bool:
+        """Спробувати запустити Ollama і зачекати 3 секунди."""
+        try:
+            subprocess.Popen(
+                ["ollama", "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=_NO_WINDOW
+            )
+            time.sleep(3)
+            return self._check_ollama_available()
+        except Exception as e:
+            print(f"[Ollama] Не вдалося запустити: {e}")
+            return False
+
+    def _call_ollama(self, messages: list, model: str | None = None) -> str:
+        """Надіслати запит до Ollama (POST /api/chat). Повертає текст відповіді."""
+        try:
+            import urllib.request, json as _json
+        except ImportError:
+            raise RuntimeError("urllib недоступний")
+
+        if model is None:
+            model = self.config.get("ollama_model", "llama3.2")
+
+        # Check if running, try to start if not
+        if not self._check_ollama_available():
+            print("[Ollama] Не запущена — спробую запустити...")
+            if not self._start_ollama_server():
+                raise RuntimeError("Ollama недоступна")
+
+        payload = _json.dumps({
+            "model": model,
+            "messages": messages,
+            "stream": False,
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "http://localhost:11434/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+        return data.get("message", {}).get("content", "").strip()
+
+    def _ollama_ask_thread(self, q: str):
+        """Фоновий потік для запиту до Ollama."""
+        try:
+            messages = [{"role": "user", "content": q}]
+            # Add dialog history if in focus mode
+            if getattr(self, '_mode', 'normal') == 'focus' and self.dialog_history:
+                messages = self.dialog_history[-10:] + messages
+            answer = self._call_ollama(messages)
+            if answer:
+                self._respond_signal.emit(f"🔌 Офлайн (Ollama): {answer}")
+            else:
+                self._respond_signal.emit("🔌 Ollama відповіла порожньо.")
+        except Exception as e:
+            self._respond_signal.emit(f"🔌 Ollama помилка: {str(e)[:60]}")
+
     def ask_ai(self, q):
         has_key = any(self.config.get(k) for k in
                       ["anthropic_key", "openai_key", "google_key", "xai_key", "perplexity_key"])
+
+        # If no API keys — try Ollama fallback
         if not has_key:
+            if self.config.get("ollama_fallback", True):
+                self.state = self.THINKING
+                self.response_text = "🔌 Ollama..."
+                threading.Thread(target=self._ollama_ask_thread, args=(q,), daemon=True).start()
+                return
             self.respond(f"Почув: '{q[:20]}'. Додайте API ключ у панелі.")
             return
 
         self.state = self.THINKING
         self.response_text = "🧠 Думаю..."
-        
+
         # Використати OpenAI Assistants (пам'ять) якщо увімкнено та є ключ
         if self.memory_enabled and self.config.get("openai_key"):
             self.config = load_config()
@@ -8084,16 +8901,26 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
         else:
             self.ai_thread = AIThread(self.config, q)
             self.ai_thread.response.connect(self.respond)
-            self.ai_thread.error.connect(lambda e: self.respond_silent(f"Помилка: {e[:20]}"))
+            self.ai_thread.error.connect(lambda e: self._ai_fallback_with_ollama(q, e))
             self.ai_thread.start()
-    
+
     def _ai_fallback(self, q, error):
         """Fallback до звичайного AI якщо Assistants не працює"""
         print(f"Memory fallback: {error}")
         self.ai_thread = AIThread(self.config, q)
         self.ai_thread.response.connect(self.respond)
-        self.ai_thread.error.connect(lambda e: self.respond_silent(f"Помилка: {e[:20]}"))
+        self.ai_thread.error.connect(lambda e: self._ai_fallback_with_ollama(q, e))
         self.ai_thread.start()
+
+    def _ai_fallback_with_ollama(self, q: str, error: str):
+        """Якщо всі AI провайдери недоступні — пробуємо Ollama."""
+        print(f"[AI] Всі провайдери недоступні: {error}")
+        if self.config.get("ollama_fallback", True):
+            self.state = self.THINKING
+            self.response_text = "🔌 Ollama..."
+            threading.Thread(target=self._ollama_ask_thread, args=(q,), daemon=True).start()
+        else:
+            self.respond_silent(f"Помилка AI: {error[:40]}")
 
     # ── PC queries ────────────────────────────────────────────────────────────
     def _handle_pc_query(self, lower: str, text: str) -> bool:
@@ -8243,10 +9070,34 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
     def respond(self, text):
         """Додає відповідь у чергу TTS — виконує послідовно, не накладаючи"""
         self.hologram_auto_gesture(text)
-        self._tts_queue.append(text)
+
+        # ── Mode-aware behavior ──
+        mode = getattr(self, '_mode', 'normal')
+        mode_cfg = self._MODE_CONFIGS.get(mode, self._MODE_CONFIGS["normal"])
+
+        # Quiet mode: skip TTS, send to Telegram only
+        if mode == "quiet" and not self.config.get("tts_enabled", True):
+            self.state = self.SPEAKING
+            self.response_text = text
+            from PyQt6.QtCore import QTimer as _QT
+            _QT.singleShot(1500, self._on_all_tts_done)
+            self._tg_send(text)
+            return
+
+        # Game mode: shorten response for TTS (keep full for Telegram)
+        if mode_cfg.get("short_responses") and len(text) > 80:
+            # Only shorten for TTS — keep first sentence or 80 chars
+            short = re.split(r'[.!?]', text)[0].strip()
+            if len(short) > 80:
+                short = short[:77] + "..."
+            tts_text = short
+        else:
+            tts_text = text
+
+        self._tts_queue.append(tts_text)
         if not self._tts_busy:
             self._play_next_tts()
-        # Telegram: відправляємо відповідь в чат
+        # Telegram: відправляємо повну відповідь в чат
         self._tg_send(text)
 
     def respond_silent(self, text):

@@ -182,7 +182,8 @@ input::placeholder,textarea::placeholder{color:var(--text3);}
 .dash-name{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--indigo));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .dash-sub{font-size:11px;color:var(--text3);margin-top:4px;letter-spacing:1px;}
 .dash-last{margin-top:14px;padding:8px 18px;border-radius:8px;background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.08);font-size:12px;color:var(--text2);max-width:400px;text-align:center;line-height:1.5;}
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:480px;width:100%;margin-top:20px;}
+/* .quick-grid — now handled by widget section below */
+.quick-grid-legacy{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:480px;width:100%;margin-top:20px;}
 .quick-card{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;transition:all .2s;}
 .quick-card:hover{border-color:var(--accent);background:rgba(34,197,94,.04);transform:translateY(-2px);box-shadow:0 4px 16px rgba(34,197,94,.08);}
 .quick-card .qico{font-size:22px;}.quick-card .qlbl{font-size:10px;color:var(--text2);font-weight:500;text-align:center;}
@@ -696,3 +697,73 @@ input::placeholder,textarea::placeholder{color:var(--text3);}
 .log-line.hidden{display:none;}
 .log-filter-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;transition:all .15s;}
 .log-filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* ── THEME TRANSITION ─────────────────────────────────────────────── */
+body,
+.sidebar,.main,.header,.card,.content,.page,.page-flex,
+input,textarea,select,.btn,.hbtn,.nav-btn,
+.clip-item,.activity-item,.proc-row{
+  transition:background-color .25s ease, color .25s ease, border-color .25s ease !important;
+}
+
+/* ── DASHBOARD WIDGET GRID ────────────────────────────────────────── */
+.widget-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:14px;
+  align-items:start;
+}
+.widget-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px;
+  position:relative;
+  overflow:hidden;
+  cursor:grab;
+  transition:all .2s;
+}
+.widget-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(34,197,94,.1),transparent);
+}
+.widget-card:hover{border-color:rgba(34,197,94,.25);box-shadow:0 4px 24px rgba(34,197,94,.06);}
+.widget-card.dragging{opacity:.55;cursor:grabbing;box-shadow:0 8px 32px rgba(0,0,0,.5);border-color:var(--accent);}
+.widget-card.drag-over{border-color:var(--accent);background:rgba(34,197,94,.05);}
+.widget-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.widget-title{
+  font-size:10px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:1.5px;font-weight:700;
+}
+.widget-btns{display:flex;gap:4px;align-items:center;}
+.widget-btn{
+  background:none;border:1px solid transparent;border-radius:5px;
+  color:var(--text3);font-size:11px;cursor:pointer;padding:2px 6px;
+  transition:all .15s;
+}
+.widget-btn:hover{border-color:var(--border);color:var(--text);}
+.widget-body{font-size:12px;}
+
+/* Updated quick-grid (now 6 cols on dashboard) */
+.quick-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px;}
+@media (max-width:1000px){.quick-grid{grid-template-columns:repeat(3,1fr);}}
+
+/* ── PROCESS MANAGER ──────────────────────────────────────────────── */
+.proc-tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .1s;}
+.proc-tr:hover{background:rgba(255,255,255,.03);}
+.proc-th{user-select:none;transition:color .15s;}
+.proc-th:hover{color:var(--accent);}
+.proc-cat-btn.active{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.3);color:var(--accent);}
+
+/* ── POMODORO ─────────────────────────────────────────────────────── */
+.pom-mode-btn{transition:all .2s;}
+.pom-mode-btn.active{
+  background:rgba(34,197,94,.12);
+  border-color:rgba(34,197,94,.3);
+  color:var(--accent);
+  font-weight:700;
+}
+

@@ -1,9 +1,11 @@
 """Window controls, run_macro, run_command, clipboard, updater handlers."""
+import base64
 import json
 import os
 import subprocess
 import sys
 import threading
+import zipfile
 
 # Hide CMD windows on Windows
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
@@ -248,3 +250,166 @@ class SystemHandlerMixin:
                 _j.dump(self._cfg, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
+
+    # ── Quick Search ──────────────────────────────────────────────────────────
+    def _search_quick(self, p: dict):
+        """Search commands/macros/pages and return results to JS."""
+        q = p.get("q", "").strip().lower()
+        results = []
+        if not q:
+            self.push_to_js.emit("search_results", json.dumps({"results": []}))
+            return
+
+        try:
+            from core.paths import USER_DATA_DIR
+            # Search user commands
+            cmds_path = os.path.join(USER_DATA_DIR, "user_commands.json")
+            if os.path.exists(cmds_path):
+                with open(cmds_path, encoding="utf-8") as f:
+                    cmds = json.load(f)
+                if isinstance(cmds, list):
+                    for c in cmds:
+                        name = (c.get("name") or c.get("label") or "").lower()
+                        body = (c.get("body") or "").lower()
+                        if q in name or q in body:
+                            results.append({
+                                "icon": "🌐" if c.get("type") == "url" else "🐍" if c.get("type") == "python" else "📋",
+                                "label": c.get("name") or c.get("label") or c.get("body", "")[:50],
+                                "sub": c.get("body", "")[:60],
+                                "category": "Команди (Python)",
+                                "cmd": c,
+                            })
+            # Search macros
+            macros_path = os.path.join(USER_DATA_DIR, "macros.json")
+            if os.path.exists(macros_path):
+                with open(macros_path, encoding="utf-8") as f:
+                    macros_list = json.load(f)
+                if isinstance(macros_list, list):
+                    for m in macros_list:
+                        name = (m.get("name") or m.get("label") or "").lower()
+                        if q in name:
+                            results.append({
+                                "icon": "⚡",
+                                "label": m.get("name") or m.get("label", ""),
+                                "sub": (m.get("command") or "")[:60],
+                                "category": "Макроси (Python)",
+                                "action": "run_macro",
+                                "data": m,
+                            })
+        except Exception as e:
+            print(f"[AXIS search] error: {e}")
+
+        self.push_to_js.emit("search_results", json.dumps({"results": results[:20]}))
+
+    # ── Settings Backup Export ────────────────────────────────────────────────
+    def _export_backup(self, _):
+        threading.Thread(target=self._export_backup_worker, daemon=True).start()
+
+    def _export_backup_worker(self):
+        try:
+            from core.paths import USER_DATA_DIR
+            DATA_DIR = USER_DATA_DIR
+            from datetime import datetime
+
+            desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+            date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            zip_name = f"AXIS_OS_backup_{date_str}.zip"
+            zip_path = os.path.join(desktop, zip_name)
+
+            files_to_backup = [
+                "config.json",
+                "commands.json",
+                "macros.json",
+                "user_commands.json",
+                "sphere_config.json",
+            ]
+
+            included = []
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for fname in files_to_backup:
+                    fpath = os.path.join(DATA_DIR, fname)
+                    if os.path.exists(fpath):
+                        zf.write(fpath, arcname=fname)
+                        included.append(fname)
+
+            # Open the folder
+            if sys.platform == "win32":
+                subprocess.Popen(f'explorer /select,"{zip_path}"', shell=True)
+
+            self.push_to_js.emit("backup_status", json.dumps({
+                "op": "export",
+                "ok": True,
+                "msg": f"✓ Збережено: {zip_name} ({len(included)} файлів)",
+                "path": zip_path,
+            }))
+            self.push_to_js.emit("toast", json.dumps({
+                "msg": f"✓ Бекап збережено на Робочому столі"
+            }))
+        except Exception as e:
+            self.push_to_js.emit("backup_status", json.dumps({
+                "op": "export",
+                "ok": False,
+                "msg": f"⚠ Помилка: {e}",
+            }))
+
+    # ── Settings Backup Import ────────────────────────────────────────────────
+    def _import_backup(self, p: dict):
+        data_b64 = p.get("data", "")
+        filename  = p.get("filename", "backup.zip")
+        threading.Thread(
+            target=self._import_backup_worker,
+            args=(data_b64, filename),
+            daemon=True,
+        ).start()
+
+    def _import_backup_worker(self, data_b64: str, filename: str):
+        try:
+            from core.paths import USER_DATA_DIR
+            DATA_DIR = USER_DATA_DIR
+            import tempfile
+
+            # Decode base64 ZIP data sent from JS FileReader
+            zip_bytes = base64.b64decode(data_b64)
+
+            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp:
+                tmp.write(zip_bytes)
+                tmp_path = tmp.name
+
+            restored = []
+            with zipfile.ZipFile(tmp_path, "r") as zf:
+                for name in zf.namelist():
+                    # Only restore known safe files
+                    if name in ("config.json", "commands.json", "macros.json",
+                                "user_commands.json", "sphere_config.json"):
+                        zf.extract(name, DATA_DIR)
+                        restored.append(name)
+
+            os.unlink(tmp_path)
+
+            # Reload config into memory
+            try:
+                from core.paths import CONFIG_FILE
+                with open(CONFIG_FILE, encoding="utf-8") as f:
+                    new_cfg = json.load(f)
+                self._cfg.update(new_cfg)
+            except Exception:
+                pass
+
+            self.push_to_js.emit("backup_status", json.dumps({
+                "op": "import",
+                "ok": True,
+                "msg": f"✓ Відновлено: {len(restored)} файлів",
+                "restored": restored,
+            }))
+            self.push_to_js.emit("toast", json.dumps({
+                "msg": f"✓ Налаштування відновлено ({len(restored)} файлів)"
+            }))
+        except Exception as e:
+            self.push_to_js.emit("backup_status", json.dumps({
+                "op": "import",
+                "ok": False,
+                "msg": f"⚠ Помилка імпорту: {e}",
+            }))
+            self.push_to_js.emit("toast", json.dumps({
+                "msg": f"⚠ Помилка імпорту: {e}"
+            }))
