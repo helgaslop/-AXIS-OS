@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(head -30)",
+      "Bash(python -c \"import google.genai; print\\('google-genai OK:', google.genai.__version__ if hasattr\\(google.genai, '__version__'\\) else 'installed'\\)\")",
+      "Bash(python main.py)",
+      "Bash(kill %1)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('axis_ide.py', encoding='utf-8'\\).read\\(\\)\\); print\\('axis_ide.py OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(pip show *)"
+    ]
+  }
+}

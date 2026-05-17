@@ -1,0 +1,181 @@
+331 INFO: PyInstaller: 6.20.0, contrib hooks: 2026.5
+333 INFO: Python: 3.12.8
+384 INFO: Platform: Windows-11-10.0.29585-SP0
+385 INFO: Python environment: C:\Users\Acer Nitro 5\AppData\Local\Programs\Python\Python312
+5566 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS',
+ 'C:\\Users\\Acer Nitro '
+ '5\\AppData\\Local\\Programs\\Python\\Python312\\python312.zip',
+ 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\DLLs',
+ 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib',
+ 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312',
+ 'C:\\Users\\Acer Nitro '
+ '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages',
+ 'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS']
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.8)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+6916 INFO: Appending 'binaries' from .spec
+6947 INFO: Appending 'datas' from .spec
+7291 INFO: checking Analysis
+7820 INFO: Building because excludes changed
+7820 INFO: Looking for Python shared library...
+7820 INFO: Using Python shared library: C:\Users\Acer Nitro 5\AppData\Local\Programs\Python\Python312\python312.dll
+7820 INFO: Running Analysis Analysis-00.toc
+7820 INFO: Target bytecode optimization level: 0
+7821 INFO: Initializing module dependency graph...
+7828 INFO: Initializing module graph hook caches...
+7855 INFO: Analyzing modules for base_library.zip ...
+10902 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+12122 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+13170 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+14594 INFO: Caching module dependency graph...
+14627 INFO: Analyzing C:\Users\Acer Nitro 5\Desktop\Axis_OS\axis_ide.py
+14799 INFO: Processing standard module hook 'hook-PyQt6.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+15980 INFO: Processing standard module hook 'hook-PyQt6.QtCore.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+25131 INFO: Processing standard module hook 'hook-PyQt6.QtGui.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+64868 INFO: Processing standard module hook 'hook-PyQt6.QtWebChannel.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+66283 INFO: Processing standard module hook 'hook-PyQt6.QtWebEngineWidgets.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+68269 INFO: Processing standard module hook 'hook-PyQt6.QtNetwork.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+76814 INFO: Processing standard module hook 'hook-PyQt6.QtWidgets.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+87759 INFO: Processing standard module hook 'hook-PyQt6.QtPrintSupport.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+89970 INFO: Processing standard module hook 'hook-PyQt6.QtWebEngineCore.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+97811 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+97949 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+98238 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+99119 INFO: Processing standard module hook 'hook-cryptography.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+104370 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+104405 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+104532 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+104540 INFO: SetuptoolsInfo: initializing cached setuptools info...
+106022 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+106030 INFO: Processing standard module hook 'hook-setuptools.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+106075 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+106082 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106140 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+106147 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106148 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.jaraco'!
+106158 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106161 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.more_itertools'!
+106315 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106582 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106766 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+106772 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106960 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+106960 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+106984 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+107016 INFO: Processing pre-safe-import-module hook 'hook-zipp.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+107019 INFO: Setuptools: 'zipp' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.zipp'!
+107361 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+107366 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.tomli'!
+107991 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+107994 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.wheel'!
+108736 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+109297 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+110703 INFO: Processing standard module hook 'hook-psutil.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+110855 INFO: Processing standard module hook 'hook-speech_recognition.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+110979 INFO: Processing pre-safe-import-module hook 'hook-tensorflow.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+111001 INFO: Processing standard module hook 'hook-google.api_core.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+111899 INFO: Processing standard module hook 'hook-grpc.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+112390 INFO: Processing standard module hook 'hook-pydantic.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+114000 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+115501 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+117756 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+120305 INFO: Processing standard module hook 'hook-websockets.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+128723 INFO: Processing standard module hook 'hook-pycparser.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+131126 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+131253 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+132193 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+132419 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+134249 INFO: Analyzing hidden import 'google.generativeai'
+136349 INFO: Processing standard module hook 'hook-httplib2.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+136876 INFO: Processing standard module hook 'hook-jinja2.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+137420 INFO: Processing standard module hook 'hook-googleapiclient.model.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+138830 INFO: Analyzing hidden import 'core.log_bridge'
+138837 INFO: Analyzing hidden import 'pyflakes.api'
+138837 ERROR: Hidden import 'pyflakes.api' not found
+138837 INFO: Analyzing hidden import 'pyflakes.checker'
+138838 ERROR: Hidden import 'pyflakes.checker' not found
+138838 INFO: Processing module hooks (post-graph stage)...
+139118 WARNING: Hidden import "pycparser.lextab" not found!
+139118 WARNING: Hidden import "pycparser.yacctab" not found!
+140044 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+140212 INFO: Processing standard module hook 'hook-PyQt6.QtQuick.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+146186 INFO: Processing standard module hook 'hook-PyQt6.QtQml.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+257433 INFO: Processing standard module hook 'hook-PyQt6.QtOpenGL.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+262592 INFO: Processing standard module hook 'hook-PyQt6.QtPositioning.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+271089 INFO: Processing standard module hook 'hook-PyQt6.QtQuickWidgets.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+274866 INFO: Processing standard module hook 'hook-tzdata.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+276287 INFO: Performing binary vs. data reclassification (4958 entries)
+277248 INFO: Looking for ctypes DLLs
+277324 INFO: Analyzing run-time hooks ...
+277351 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+277356 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+277361 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+277364 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+277368 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+277371 INFO: Including run-time hook 'pyi_rth_pyqt6.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+277376 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+277380 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyInstaller\\hooks'
+277664 INFO: Creating base_library.zip...
+277695 INFO: Looking for dynamic libraries
+C:\Users\Acer Nitro 5\AppData\Local\Programs\Python\Python312\Lib\site-packages\PyInstaller\building\build_main.py:227: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  __import__(package)
+289681 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\bin']
+289681 INFO: Extra DLL search directories (PATH): ['C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\bin']
+295768 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\geometryloaders\\defaultgeometryloader.dll'.
+295768 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\geometryloaders\\defaultgeometryloader.dll'.
+295769 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\geometryloaders\\gltfgeometryloader.dll'.
+295770 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\geometryloaders\\gltfgeometryloader.dll'.
+295774 WARNING: Library not found: could not resolve 'Qt6QmlCompiler.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\qmllint\\qdslintplugin.dll'.
+295775 WARNING: Library not found: could not resolve 'Qt6QmlCompiler.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\qmllint\\quicklintplugin.dll'.
+295775 WARNING: Library not found: could not resolve 'Qt6QmlCompiler.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\qmlls\\qmllsquickplugin.dll'.
+295775 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\renderers\\openglrenderer.dll'.
+295776 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\renderers\\openglrenderer.dll'.
+295776 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\renderers\\rhirenderer.dll'.
+295776 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\renderers\\rhirenderer.dll'.
+295776 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\assimpsceneimport.dll'.
+295777 WARNING: Library not found: could not resolve 'Qt63DExtras.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\assimpsceneimport.dll'.
+295777 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\assimpsceneimport.dll'.
+295778 WARNING: Library not found: could not resolve 'Qt63DAnimation.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\assimpsceneimport.dll'.
+295779 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneexport.dll'.
+295779 WARNING: Library not found: could not resolve 'Qt63DExtras.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneexport.dll'.
+295780 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneexport.dll'.
+295780 WARNING: Library not found: could not resolve 'Qt63DRender.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneimport.dll'.
+295781 WARNING: Library not found: could not resolve 'Qt63DExtras.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneimport.dll'.
+295781 WARNING: Library not found: could not resolve 'Qt63DCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sceneparsers\\gltfsceneimport.dll'.
+295781 WARNING: Library not found: could not resolve 'Qt6Scxml.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\scxmldatamodel\\qscxmlecmascriptdatamodel.dll'.
+295782 WARNING: Library not found: could not resolve 'fbclient.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sqldrivers\\qsqlibase.dll'.
+295782 WARNING: Library not found: could not resolve 'MIMAPI64.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sqldrivers\\qsqlmimer.dll'.
+295782 WARNING: Library not found: could not resolve 'OCI.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sqldrivers\\qsqloci.dll'.
+295782 WARNING: Library not found: could not resolve 'LIBPQ.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\sqldrivers\\qsqlpsql.dll'.
+295786 WARNING: Library not found: could not resolve 'Qt6WebView.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\webview\\qtwebview_webengine.dll'.
+295788 WARNING: Library not found: could not resolve 'Qt6WebView.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\plugins\\webview\\qtwebview_webview2.dll'.
+295789 WARNING: Library not found: could not resolve 'Qt6QmlCore.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtCore\\qtqmlcoreplugin.dll'.
+295789 WARNING: Library not found: could not resolve 'Qt6QmlNetwork.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtNetwork\\qmlnetworkplugin.dll'.
+295789 WARNING: Library not found: could not resolve 'Qt6QmlXmlListModel.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQml\\XmlListModel\\qmlxmllistmodelplugin.dll'.
+295789 WARNING: Library not found: could not resolve 'Qt6Quick3DParticleEffects.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick3D\\ParticleEffects\\qtquick3dparticleeffectsplugin.dll'.
+295790 WARNING: Library not found: could not resolve 'Qt6QuickControls2FluentWinUI3StyleImpl.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Controls\\FluentWinUI3\\impl\\qtquickcontrols2fluentwinui3styleimplplugin.dll'.
+295790 WARNING: Library not found: could not resolve 'Qt6QuickControls2FluentWinUI3StyleImpl.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Controls\\FluentWinUI3\\qtquickcontrols2fluentwinui3styleplugin.dll'.
+295790 WARNING: Library not found: could not resolve 'Qt6QuickControls2WindowsStyleImpl.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Controls\\Windows\\impl\\qtquickcontrols2windowsstyleimplplugin.dll'.
+295791 WARNING: Library not found: could not resolve 'Qt6QmlLocalStorage.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\LocalStorage\\qmllocalstorageplugin.dll'.
+295791 WARNING: Library not found: could not resolve 'Qt63DQuickScene2D.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Scene2D\\qtquickscene2dplugin.dll'.
+295792 WARNING: Library not found: could not resolve 'Qt63DQuickScene3D.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Scene3D\\qtquickscene3dplugin.dll'.
+295794 WARNING: Library not found: could not resolve 'Qt6QuickShapesDesignHelpers.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\Shapes\\DesignHelpers\\qtquickshapesdesignhelpersplugin.dll'.
+295795 WARNING: Library not found: could not resolve 'Qt6QuickVectorImageHelpers.dll', dependency of 'C:\\Users\\Acer Nitro 5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PyQt6\\Qt6\\qml\\QtQuick\\VectorImage\\Helpers\\qquickvectorimagehelpersplugin.dll'.
+296150 INFO: Warnings written to C:\Users\Acer Nitro 5\Desktop\Axis_OS\build\axis_ide\warn-axis_ide.txt
+296618 INFO: Graph cross-reference written to C:\Users\Acer Nitro 5\Desktop\Axis_OS\build\axis_ide\xref-axis_ide.html
+297175 INFO: checking PYZ
+297384 INFO: checking PKG
+297388 INFO: Bootloader C:\Users\Acer Nitro 5\AppData\Local\Programs\Python\Python312\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+297388 INFO: checking EXE
+297453 INFO: checking COLLECT
+297543 INFO: Building COLLECT COLLECT-00.toc
+317077 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+317211 INFO: Build complete! The results are available in: C:\Users\Acer Nitro 5\Desktop\Axis_OS\dist_new

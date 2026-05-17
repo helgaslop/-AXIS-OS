@@ -1,0 +1,4783 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AXIS IDE</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0b0f;--bg2:#111318;--bg3:#181c24;--bg4:#1e2330;
+  --border:#252a38;--border2:#2e3547;
+  --accent:#3b82f6;--accent2:#60a5fa;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--purple:#8b5cf6;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --tab-h:36px;--sidebar-w:240px;--ai-w:320px;--title-h:38px;--term-h:180px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.5 'Segoe UI',system-ui,sans-serif;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--text3);}
+
+/* ── Titlebar ── */
+#titlebar{
+  height:var(--title-h);background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  -webkit-app-region:drag;user-select:none;flex-shrink:0;
+}
+#titlebar .logo{font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:1px;}
+#titlebar .sep{color:var(--border2);margin:0 2px;}
+#project-name{font-size:12px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#titlebar .spacer{flex:1;}
+.tb-btn{
+  -webkit-app-region:no-drag;
+  height:24px;padding:0 10px;border:1px solid var(--border2);border-radius:5px;
+  background:transparent;color:var(--text2);font-size:11px;cursor:pointer;
+  display:flex;align-items:center;gap:5px;transition:all .15s;
+}
+.tb-btn:hover{background:var(--bg3);color:var(--text);}
+.tb-btn.run{border-color:var(--green);color:var(--green);}
+.tb-btn.run:hover{background:rgba(34,197,94,.1);}
+.tb-btn.run:active{background:rgba(34,197,94,.2);}
+.wc{display:flex;gap:4px;margin-left:4px;}
+.wc-btn{
+  -webkit-app-region:no-drag;
+  width:28px;height:24px;border:none;border-radius:5px;cursor:pointer;
+  font-size:12px;display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);color:var(--text2);transition:all .15s;
+}
+.wc-btn:hover.min{background:#f59e0b22;color:var(--yellow);}
+.wc-btn:hover.max{background:#3b82f622;color:var(--accent2);}
+.wc-btn:hover.cls{background:#ef444422;color:var(--red);}
+
+/* ── Main layout ── */
+#main{display:flex;height:calc(100vh - var(--title-h));overflow:hidden;}
+
+/* ── Sidebar ── */
+#sidebar{
+  width:var(--sidebar-w);min-width:160px;max-width:360px;
+  background:var(--bg2);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  position:relative;
+}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.stab{
+  flex:1;padding:7px 0;font-size:11px;font-weight:600;color:var(--text3);
+  cursor:pointer;text-align:center;border-bottom:2px solid transparent;
+  letter-spacing:.4px;transition:all .15s;
+}
+.stab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.stab:hover:not(.active){color:var(--text2);}
+.sidebar-panel{flex:1;overflow-y:auto;overflow-x:hidden;display:none;}
+.sidebar-panel.active{display:flex;flex-direction:column;}
+
+/* Explorer */
+#sidebar-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;flex-shrink:0;
+}
+#sidebar-header span{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;}
+.sbh-actions{display:flex;gap:2px;}
+.sbh-btn{
+  width:22px;height:22px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;border-radius:4px;font-size:13px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.sbh-btn:hover{background:var(--bg3);color:var(--text);}
+#file-tree{flex:1;padding:2px 0;}
+.tree-empty{padding:20px 12px;color:var(--text3);font-size:12px;line-height:1.6;}
+.tree-item{
+  display:flex;align-items:center;gap:5px;padding:3px 8px;
+  cursor:pointer;border-radius:4px;margin:0 4px;font-size:12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .1s;position:relative;
+}
+.tree-item:hover{background:var(--bg3);}
+.tree-item.active{background:var(--accent)22;color:var(--accent2);}
+.tree-item .ti-icon{font-size:12px;flex-shrink:0;width:14px;text-align:center;}
+.tree-item .ti-name{overflow:hidden;text-overflow:ellipsis;flex:1;}
+.tree-item .ti-ctx{
+  display:none;margin-left:auto;font-size:10px;padding:1px 5px;
+  background:var(--bg4);border-radius:3px;color:var(--text3);
+}
+.tree-item:hover .ti-ctx{display:block;}
+.tree-children{display:none;}
+.tree-children.open{display:block;}
+
+/* Git panel */
+.git-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.git-tab{flex:1;padding:6px 0;font-size:10px;font-weight:700;color:var(--text3);text-align:center;cursor:pointer;border-bottom:2px solid transparent;letter-spacing:.4px;transition:all .15s;}
+.git-tab:hover{color:var(--text2);}
+.git-tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.git-tab-panel{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.git-branchbar{display:flex;align-items:center;gap:4px;padding:4px 6px;background:var(--bg3);border-bottom:1px solid var(--border);flex-shrink:0;}
+.git-ic-btn{background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 6px;transition:all .12s;}
+.git-ic-btn:hover{background:var(--bg4);color:var(--text);}
+.git-sm-btn{background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer;font-size:11px;padding:2px 8px;transition:all .12s;}
+.git-sm-btn:hover{background:var(--bg4);color:var(--text);}
+.git-inp{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:5px 8px;font-size:11px;outline:none;}
+.git-inp:focus{border-color:var(--accent);}
+/* Log items */
+.git-log-item{padding:5px 8px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.git-log-item:hover{background:var(--bg3);}
+.git-log-hash{font-family:monospace;font-size:10px;color:var(--accent2);margin-right:6px;}
+.git-log-msg{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.git-log-meta{font-size:10px;color:var(--text3);margin-top:2px;}
+#git-panel{padding:8px;}
+.git-section{margin-bottom:12px;}
+.git-section-title{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;padding:0 2px;}
+.git-file{
+  display:flex;align-items:center;gap:6px;padding:4px 6px;
+  border-radius:4px;font-size:11px;cursor:pointer;transition:background .1s;
+}
+.git-file:hover{background:var(--bg3);}
+.git-badge{font-size:10px;font-weight:700;width:14px;text-align:center;}
+.git-badge.M{color:var(--yellow);}
+.git-badge.A{color:var(--green);}
+.git-badge.D{color:var(--red);}
+.git-badge.U{color:var(--purple);}
+.git-commit-row{display:flex;gap:6px;margin-top:8px;}
+#git-msg{
+  flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;
+  color:var(--text);padding:5px 8px;font-size:11px;outline:none;
+}
+#git-msg:focus{border-color:var(--accent);}
+.git-commit-btn{
+  padding:5px 10px;background:var(--accent);border:none;border-radius:5px;
+  color:#fff;font-size:11px;cursor:pointer;font-weight:600;
+}
+.git-commit-btn:hover{background:var(--accent2);}
+.branch-row{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:11px;color:var(--text2);}
+.branch-row .bi{color:var(--purple);}
+
+/* Resize handle */
+#sidebar-resize{
+  position:absolute;right:0;top:0;bottom:0;width:4px;
+  cursor:col-resize;background:transparent;z-index:10;
+}
+#sidebar-resize:hover{background:var(--accent)44;}
+
+/* ── Editor area ── */
+#editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* Tabs */
+#tab-bar{
+  height:var(--tab-h);background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;overflow-y:hidden;flex-shrink:0;
+}
+#tab-bar::-webkit-scrollbar{height:3px;}
+.tab{
+  display:flex;align-items:center;gap:6px;padding:0 14px;
+  height:100%;flex-shrink:0;cursor:pointer;
+  border-right:1px solid var(--border);font-size:12px;color:var(--text2);
+  transition:all .15s;white-space:nowrap;position:relative;
+}
+.tab:hover{background:var(--bg3);color:var(--text);}
+.tab.active{background:var(--bg);color:var(--text);border-bottom:2px solid var(--accent);}
+.tab .t-close{
+  width:16px;height:16px;border-radius:3px;display:flex;align-items:center;
+  justify-content:center;font-size:10px;color:var(--text3);transition:all .12s;
+}
+.tab:hover .t-close{color:var(--text2);}
+.tab .t-close:hover{background:var(--bg4);color:var(--red);}
+.tab .t-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--yellow);
+  display:none;flex-shrink:0;
+}
+.tab.dirty .t-dot{display:block;}
+.tab.dirty .t-close{display:none;}
+.tab.dirty:hover .t-dot{display:none;}
+.tab.dirty:hover .t-close{display:flex;}
+.tab .t-icon{font-size:12px;}
+
+/* Editor + terminal wrapper */
+#editor-terminal{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+#monaco-container{flex:1;overflow:hidden;position:relative;}
+
+/* Active agent chip in sidebar */
+.agent-chip{
+  display:flex;align-items:center;gap:5px;padding:3px 6px;
+  border-radius:5px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.25);
+  font-size:10px;color:#90cdf4;margin-bottom:3px;
+}
+.agent-chip-dot{
+  width:6px;height:6px;border-radius:50%;background:#63b3ed;flex-shrink:0;
+  animation:agent-pulse 1s ease-in-out infinite;
+}
+@keyframes agent-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.agent-chip-action{color:var(--text3);font-size:9px;margin-left:auto;max-width:90px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Highlight new/modified files in tree */
+.tree-item.ai-new{animation:tree-flash .6s ease 3;}
+@keyframes tree-flash{0%,100%{background:transparent}50%{background:rgba(72,187,120,.18);}}
+.tree-item.ai-new .tree-label{color:#68d391!important;}
+
+/* Agent activity overlay on editor */
+#agent-editor-overlay{
+  display:none;position:absolute;inset:0;z-index:50;
+  background:rgba(10,11,15,.55);backdrop-filter:blur(1px);
+  pointer-events:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+#agent-editor-overlay.active{display:flex;}
+.aeo-spinner{
+  width:32px;height:32px;border:3px solid rgba(99,179,237,.2);
+  border-top-color:#63b3ed;border-radius:50%;
+  animation:aeo-spin .7s linear infinite;
+}
+@keyframes aeo-spin{to{transform:rotate(360deg)}}
+.aeo-label{
+  font-size:12px;color:#90cdf4;letter-spacing:.5px;
+  max-width:260px;text-align:center;word-break:break-all;
+  background:rgba(10,11,15,.7);padding:4px 10px;border-radius:6px;
+}
+#editor-welcome{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;pointer-events:none;
+  opacity:.4;
+}
+#editor-welcome .w-logo{font-size:48px;}
+#editor-welcome .w-title{font-size:18px;font-weight:700;color:var(--text2);}
+#editor-welcome .w-sub{font-size:12px;color:var(--text3);}
+
+/* Terminal / Problems bottom panel */
+#terminal-wrap{
+  height:var(--term-h);flex-shrink:0;
+  border-top:1px solid var(--border);display:flex;flex-direction:column;
+}
+#terminal-header{
+  display:flex;align-items:center;gap:4px;padding:0 6px 0 0;
+  background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;
+  height:30px;
+}
+.btm-tabs{display:flex;height:100%;}
+.btm-tab{
+  display:flex;align-items:center;gap:4px;padding:0 12px;
+  font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.6px;
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;
+  white-space:nowrap;
+}
+.btm-tab:hover{color:var(--text2);}
+.btm-tab.active{color:var(--text2);border-bottom-color:var(--accent);}
+.btm-panel{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.prob-badge{
+  background:var(--red);color:#fff;border-radius:8px;
+  font-size:9px;font-weight:800;padding:1px 5px;min-width:16px;text-align:center;
+}
+.prob-badge.warn{background:var(--yellow);color:#000;}
+.term-clear-btn{font-size:10px;padding:2px 7px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text3);cursor:pointer;}
+.term-clear-btn:hover{background:var(--bg3);color:var(--text2);}
+.prob-filter.active{background:var(--bg3);color:var(--text2);border-color:var(--border2);}
+/* Problems list items */
+.prob-file-hdr{
+  display:flex;align-items:center;gap:6px;padding:3px 10px;
+  background:var(--bg2);font-size:11px;font-weight:700;color:var(--text2);
+  position:sticky;top:0;z-index:1;cursor:pointer;
+}
+.prob-file-hdr:hover{background:var(--bg3);}
+.prob-file-hdr .pf-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prob-file-hdr .pf-count{font-size:9px;background:var(--bg4);border-radius:6px;padding:1px 6px;}
+.prob-item{
+  display:flex;align-items:flex-start;gap:8px;padding:3px 10px 3px 24px;
+  cursor:pointer;transition:background .1s;font-size:11px;
+}
+.prob-item:hover{background:var(--bg3);}
+.prob-item .pi-icon{flex-shrink:0;font-size:11px;padding-top:1px;}
+.prob-item .pi-msg{flex:1;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prob-item .pi-line{flex-shrink:0;color:var(--text3);font-family:monospace;font-size:10px;}
+.prob-item .pi-sym{flex-shrink:0;color:var(--text3);font-size:10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#terminal-output{
+  flex:1;overflow-y:auto;padding:6px 10px;
+  font-family:'Cascadia Code','Consolas','Courier New',monospace;font-size:12px;
+  background:var(--bg);line-height:1.6;
+}
+.to-out{color:#94a3b8;}
+.to-success{color:var(--green);}
+.to-error{color:var(--red);}
+.to-info{color:var(--accent2);}
+.to-warn{color:var(--yellow);}
+#terminal-input-row{
+  display:flex;align-items:center;gap:6px;padding:4px 10px;
+  background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;
+}
+#term-cwd{font-size:10px;color:var(--accent);font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#term-input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font-family:'Cascadia Code','Consolas',monospace;font-size:12px;
+}
+#term-input::placeholder{color:var(--text3);}
+.ai-cmd-btn{padding:3px 8px;background:transparent;border:1px solid var(--border2);border-radius:4px;color:var(--text3);font-size:10px;cursor:pointer;}
+.ai-cmd-btn:hover{background:var(--accent)22;border-color:var(--accent);color:var(--accent2);}
+
+/* Terminal resize */
+#term-resize{
+  height:4px;background:transparent;cursor:row-resize;flex-shrink:0;
+  border-top:1px solid var(--border);
+}
+#term-resize:hover{background:var(--accent)44;}
+
+/* ── Search Panel ── */
+.srch-section{padding:6px 6px 0;border-bottom:1px solid var(--border);flex-shrink:0;}
+.srch-input-wrap,.srch-replace-wrap{
+  display:flex;align-items:center;gap:3px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  padding:3px 5px;margin-bottom:4px;
+}
+.srch-input-wrap:focus-within,.srch-replace-wrap:focus-within{border-color:var(--accent);}
+.srch-icon{font-size:12px;flex-shrink:0;}
+.srch-inp{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--text);font:12px 'Segoe UI',sans-serif;min-width:0;
+}
+.srch-inp::placeholder{color:var(--text3);}
+.srch-opt-btn{
+  flex-shrink:0;width:22px;height:18px;border:1px solid transparent;
+  border-radius:3px;background:transparent;color:var(--text3);
+  font-size:10px;font-weight:700;cursor:pointer;transition:all .12s;
+}
+.srch-opt-btn:hover{background:var(--bg4);color:var(--text);}
+.srch-opt-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(59,130,246,.12);}
+.srch-repl-btn{
+  flex-shrink:0;width:22px;height:18px;border:none;border-radius:3px;
+  background:transparent;color:var(--text3);font-size:11px;cursor:pointer;
+  transition:all .12s;
+}
+.srch-repl-btn:hover{background:rgba(139,92,246,.2);color:var(--purple);}
+.srch-repl-btn.all:hover{background:rgba(239,68,68,.15);color:var(--red);}
+.srch-toggle-repl{
+  background:transparent;border:none;color:var(--text3);
+  font-size:10px;cursor:pointer;padding:1px 4px;
+  border-radius:3px;transition:color .12s;
+}
+.srch-toggle-repl:hover{color:var(--text);}
+.srch-results{flex:1;overflow-y:auto;font-size:11px;}
+.srch-empty{padding:12px;color:var(--text3);font-size:11px;text-align:center;}
+.srch-file-group{border-bottom:1px solid var(--border);}
+.srch-file-hdr{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  cursor:pointer;user-select:none;background:var(--bg2);
+  position:sticky;top:0;z-index:1;
+}
+.srch-file-hdr:hover{background:var(--bg3);}
+.srch-file-name{flex:1;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.srch-file-path{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60px;}
+.srch-file-badge{
+  flex-shrink:0;background:var(--accent);color:#fff;
+  font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:18px;text-align:center;
+}
+.srch-match{
+  display:flex;align-items:flex-start;gap:6px;padding:3px 8px 3px 20px;
+  cursor:pointer;transition:background .1s;
+}
+.srch-match:hover{background:var(--bg3);}
+.srch-match.selected{background:rgba(59,130,246,.15);border-left:2px solid var(--accent);}
+.srch-lineno{color:var(--text3);flex-shrink:0;min-width:28px;text-align:right;padding-top:1px;}
+.srch-line{flex:1;color:var(--text2);white-space:pre;overflow:hidden;text-overflow:ellipsis;}
+.srch-line mark{background:rgba(245,158,11,.35);color:var(--yellow);border-radius:2px;font-style:normal;}
+.srch-loading{padding:12px;color:var(--text3);text-align:center;font-size:11px;}
+
+/* ── AI Panel tab buttons ── */
+.aip-tab-btn{
+  padding:4px 8px;border:none;background:transparent;color:var(--text3);
+  font-size:13px;cursor:pointer;border-radius:5px;transition:all .15s;
+  -webkit-app-region:no-drag;
+}
+.aip-tab-btn:hover{background:var(--bg3);color:var(--text2);}
+.aip-tab-btn.active{background:var(--accent)22;color:var(--accent2);}
+
+/* ── Tool use badges (inline in chat) ── */
+.tool-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg4);border:1px solid var(--border2);border-radius:6px;
+  padding:3px 9px;font-size:10px;color:var(--text2);margin:3px 0;cursor:default;
+}
+.tool-badge.running{border-color:var(--accent)55;color:var(--accent2);animation:tbpulse 1.2s ease-in-out infinite;}
+.tool-badge.done{border-color:var(--green)55;color:var(--green);}
+.tool-badge.failed{border-color:var(--red)55;color:var(--red);}
+@keyframes tbpulse{0%,100%{opacity:.7}50%{opacity:1}}
+.tool-badge-wrap{padding:0 0 4px 0;}
+
+/* ── Streaming cursor ── */
+.stream-cursor{
+  display:inline-block;width:2px;height:12px;background:var(--accent2);
+  margin-left:1px;vertical-align:middle;border-radius:1px;
+  animation:scblink .6s step-end infinite;
+}
+@keyframes scblink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── Agents list tab ── */
+#aip-agents-tab{flex:1;overflow-y:auto;padding:4px 0;}
+.ag2-hint{padding:8px 12px;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);}
+.ag2-cat{margin-bottom:2px;}
+.ag2-cat-hdr{
+  font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.8px;
+  text-transform:uppercase;padding:8px 12px 4px;
+}
+.ag2-item{
+  display:flex;align-items:center;gap:8px;padding:5px 12px;
+  cursor:pointer;transition:background .1s;
+}
+.ag2-item:hover{background:var(--bg3);}
+.ag2-item:hover .ag2-use{display:inline-block;}
+.ag2-emoji{font-size:14px;flex-shrink:0;}
+.ag2-info{flex:1;min-width:0;}
+.ag2-name{font-size:12px;font-weight:600;color:var(--text);}
+.ag2-desc{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ag2-use{
+  display:none;font-size:10px;padding:2px 6px;border-radius:4px;
+  background:var(--accent)22;color:var(--accent2);border:1px solid var(--accent)44;
+  flex-shrink:0;
+}
+
+/* ── Status bar (tool/thinking indicator) ── */
+/* ── Agent running bar ── */
+#agent-running-bar{
+  display:flex;align-items:center;gap:8px;padding:5px 12px;
+  background:linear-gradient(90deg,var(--accent)18,transparent);
+  border-bottom:1px solid var(--accent)44;flex-shrink:0;
+  animation:runbar-pulse 2s ease-in-out infinite;
+}
+@keyframes runbar-pulse{
+  0%,100%{background:linear-gradient(90deg,var(--accent)18,transparent);}
+  50%{background:linear-gradient(90deg,var(--accent)30,transparent);}
+}
+#agent-running-dots{display:flex;gap:3px;align-items:center;}
+#agent-running-dots span{
+  width:5px;height:5px;border-radius:50%;background:var(--accent2);
+  animation:typing .8s ease-in-out infinite;
+}
+#agent-running-dots span:nth-child(2){animation-delay:.15s;}
+#agent-running-dots span:nth-child(3){animation-delay:.3s;}
+#agent-running-text{font-size:11px;color:var(--accent2);flex:1;font-weight:500;}
+#agent-running-stop{
+  font-size:10px;padding:2px 8px;border:1px solid var(--red)55;border-radius:5px;
+  background:transparent;color:var(--red);cursor:pointer;flex-shrink:0;
+}
+#agent-running-stop:hover{background:rgba(239,68,68,.15);}
+/* Mic button active state */
+#ai-mic-btn.recording{color:var(--red);animation:mic-pulse .6s ease-in-out infinite;}
+@keyframes mic-pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+#agents-status-bar{
+  padding:3px 10px;background:var(--bg3);border-bottom:1px solid var(--border);
+  font-size:10px;color:var(--text2);align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0;
+}
+
+/* ── AI Panel ── */
+#ai-panel{
+  width:var(--ai-w);min-width:240px;max-width:480px;
+  background:var(--bg2);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;
+  position:relative;
+}
+#ai-panel-header{
+  display:flex;align-items:center;gap:8px;padding:0 12px;
+  height:var(--tab-h);background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#ai-panel-header .ai-title{font-size:12px;font-weight:700;color:var(--accent2);letter-spacing:.5px;flex:1;}
+.ai-model-badge{
+  font-size:10px;padding:2px 7px;border-radius:10px;
+  background:var(--accent)22;color:var(--accent2);border:1px solid var(--accent)44;
+  cursor:pointer;white-space:nowrap;
+}
+.ai-panel-btn{
+  width:24px;height:24px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;border-radius:4px;font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.ai-panel-btn:hover{background:var(--bg3);color:var(--text);}
+/* ── Provider Selector ── */
+/* ── Provider Selector (Claude-style 2-col) ── */
+#pm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;}
+#pm-dialog{
+  background:var(--bg2);border:1px solid var(--border2);border-radius:14px;
+  width:680px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+}
+#pm-header{
+  display:flex;align-items:center;gap:10px;padding:14px 16px 10px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#pm-search{
+  flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:7px 12px;color:var(--text);font-size:12px;outline:none;
+}
+#pm-search:focus{border-color:var(--accent)88;}
+#pm-search::placeholder{color:var(--text3);}
+#pm-body{display:flex;flex:1;overflow:hidden;}
+/* Left: provider tabs */
+#pm-provs{
+  width:136px;flex-shrink:0;border-right:1px solid var(--border);
+  overflow-y:auto;padding:6px 0;background:var(--bg);
+}
+.pm-ptab{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  cursor:pointer;transition:all .12s;border-left:2px solid transparent;
+  user-select:none;
+}
+.pm-ptab:hover{background:var(--bg3);}
+.pm-ptab.active{border-left-color:var(--accent);background:var(--bg3);color:var(--text);}
+.pm-ptab .pt-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+.pm-ptab .pt-name{font-size:11px;color:var(--text2);line-height:1.2;}
+.pm-ptab.active .pt-name{color:var(--text);}
+.pm-ptab .pt-dot{width:5px;height:5px;border-radius:50%;background:var(--green);margin-left:auto;flex-shrink:0;display:none;}
+.pm-ptab.has-key .pt-dot{display:block;}
+/* Right: model list */
+#pm-models{flex:1;overflow-y:auto;padding:8px 0;}
+.pm-mitem{
+  display:flex;align-items:center;gap:10px;padding:9px 16px;
+  cursor:pointer;transition:background .1s;border-left:2px solid transparent;
+}
+.pm-mitem:hover{background:var(--bg3);}
+.pm-mitem.active{border-left-color:var(--accent);background:var(--accent)12;}
+.pm-mitem .pm-mname{font-size:12px;color:var(--text);font-weight:500;flex:1;}
+.pm-mitem .pm-mdesc{font-size:10px;color:var(--text3);margin-top:1px;}
+.pm-mitem .pm-mtags{display:flex;gap:4px;flex-shrink:0;}
+.pm-mtag{font-size:9px;padding:1px 5px;border-radius:8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.pm-mtag.new{color:#34d399;border-color:#34d39944;background:rgba(52,211,153,.08);}
+.pm-mtag.top{color:var(--accent2);border-color:var(--accent)44;background:var(--accent)10;}
+.pm-mtag.reasoning{color:var(--purple);border-color:#8b5cf644;background:rgba(139,92,246,.08);}
+.pm-mtag.kod{color:var(--yellow);border-color:var(--yellow)44;background:rgba(245,158,11,.08);}
+.pm-mtag.search{color:#06b6d4;border-color:#06b6d444;background:rgba(6,182,212,.08);}
+/* Bottom: key area */
+#pm-footer{
+  border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:8px;background:var(--bg);
+}
+#pm-footer-title{font-size:11px;color:var(--text2);}
+#pm-key-row{display:flex;gap:8px;}
+#pm-key-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  padding:7px 10px;color:var(--text);font-size:12px;font-family:Consolas,monospace;
+}
+#pm-key-inp:focus{outline:none;border-color:var(--accent)88;}
+#pm-eye-btn{
+  width:32px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  color:var(--text2);cursor:pointer;font-size:13px;flex-shrink:0;
+}
+#pm-baseurl-wrap{display:none;flex-direction:column;gap:4px;}
+#pm-baseurl-inp{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  padding:7px 10px;color:var(--text);font-size:12px;
+}
+#pm-baseurl-inp:focus{outline:none;border-color:var(--accent)88;}
+#pm-save-btn{
+  align-self:flex-end;padding:7px 20px;background:var(--accent);border:none;
+  border-radius:8px;color:white;font-size:12px;font-weight:600;cursor:pointer;
+  transition:opacity .15s;
+}
+#pm-save-btn:hover{opacity:.85;}
+#pm-custom-row{display:flex;gap:8px;align-items:center;}
+#pm-custom-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;
+  padding:6px 10px;color:var(--text);font-size:12px;display:none;
+}
+/* Provider chip in AI header */
+#ai-provider-chip{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 6px;
+  border-radius:20px;cursor:pointer;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-size:11px;white-space:nowrap;
+  transition:all .15s;-webkit-app-region:no-drag;
+}
+#ai-provider-chip:hover{border-color:var(--accent)66;color:var(--text);background:var(--bg4);}
+#ai-provider-chip .pc-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+#ai-provider-chip.configured .pc-dot{background:var(--green);}
+#ai-provider-chip .pc-text{max-width:100px;overflow:hidden;text-overflow:ellipsis;}
+#ai-messages{flex:1;overflow-y:auto;padding:10px;}
+.ai-msg{margin-bottom:12px;display:flex;flex-direction:column;gap:4px;}
+.ai-msg.user .ai-msg-body{
+  background:var(--accent)18;border:1px solid var(--accent)33;
+  border-radius:10px 10px 3px 10px;color:var(--text);padding:8px 10px;font-size:12px;
+  align-self:flex-end;max-width:90%;
+}
+.ai-msg.assistant .ai-msg-body{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px 10px 10px 3px;color:var(--text);padding:8px 10px;font-size:12px;
+  align-self:flex-start;max-width:100%;
+}
+.ai-msg-body pre{
+  background:var(--bg)!important;border:1px solid var(--border);border-radius:5px;
+  padding:8px;overflow-x:auto;font-size:11px;margin:6px 0;
+}
+.ai-msg-body code{font-family:'Cascadia Code','Consolas',monospace;}
+.ai-msg-body p{margin:3px 0;}
+.ai-msg-body .code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg4);border:1px solid var(--border);border-bottom:none;
+  border-radius:5px 5px 0 0;padding:4px 8px;font-size:10px;color:var(--text3);
+}
+.code-copy-btn{
+  padding:2px 7px;border:1px solid var(--border2);border-radius:3px;
+  background:transparent;color:var(--text3);font-size:10px;cursor:pointer;
+}
+.code-copy-btn:hover{background:var(--bg3);color:var(--text);}
+.apply-btn{
+  padding:2px 7px;border:1px solid var(--green)66;border-radius:3px;
+  background:transparent;color:var(--green);font-size:10px;cursor:pointer;margin-left:4px;
+}
+.apply-btn:hover{background:var(--green)22;}
+.ai-typing{display:flex;gap:4px;align-items:center;padding:6px 10px;}
+.ai-typing span{width:5px;height:5px;border-radius:50%;background:var(--accent2);animation:typing .8s ease-in-out infinite;}
+.ai-typing span:nth-child(2){animation-delay:.15s;}
+.ai-typing span:nth-child(3){animation-delay:.3s;}
+@keyframes typing{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.ai-welcome{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:10px;opacity:.5;padding:20px;text-align:center;
+}
+.ai-welcome .aw-icon{font-size:32px;}
+.ai-welcome .aw-title{font-size:13px;font-weight:700;color:var(--text2);}
+.ai-welcome .aw-sub{font-size:11px;color:var(--text3);line-height:1.6;}
+.ai-quick-actions{display:flex;flex-wrap:wrap;gap:5px;padding:0 10px 8px;}
+.aqa-btn{
+  padding:4px 9px;border:1px solid var(--border2);border-radius:12px;
+  background:transparent;color:var(--text2);font-size:11px;cursor:pointer;transition:all .15s;
+}
+.aqa-btn:hover{border-color:var(--accent);color:var(--accent2);background:var(--accent)11;}
+#ai-input-area{
+  padding:8px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg2);
+}
+#ai-input-wrap{
+  display:flex;flex-direction:column;gap:6px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px;
+}
+#ai-input-wrap:focus-within{border-color:var(--accent)66;}
+#ai-textarea{
+  background:transparent;border:none;outline:none;color:var(--text);
+  font-size:12px;resize:none;min-height:36px;max-height:120px;
+  font-family:inherit;line-height:1.5;
+}
+#ai-textarea::placeholder{color:var(--text3);}
+.ai-input-footer{display:flex;align-items:center;gap:6px;}
+.ai-ctx-badge{
+  font-size:10px;padding:2px 7px;background:var(--bg4);border:1px solid var(--border);
+  border-radius:10px;color:var(--text3);cursor:pointer;transition:all .15s;
+}
+.ai-ctx-badge:hover{border-color:var(--accent);color:var(--accent2);}
+.ai-ctx-badge.on{background:var(--accent)22;border-color:var(--accent)66;color:var(--accent2);}
+.ai-send-btn{
+  margin-left:auto;width:28px;height:28px;border-radius:7px;
+  background:var(--accent);border:none;color:#fff;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.ai-send-btn:hover{background:var(--accent2);}
+.ai-send-btn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed;}
+
+/* AI resize */
+#ai-resize{
+  position:absolute;left:0;top:0;bottom:0;width:4px;
+  cursor:col-resize;background:transparent;z-index:10;
+}
+#ai-resize:hover{background:var(--accent)44;}
+
+/* @ mention autocomplete dropdown */
+#at-dropdown{
+  position:absolute;bottom:calc(100% + 4px);left:0;right:0;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  overflow:hidden;z-index:999;display:none;
+  box-shadow:0 -4px 20px rgba(0,0,0,.4);max-height:180px;overflow-y:auto;
+}
+.at-item{
+  padding:6px 10px;font-size:11px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;color:var(--text2);
+  border-bottom:1px solid var(--border);
+}
+.at-item:last-child{border-bottom:none;}
+.at-item:hover,.at-item.active{background:var(--accent)22;color:var(--text);}
+.at-item .at-ext{color:var(--text3);font-size:10px;margin-left:auto;}
+
+/* ── Simple File Picker dropdown ── */
+#fp-dropdown{
+  position:absolute;bottom:calc(100% + 4px);left:0;width:240px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  z-index:998;display:none;box-shadow:0 -4px 20px rgba(0,0,0,.5);
+  flex-direction:column;overflow:hidden;
+}
+#fp-dropdown.open{display:flex;}
+#fp-search-box{
+  padding:6px 8px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+#fp-search-box input{
+  width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:5px;
+  color:var(--text);font-size:11px;padding:4px 8px;outline:none;
+}
+#fp-search-box input:focus{border-color:var(--accent)66;}
+#fp-file-list{max-height:200px;overflow-y:auto;}
+.fp-row{
+  display:flex;align-items:center;gap:7px;padding:5px 10px;
+  cursor:pointer;font-size:11px;color:var(--text2);user-select:none;
+}
+.fp-row:hover{background:var(--accent)18;color:var(--text);}
+.fp-row.all-row{color:var(--accent2);font-weight:600;border-bottom:1px solid var(--border);}
+.fp-row .fp-ext{color:var(--text3);font-size:10px;margin-left:auto;flex-shrink:0;}
+
+/* ── Message hover actions ── */
+.ai-msg{position:relative;}
+.msg-actions{
+  display:none;position:absolute;top:-8px;right:0;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  padding:2px 4px;gap:1px;align-items:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:10;
+}
+.ai-msg:hover .msg-actions{display:flex;}
+.ma-btn{
+  width:22px;height:22px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;border-radius:4px;font-size:12px;display:flex;align-items:center;justify-content:center;
+  transition:all .1s;
+}
+.ma-btn:hover{background:var(--bg4);color:var(--text);}
+
+/* ── Scroll to bottom button ── */
+#scroll-to-bottom{
+  position:absolute;bottom:12px;right:12px;width:28px;height:28px;
+  background:var(--bg4);border:1px solid var(--border2);border-radius:50%;
+  color:var(--text2);font-size:14px;cursor:pointer;display:none;
+  align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);
+  transition:all .15s;z-index:5;
+}
+#scroll-to-bottom:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+#scroll-to-bottom.visible{display:flex;}
+
+/* ── Tool calls group (collapsible) ── */
+.tool-group{margin-bottom:4px;}
+.tool-group-hdr{
+  display:flex;align-items:center;gap:6px;padding:2px 0;
+  cursor:pointer;color:var(--text3);font-size:10px;user-select:none;
+}
+.tool-group-hdr:hover{color:var(--text2);}
+.tool-group-hdr .tg-toggle{transition:transform .2s;display:inline-block;}
+.tool-group-hdr.collapsed .tg-toggle{transform:rotate(-90deg);}
+.tool-group-body{display:flex;flex-direction:column;gap:2px;}
+.tool-group-hdr.collapsed + .tool-group-body{display:none;}
+
+/* ── Markdown improvements ── */
+.ai-msg-body h1,.ai-msg-body h2,.ai-msg-body h3{
+  font-weight:700;margin:8px 0 4px;color:var(--text);
+}
+.ai-msg-body h1{font-size:15px;}
+.ai-msg-body h2{font-size:13px;border-bottom:1px solid var(--border);padding-bottom:3px;}
+.ai-msg-body h3{font-size:12px;color:var(--accent2);}
+.ai-msg-body ul,.ai-msg-body ol{padding-left:18px;margin:4px 0;}
+.ai-msg-body li{margin:2px 0;font-size:12px;}
+.ai-msg-body blockquote{
+  border-left:3px solid var(--accent)66;margin:4px 0;padding:3px 8px;
+  background:var(--accent)08;color:var(--text2);border-radius:0 4px 4px 0;
+}
+.ai-msg-body hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
+.ai-msg-body table{border-collapse:collapse;width:100%;margin:6px 0;font-size:11px;}
+.ai-msg-body th{background:var(--bg4);padding:4px 8px;border:1px solid var(--border);font-weight:600;}
+.ai-msg-body td{padding:3px 8px;border:1px solid var(--border);}
+.ai-msg-body tr:nth-child(even) td{background:var(--bg4)44;}
+
+/* Image previews in chat input */
+#img-previews{display:flex;flex-wrap:wrap;gap:6px;padding:0 2px;}
+.img-preview-wrap{position:relative;width:56px;height:56px;flex-shrink:0;}
+.img-preview-wrap img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);}
+.img-preview-rm{
+  position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;
+  background:var(--red);color:#fff;font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;border:none;line-height:1;
+}
+/* chat drop zone highlight */
+#ai-input-area.drag-over{outline:2px dashed var(--accent);outline-offset:-2px;border-radius:8px;}
+
+/* @ chips above textarea */
+#at-chips{display:flex;flex-wrap:wrap;gap:4px;padding:0 2px;}
+.at-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--accent)22;border:1px solid var(--accent)55;
+  color:var(--accent2);border-radius:5px;padding:1px 6px;font-size:10px;
+}
+.at-chip-x{cursor:pointer;color:var(--text3);margin-left:2px;}
+.at-chip-x:hover{color:var(--red);}
+
+/* clickable tool badge */
+.tool-badge.clickable{cursor:pointer;}
+.tool-badge.clickable:hover{opacity:.8;text-decoration:underline;}
+
+/* ── Token counter ── */
+.msg-tokens{font-size:9px;color:var(--text3);margin-top:3px;align-self:flex-end;padding:0 4px;}
+.msg-tokens.cost{color:var(--yellow);}
+
+/* Context usage bar */
+#ctx-usage-bar{height:2px;background:var(--bg4);flex-shrink:0;position:relative;overflow:hidden;}
+#ctx-usage-fill{height:100%;background:var(--accent);transition:width .5s ease;width:0%;}
+#ctx-usage-fill.warn{background:var(--yellow);}
+#ctx-usage-fill.danger{background:var(--red);}
+
+/* ── Todo panel ── */
+.todo-panel{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;margin:4px 0;font-size:11px;}
+.todo-title{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;}
+.todo-item{display:flex;align-items:center;gap:6px;padding:2px 0;}
+.todo-icon{width:14px;text-align:center;flex-shrink:0;}
+.todo-text{flex:1;color:var(--text2);}
+.todo-item.done .todo-text{color:var(--text3);text-decoration:line-through;}
+.todo-item.in_progress .todo-text{color:var(--text);font-weight:600;}
+.todo-item.error .todo-text{color:var(--red);}
+
+/* ── Diff view ── */
+.diff-block{font:11px/1.5 Consolas,monospace;background:var(--bg);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin:4px 0;max-height:200px;overflow-y:auto;}
+.diff-line{padding:0 8px;white-space:pre-wrap;word-break:break-all;}
+.diff-line.add{background:rgba(34,197,94,.12);color:#86efac;}
+.diff-line.del{background:rgba(239,68,68,.12);color:#fca5a5;}
+.diff-toggle{font-size:10px;color:var(--text3);cursor:pointer;padding:2px 0;}
+.diff-toggle:hover{color:var(--text2);}
+
+/* ── Continue button ── */
+.continue-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:1px solid var(--accent)55;border-radius:12px;background:transparent;color:var(--accent2);font-size:11px;cursor:pointer;margin:6px 0;transition:all .15s;}
+.continue-btn:hover{background:var(--accent)18;border-color:var(--accent);}
+
+/* ── Revert button on tool badge ── */
+.revert-btn{font-size:9px;padding:1px 5px;border:1px solid var(--border2);border-radius:3px;background:transparent;color:var(--text3);cursor:pointer;margin-left:4px;transition:all .12s;}
+.revert-btn:hover{border-color:var(--yellow);color:var(--yellow);background:rgba(245,158,11,.1);}
+
+/* terminal output block in chat */
+.tool-output{
+  margin:2px 0 4px 0;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:6px 8px;font:11px/1.4 Consolas,monospace;
+  color:var(--text2);white-space:pre-wrap;word-break:break-all;
+  max-height:120px;overflow-y:auto;
+}
+.tool-output.err{border-color:var(--red)44;color:#fca5a5;}
+.tool-output-live{
+  margin:2px 0 4px 0;background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:4px 8px;font:11px/1.5 Consolas,monospace;
+  color:var(--text2);max-height:160px;overflow-y:auto;
+}
+.tool-output-line{white-space:pre-wrap;word-break:break-all;}
+.tool-output-line:empty{display:none;}
+
+/* ── Toast ── */
+#toast-wrap{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;gap:6px;z-index:9999;pointer-events:none;
+}
+.toast{
+  padding:8px 16px;border-radius:8px;font-size:12px;font-weight:500;
+  animation:toastIn .2s ease;backdrop-filter:blur(8px);pointer-events:auto;
+  border:1px solid transparent;
+}
+.toast.info{background:#1e293bdd;color:var(--text);border-color:var(--border2);}
+.toast.success{background:#14532d99;color:#86efac;border-color:#166534;}
+.toast.error{background:#450a0a99;color:#fca5a5;border-color:#7f1d1d;}
+.toast.warn{background:#451a0399;color:#fcd34d;border-color:#78350f;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── Inline edit overlay ── */
+#inline-overlay{
+  display:none;position:fixed;inset:0;background:#00000088;z-index:500;
+  align-items:center;justify-content:center;backdrop-filter:blur(3px);
+}
+#inline-overlay.show{display:flex;}
+#inline-box{
+  width:500px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;
+  box-shadow:0 20px 60px #00000080;
+}
+#inline-box h3{font-size:13px;color:var(--text);font-weight:600;}
+#inline-instr{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  color:var(--text);padding:8px 10px;font-size:12px;outline:none;resize:none;height:70px;
+}
+#inline-instr:focus{border-color:var(--accent);}
+.inline-btns{display:flex;gap:8px;justify-content:flex-end;}
+.inline-btn{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:500;}
+.inline-btn.cancel{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.inline-btn.cancel:hover{background:var(--bg3);}
+.inline-btn.apply{background:var(--accent);border:none;color:#fff;}
+.inline-btn.apply:hover{background:var(--accent2);}
+
+/* ── Context menu ── */
+#ctx-menu{
+  display:none;position:fixed;z-index:9000;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  min-width:160px;padding:4px;box-shadow:0 8px 32px #00000060;
+}
+#ctx-menu.show{display:block;}
+.ctx-item{
+  padding:6px 12px;font-size:12px;color:var(--text2);border-radius:5px;
+  cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .1s;
+}
+.ctx-item:hover{background:var(--bg3);color:var(--text);}
+.ctx-item.danger:hover{background:#ef444422;color:var(--red);}
+.ctx-sep{height:1px;background:var(--border);margin:3px 0;}
+
+/* ── Settings modal ── */
+.set-tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.set-tab{
+  padding:5px 12px;font-size:11px;font-weight:600;color:var(--text3);cursor:pointer;
+  border-radius:6px 6px 0 0;border-bottom:2px solid transparent;transition:all .15s;
+}
+.set-tab:hover{color:var(--text2);}
+.set-tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.set-tab-panel{display:none;}
+.set-tab-panel.active{display:block;}
+.set-eye-btn{
+  background:transparent;border:1px solid var(--border2);border-radius:4px;
+  color:var(--text3);cursor:pointer;padding:2px 6px;font-size:12px;flex-shrink:0;
+  transition:all .12s;
+}
+.set-eye-btn:hover{background:var(--bg3);color:var(--text);}
+#settings-modal{
+  display:none;position:fixed;inset:0;background:#00000088;z-index:600;
+  align-items:center;justify-content:center;backdrop-filter:blur(3px);
+}
+#settings-modal.show{display:flex;}
+#settings-box{
+  width:460px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 20px 60px #00000080;
+}
+#settings-box h3{font-size:14px;font-weight:700;color:var(--text);}
+.set-row{display:flex;flex-direction:column;gap:4px;}
+.set-row label{font-size:11px;color:var(--text3);}
+.set-inp{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:6px;
+  color:var(--text);padding:7px 10px;font-size:12px;outline:none;
+}
+.set-inp:focus{border-color:var(--accent);}
+.set-row select.set-inp option{background:var(--bg2);}
+.set-row.row{flex-direction:row;align-items:center;justify-content:space-between;}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--bg4);border:none;
+  position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;
+  background:#fff;top:3px;left:3px;transition:transform .2s;}
+.toggle.on::after{transform:translateX(16px);}
+.set-btns{display:flex;gap:8px;justify-content:flex-end;}
+.set-btn{padding:7px 16px;border-radius:7px;font-size:12px;cursor:pointer;font-weight:500;}
+.set-btn.cancel{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.set-btn.save{background:var(--accent);border:none;color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- Titlebar -->
+<div id="titlebar">
+  <span class="logo">AXIS IDE</span>
+  <span class="sep">|</span>
+  <span id="project-name">Відкрийте проект...</span>
+  <div class="spacer"></div>
+  <button class="tb-btn" onclick="openFolder()" title="Відкрити папку">📂 Відкрити</button>
+  <button class="tb-btn run" id="run-btn" onclick="runCurrentFile()" title="Запустити (F5)">▶ Запустити</button>
+  <span id="ghost-indicator" style="font-size:11px;color:var(--yellow);opacity:0;transition:opacity .3s;cursor:default;" title=""></span>
+  <button class="tb-btn" onclick="showSettings()" title="Налаштування">⚙</button>
+  <div class="wc">
+    <button class="wc-btn min" onclick="ideCall('minimize')" title="Мінімізувати">─</button>
+    <button class="wc-btn max" onclick="ideCall('maximize')" title="Розгорнути">□</button>
+    <button class="wc-btn cls" onclick="ideCall('close_app')" title="Закрити">✕</button>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-tabs">
+      <div class="stab active" data-tab="explorer" onclick="switchSideTab('explorer')">ФАЙЛИ</div>
+      <div class="stab" data-tab="search" onclick="switchSideTab('search')" id="stab-search">🔍</div>
+      <div class="stab" data-tab="git" onclick="switchSideTab('git')">GIT</div>
+    </div>
+
+    <!-- Explorer panel -->
+    <div id="panel-explorer" class="sidebar-panel active">
+      <div id="sidebar-header">
+        <span id="sb-project-name">ПРОВІДНИК</span>
+        <div class="sbh-actions">
+          <button class="sbh-btn" onclick="newFilePrompt()" title="Новий файл">+</button>
+          <button class="sbh-btn" onclick="newFolderPrompt()" title="Нова папка">⊞</button>
+          <button class="sbh-btn" onclick="openFolder()" title="Відкрити папку">📂</button>
+        </div>
+      </div>
+      <!-- Active agents under the file tree -->
+      <div id="active-agents-bar" style="display:none;padding:6px 8px;border-top:1px solid var(--border);flex-shrink:0;">
+        <div style="font-size:9px;color:var(--text3);letter-spacing:.7px;text-transform:uppercase;margin-bottom:4px;">Агенти</div>
+        <div id="active-agents-list"></div>
+      </div>
+      <div id="file-tree">
+        <div class="tree-empty">Відкрийте папку проекту<br>для перегляду файлів</div>
+      </div>
+    </div>
+
+    <!-- Search panel -->
+    <div id="panel-search" class="sidebar-panel">
+      <!-- Search input row -->
+      <div class="srch-section">
+        <div class="srch-input-wrap">
+          <span class="srch-icon">🔍</span>
+          <input id="srch-query" class="srch-inp" type="text" placeholder="Пошук у файлах..." autocomplete="off"/>
+          <button class="srch-opt-btn" id="srch-btn-case" onclick="srchToggleOpt('case')" title="Регістр (Aa)">Aa</button>
+          <button class="srch-opt-btn" id="srch-btn-word" onclick="srchToggleOpt('word')" title="Ціле слово">ab</button>
+          <button class="srch-opt-btn" id="srch-btn-regex" onclick="srchToggleOpt('regex')" title="Regex">.*</button>
+        </div>
+        <!-- Replace input row -->
+        <div class="srch-replace-wrap" id="srch-replace-wrap">
+          <span class="srch-icon" style="color:var(--purple)">↩</span>
+          <input id="srch-replace" class="srch-inp" type="text" placeholder="Замінити на..."/>
+          <button class="srch-repl-btn" onclick="doReplace(false)" title="Замінити в обраних файлах">↩</button>
+          <button class="srch-repl-btn all" onclick="doReplace(true)" title="Замінити в усіх файлах">↩↩</button>
+        </div>
+        <!-- Toggle replace -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 8px;">
+          <button class="srch-toggle-repl" onclick="srchToggleReplace()" id="srch-toggle-repl-btn">▶ Замінити</button>
+          <span id="srch-count" style="font-size:10px;color:var(--text3);"></span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="srch-results" class="srch-results">
+        <div class="srch-empty" id="srch-empty">Введіть запит і натисніть Enter</div>
+      </div>
+    </div>
+
+    <!-- Git panel -->
+    <div id="panel-git" class="sidebar-panel">
+      <!-- Git sub-tabs -->
+      <div class="git-tabs">
+        <div class="git-tab active" data-gtab="changes"  onclick="switchGitTab('changes')">Зміни</div>
+        <div class="git-tab"        data-gtab="log"      onclick="switchGitTab('log')">Log</div>
+        <div class="git-tab"        data-gtab="remotes"  onclick="switchGitTab('remotes')">Remote</div>
+      </div>
+
+      <!-- Branch + sync bar -->
+      <div class="git-branchbar">
+        <span class="bi">⎇</span>
+        <span id="git-branch-name" style="flex:1;font-weight:700;font-size:11px;">—</span>
+        <button class="git-ic-btn" onclick="gitFetch()"  title="Fetch">⬇↑</button>
+        <button class="git-ic-btn" onclick="gitPull()"   title="Pull">⬇</button>
+        <button class="git-ic-btn" onclick="gitPush()"   title="Push">⬆</button>
+        <button class="git-ic-btn" onclick="gitRefresh()" title="Оновити">↻</button>
+      </div>
+
+      <!-- TAB: Changes -->
+      <div id="gtab-changes" class="git-tab-panel active">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 8px;">
+          <span style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.6px;">ЗМІНИ <span id="git-count" style="color:var(--yellow);"></span></span>
+          <div style="display:flex;gap:4px;">
+            <button class="git-sm-btn" onclick="gitStash('push')"  title="Stash">📦</button>
+            <button class="git-sm-btn" onclick="gitStash('pop')"   title="Stash pop">📤</button>
+          </div>
+        </div>
+        <div id="git-files" style="flex:1;overflow-y:auto;padding:0 4px;"></div>
+        <div style="padding:6px;">
+          <input id="git-msg" class="git-inp" type="text" placeholder="Повідомлення коміту..."/>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="git-commit-btn" style="flex:1;" onclick="gitCommit()">✓ Commit</button>
+            <button class="git-commit-btn" style="background:var(--green);border-color:var(--green);" onclick="gitCommitPush()">✓⬆</button>
+          </div>
+        </div>
+        <div id="git-op-output" style="display:none;padding:6px 8px;font-size:10px;font-family:monospace;color:var(--text2);background:var(--bg3);border-top:1px solid var(--border);white-space:pre-wrap;max-height:80px;overflow-y:auto;"></div>
+      </div>
+
+      <!-- TAB: Log -->
+      <div id="gtab-log" class="git-tab-panel" style="display:none;">
+        <div id="git-log-list" style="flex:1;overflow-y:auto;padding:4px;"></div>
+      </div>
+
+      <!-- TAB: Remotes -->
+      <div id="gtab-remotes" class="git-tab-panel" style="display:none;">
+        <div id="git-remotes-list" style="padding:8px;font-size:11px;"></div>
+        <div style="padding:6px;">
+          <input id="git-remote-url" class="git-inp" type="text" placeholder="Remote URL для push/pull..."/>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="git-sm-btn" style="flex:1;" onclick="gitPushRemote()">⬆ Push до URL</button>
+            <button class="git-sm-btn" style="flex:1;" onclick="gitPullRemote()">⬇ Pull з URL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <div id="sidebar-resize"></div>
+  </div>
+
+  <!-- Editor area -->
+  <div id="editor-area">
+    <!-- Tab bar -->
+    <div id="tab-bar"></div>
+
+    <!-- Editor + Terminal -->
+    <div id="editor-terminal">
+      <div id="monaco-container">
+        <!-- Agent working overlay -->
+        <div id="agent-editor-overlay">
+          <div class="aeo-spinner"></div>
+          <div class="aeo-label" id="aeo-label">Агент працює…</div>
+        </div>
+        <div id="editor-welcome">
+          <div class="w-logo">⌨</div>
+          <div class="w-title">AXIS IDE</div>
+          <div class="w-sub">Відкрийте файл для редагування</div>
+        </div>
+      </div>
+
+      <div id="term-resize"></div>
+
+      <div id="terminal-wrap">
+        <div id="terminal-header">
+          <!-- Panel tabs -->
+          <div class="btm-tabs">
+            <div class="btm-tab active" id="btab-terminal" onclick="switchBtmTab('terminal')">ТЕРМІНАЛ</div>
+            <div class="btm-tab" id="btab-problems" onclick="switchBtmTab('problems')">
+              ⚠ ПРОБЛЕМИ
+              <span id="problems-badge" class="prob-badge" style="display:none;"></span>
+            </div>
+          </div>
+          <div class="spacer"></div>
+          <!-- Terminal actions (shown only on terminal tab) -->
+          <div id="btm-term-actions">
+            <button class="term-clear-btn" onclick="clearTerminal()">Очистити</button>
+          </div>
+          <!-- Problems actions (shown only on problems tab) -->
+          <div id="btm-prob-actions" style="display:none;gap:5px;align-items:center;">
+            <button class="term-clear-btn prob-filter active" id="pf-all"  onclick="probFilter('all')">Всі</button>
+            <button class="term-clear-btn prob-filter"        id="pf-err"  onclick="probFilter('error')">🔴 Помилки</button>
+            <button class="term-clear-btn prob-filter"        id="pf-warn" onclick="probFilter('warning')">🟡 Попередження</button>
+            <button class="term-clear-btn" onclick="scanProject()" title="Оновити">↻</button>
+          </div>
+        </div>
+
+        <!-- Terminal panel -->
+        <div id="panel-terminal" class="btm-panel active">
+        <div id="terminal-output"></div>
+        <div id="terminal-input-row">
+          <span id="term-cwd">~</span>
+          <span style="color:var(--accent);margin:0 4px">›</span>
+          <input id="term-input" type="text" placeholder="Команда..."/>
+          <button class="ai-cmd-btn" onclick="runTermAI()" title="AI перекласти та виконати">✨ AI</button>
+        </div>
+        </div><!-- /panel-terminal -->
+
+        <!-- Problems panel -->
+        <div id="panel-problems" class="btm-panel" style="display:none;">
+          <div id="problems-list" style="flex:1;overflow-y:auto;padding:4px 0;"></div>
+          <div id="problems-scanning" style="display:none;padding:8px 12px;font-size:11px;color:var(--text3);">⏳ Сканування проекту…</div>
+          <div id="problems-empty"   style="display:none;padding:16px;font-size:11px;color:var(--green);text-align:center;">✅ Проблем не знайдено</div>
+        </div>
+
+      </div><!-- /terminal-wrap -->
+    </div>
+  </div>
+
+  <!-- AI Chat Panel -->
+  <div id="ai-panel">
+
+    <!-- Header -->
+    <div id="ai-panel-header">
+      <span class="ai-title">⬡ AXIS AI</span>
+      <span class="ai-model-badge" id="ai-model-label" onclick="showSettings()" title="Налаштування AI">AI</span>
+      <span id="ai-provider-chip" onclick="openProviderModal()" title="Вибір моделі AI">
+        <span class="pc-dot"></span>
+        <span class="pc-text">Модель</span>
+        <span style="color:var(--text3);font-size:9px;">▾</span>
+      </span>
+      <span id="axisrules-badge" onclick="openAxisRules()" title="Відкрити .axisrules — правила проекту"
+            style="display:none;font-size:10px;padding:2px 7px;border-radius:10px;cursor:pointer;
+                   background:#22c55e18;color:var(--green);border:1px solid #22c55e44;white-space:nowrap;">
+        📋 .axisrules
+      </span>
+      <div style="display:flex;gap:2px;align-items:center;margin-left:auto;-webkit-app-region:no-drag;">
+        <button class="aip-tab-btn active" id="btn-chat-tab"   onclick="switchAITab('chat')"   title="Чат">💬</button>
+        <button class="aip-tab-btn"        id="btn-agents-tab" onclick="switchAITab('agents')" title="Список агентів (37)">🤖</button>
+        <div style="width:1px;height:14px;background:var(--border);margin:0 3px;flex-shrink:0;"></div>
+        <button class="ai-panel-btn" id="agents-stop-btn" onclick="agentsStop()" style="display:none;color:var(--red);" title="Зупинити">■</button>
+        <button class="ai-panel-btn" onclick="openAxisRules()" title="Створити / редагувати .axisrules">📋</button>
+        <button class="ai-panel-btn" onclick="clearAgentHistory()" title="Очистити чат">🗑</button>
+      </div>
+    </div>
+
+    <!-- Running indicator bar — always visible when agent is active -->
+    <div id="agent-running-bar" style="display:none;">
+      <span id="agent-running-dots"><span></span><span></span><span></span></span>
+      <span id="agent-running-text">Агент думає…</span>
+      <button onclick="agentsStop()" id="agent-running-stop">■ Стоп</button>
+    </div>
+    <!-- Status bar (tool/thinking) -->
+    <div id="agents-status-bar" style="display:none;"></div>
+    <div id="ctx-usage-bar"><div id="ctx-usage-fill"></div></div>
+
+    <!-- ── CHAT TAB ── -->
+    <div id="aip-chat-tab" style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <button id="scroll-to-bottom" onclick="_scrollToBottom()" title="Прокрутити вниз">↓</button>
+      <div id="ai-messages">
+        <div class="ai-welcome">
+          <div class="aw-icon">⬡</div>
+          <div class="aw-title">AXIS AI</div>
+          <div class="aw-sub">Напиши задачу — я відповім, напишу код, створю файли чи виконаю команди.<br>Натисни 🤖 щоб побачити список всіх агентів.</div>
+        </div>
+      </div>
+      <div class="ai-quick-actions" id="ai-quick-actions">
+        <button class="aqa-btn" onclick="aiQuick('Поясни цей код')">Пояснення</button>
+        <button class="aqa-btn" onclick="aiQuick('Знайди баги та виправ')">Знайти баги</button>
+        <button class="aqa-btn" onclick="aiQuick('Оптимізуй код')">Оптимізація</button>
+        <button class="aqa-btn" onclick="aiQuick('Напиши юніт-тести')">Тести</button>
+      </div>
+      <div id="ai-input-area" style="position:relative;">
+        <div id="at-dropdown"></div>
+        <!-- Simple File Picker dropdown -->
+        <div id="fp-dropdown">
+          <div id="fp-search-box">
+            <input id="fp-search-inp" type="text" placeholder="Пошук файлів…" oninput="_fpFilter(this.value)" autocomplete="off">
+          </div>
+          <div id="fp-file-list"></div>
+        </div>
+        <div id="ai-input-wrap">
+          <div id="img-previews"></div>
+          <div id="at-chips"></div>
+          <textarea id="ai-textarea" placeholder="Запитай або опиши задачу… (@файл, Ctrl+V зображення)" rows="2"></textarea>
+          <div class="ai-input-footer">
+            <span class="ai-ctx-badge on" id="ctx-file-badge" onclick="toggleCtxFile()">📄 Файл</span>
+            <span class="ai-ctx-badge"    id="ctx-proj-badge" onclick="toggleCtxProj()">📁 Проект</span>
+            <button class="ai-panel-btn" onclick="_fpOpen()"
+                    title="Додати файли проекту до контексту" style="font-size:13px;">+📄</button>
+            <button class="ai-panel-btn" onclick="document.getElementById('img-file-input').click()"
+                    title="Додати зображення (Ctrl+V або drag&drop)" style="font-size:13px;">🖼</button>
+            <input type="file" id="img-file-input" accept="image/*" multiple
+                   style="display:none" onchange="_imgFromFileInput(this)">
+            <button class="ai-panel-btn" id="ai-mic-btn" onclick="toggleVoiceInput()"
+                    title="Голосовий ввід (утримуй або натисни)" style="font-size:14px;">🎤</button>
+            <button class="ai-send-btn" id="ai-send-btn" onclick="sendAI()">▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AGENTS LIST TAB ── -->
+    <div id="aip-agents-tab" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
+      <div class="ag2-hint">Клікни на агента щоб відправити наступний запит від його імені</div>
+      <div id="agents-list-content" style="flex:1;overflow-y:auto;padding:4px 0;"></div>
+    </div>
+
+    <div id="ai-resize"></div>
+  </div>
+</div>
+
+<!-- Inline edit overlay -->
+<div id="inline-overlay">
+  <div id="inline-box">
+    <h3>✏ Редагування виділеного коду</h3>
+    <textarea id="inline-instr" placeholder="Опиши зміни (напр.: додай обробку помилок, перепиши на async...)"></textarea>
+    <div class="inline-btns">
+      <button class="inline-btn cancel" onclick="closeInline()">Скасувати</button>
+      <button class="inline-btn apply" onclick="applyInline()">Застосувати</button>
+    </div>
+  </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu"></div>
+
+<!-- Settings modal -->
+<div id="settings-modal">
+  <div id="settings-box">
+    <h3>⚙ Налаштування IDE</h3>
+
+    <!-- Tabs -->
+    <div class="set-tabs">
+      <div class="set-tab active" data-stab="ai"      onclick="switchSetTab('ai')">🤖 AI</div>
+      <div class="set-tab"        data-stab="general" onclick="switchSetTab('general')">🗂 Загальне</div>
+    </div>
+
+    <!-- Tab: AI (unified) -->
+    <div class="set-tab-panel active" id="set-panel-ai">
+      <div class="set-row">
+        <label>Провайдер</label>
+        <select id="set-provider" class="set-inp" onchange="setProviderChange()">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="ollama">Ollama (локальний)</option>
+        </select>
+      </div>
+      <div class="set-row" id="set-key-row">
+        <label id="set-key-label">API Ключ</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input id="set-apikey" class="set-inp" type="password" placeholder="sk-…" style="flex:1;"/>
+          <button onclick="toggleKeyVis('set-apikey','set-eye')" class="set-eye-btn" id="set-eye">👁</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label>Модель</label>
+        <input id="set-model" class="set-inp" type="text" placeholder="gpt-4.1 / claude-opus-4-5"/>
+      </div>
+      <div class="set-row" id="set-ollama-row" style="display:none;">
+        <label>Ollama модель</label>
+        <input id="set-ollama" class="set-inp" type="text" placeholder="llama3"/>
+      </div>
+      <div class="set-row" id="set-baseurl-row" style="display:none;">
+        <label>Base URL</label>
+        <input id="set-ollama-url" class="set-inp" type="text" placeholder="http://localhost:11434"/>
+      </div>
+      <div class="set-row row">
+        <label>👻 Ghost completions (Tab-AI)</label>
+        <button id="ghost-toggle" class="toggle" onclick="toggleGhost()"></button>
+      </div>
+    </div>
+
+    <!-- Tab: General -->
+    <div class="set-tab-panel" id="set-panel-general">
+      <div class="set-row">
+        <label>Папка проектів</label>
+        <input id="set-projdir" class="set-inp" type="text" placeholder="C:/Projects"/>
+      </div>
+    </div>
+
+    <div class="set-btns">
+      <button class="set-btn cancel" onclick="closeSettings()">Скасувати</button>
+      <button class="set-btn save" onclick="saveSettings()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- Permission dialog -->
+<div id="perm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9000;display:none;align-items:center;justify-content:center;">
+  <div id="perm-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:24px;width:420px;max-width:90vw;">
+    <div style="font-size:18px;margin-bottom:8px;">⚠️ Небезпечна дія</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Агент <strong id="perm-agent"></strong> хоче виконати:</div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="color:var(--yellow);font-weight:600;font-size:12px;" id="perm-tool"></div>
+      <div style="color:var(--text2);font-size:11px;margin-top:4px;word-break:break-all;" id="perm-args"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+      <button onclick="permResponse(false,false)" style="padding:7px 16px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;">Відхилити</button>
+      <button onclick="permResponse(true,false)" style="padding:7px 16px;border-radius:7px;border:1px solid var(--accent);background:rgba(59,130,246,.15);color:var(--accent2);cursor:pointer;">Дозволити</button>
+      <button onclick="permResponse(true,true)" style="padding:7px 16px;border-radius:7px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-weight:600;">Дозволити все ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// State
+// ══════════════════════════════════════════════════════════════════════
+var _monacoEditor = null;
+var _monacoLoaded = false;
+var _tabs = [];          // [{path, name, lang, dirty, model}]
+var _activeTab = null;   // path
+var _projectRoot = null;
+var _projectName = '';
+var _ideConfig   = {};
+var _agentConfig = {};      // current AI provider/key/model (mirrors _ideConfig)
+var _aiMessages  = [];      // [{role, content}] — history display
+var _aiStreaming  = false;   // kept for inline-edit compat
+var _aiCurrentId = null;
+var _aiCurrentEl = null;
+var _ctxFile = true;
+var _ctxProj = false;
+var _inlineSelectedText = '';
+var _inlineReqId = null;
+var _termHistory = [];
+var _termHistIdx = -1;
+var _gitFiles = [];
+
+// ══════════════════════════════════════════════════════════════════════
+// Bridge
+// ══════════════════════════════════════════════════════════════════════
+window.idePush = function(type, jsonStr) {
+  var d;
+  try { d = JSON.parse(jsonStr); } catch(e) { d = jsonStr; }
+  switch(type) {
+    case 'project_opened':  onProjectOpened(d); break;
+    case 'tree_updated':    renderTree(d.tree); break;
+    case 'file_content':    openTab(d); break;
+    case 'file_saved':      markTabClean(d.path); break;
+    case 'file_created':    break;
+    case 'file_deleted':    closeTabByPath(d.path); break;
+    case 'file_renamed':    renameTab(d.old_path, d.new_path); break;
+    case 'terminal_output': appendTerminal(d.text, d.kind); break;
+    case 'terminal_ai_cmd': appendTerminal('AI: ' + d.cmd, 'info'); break;
+    case 'toast':           showToast(d.message, d.kind); break;
+    case 'ai_token':        onAIToken(d); break;
+    case 'ai_done':         onAIDone(d); break;
+    case 'ai_error':        onAIError(d); break;
+    case 'ai_response':     onAIResponse(d); break;
+    case 'config_data':     applyConfig(d); break;
+    case 'check_errors_result': onCheckErrors(d); break;
+    case 'git_status':      onGitStatus(d); break;
+    case 'git_branches':    onGitBranches(d); break;
+    case 'git_diff_lines':  onGitDiff(d); break;
+    case 'git_op_result':   onGitOpResult(d); break;
+    case 'git_log':         onGitLog(d); break;
+    case 'git_remotes':     onGitRemotes(d); break;
+    case 'git_commit_result': onGitOpResult({op:'commit', ok:d.ok, output:d.output}); break;
+    case 'inline_result':   onInlineResult(d); break;
+    case 'ghost_complete':  onGhostComplete(d); break;
+    case 'lsp_completions': onLspComplete(d); break;
+    case 'lsp_signature':   onLspSig(d); break;
+    case 'venv_status':     onVenvStatus(d); break;
+    case 'axisrules_loaded': showToast('.axisrules завантажено', 'info'); break;
+    case 'project_index_done': showToast('Індекс проекту оновлено', 'success'); break;
+    case 'search_results':  onSearchResults(d); break;
+    case 'replace_done':    onReplaceDone(d);   break;
+    case 'problems_update':    onProblemsUpdate(d); break;
+    case 'at_mention_content': _atFileMentionContent(d.path, d.content); break;
+    case 'open_file_in_editor':
+      if (d && d.path) ideCall('open_file', {path: d.path});
+      break;
+    case 'axisrules_loaded':   window._axisrulesLoaded && window._axisrulesLoaded(d); break;
+    case 'axisrules_created':
+      openTab(d);  // open in editor
+      showToast('.axisrules створено — заповни правила проекту', 'success');
+      var badge = document.getElementById('axisrules-badge');
+      if (badge) badge.style.display = 'inline-flex';
+      break;
+    case 'history_compacted':
+      showToast('💾 Пам\'ять стиснуто (' + d.kept + ' повід. збережено)', 'info');
+      break;
+  }
+};
+
+// Note: agent callbacks use window._agentsXxx (called directly via runJavaScript from Python)
+
+// ══════════════════════════════════════════════════════════════════════
+// Monaco loader
+// ══════════════════════════════════════════════════════════════════════
+(function loadMonaco() {
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs/loader.js';
+  script.onload = function() {
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.47.0/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+      _monacoLoaded = true;
+      initMonaco();
+    });
+  };
+  script.onerror = function() {
+    // Fallback: textarea editor
+    initFallbackEditor();
+  };
+  document.head.appendChild(script);
+})();
+
+function initMonaco() {
+  monaco.editor.defineTheme('axis-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      {token:'comment', foreground:'4a5568', fontStyle:'italic'},
+      {token:'keyword', foreground:'60a5fa'},
+      {token:'string',  foreground:'86efac'},
+      {token:'number',  foreground:'fcd34d'},
+      {token:'type',    foreground:'a78bfa'},
+    ],
+    colors: {
+      'editor.background':           '#0a0b0f',
+      'editor.foreground':           '#e2e8f0',
+      'editor.lineHighlightBackground':'#1e2330',
+      'editorLineNumber.foreground': '#374151',
+      'editorLineNumber.activeForeground': '#6b7280',
+      'editor.selectionBackground':  '#3b82f633',
+      'editorCursor.foreground':     '#60a5fa',
+      'editorWidget.background':     '#111318',
+      'editorSuggestWidget.background': '#111318',
+      'editorSuggestWidget.border':  '#252a38',
+      'scrollbarSlider.background':  '#252a3899',
+      'scrollbarSlider.hoverBackground': '#2e354799',
+    }
+  });
+  _monacoEditor = monaco.editor.create(document.getElementById('monaco-container'), {
+    theme: 'axis-dark',
+    language: 'plaintext',
+    fontSize: 13,
+    fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
+    fontLigatures: true,
+    minimap: { enabled: true, scale: 1 },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    lineNumbers: 'on',
+    renderLineHighlight: 'line',
+    smoothScrolling: true,
+    cursorBlinking: 'smooth',
+    cursorSmoothCaretAnimation: 'on',
+    roundedSelection: true,
+    padding: { top: 10, bottom: 10 },
+    suggest: { showIcons: true },
+    quickSuggestions: { strings: true },
+    tabSize: 4,
+    wordWrap: 'off',
+    bracketPairColorization: { enabled: true },
+  });
+
+  // Save on Ctrl+S
+  _monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
+    saveCurrentFile();
+  });
+  // Run on F5
+  _monacoEditor.addCommand(monaco.KeyCode.F5, function() {
+    runCurrentFile();
+  });
+  // Inline edit on Ctrl+I
+  _monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI, function() {
+    openInlineEdit();
+  });
+
+  // Mark dirty on change
+  _monacoEditor.onDidChangeModelContent(function() {
+    if (_activeTab) markTabDirty(_activeTab);
+    // Ghost: reset on content change (handled inside _wireGhostToMonaco)
+  });
+
+  // LSP completions
+  monaco.languages.registerCompletionItemProvider('python', {
+    triggerCharacters: ['.', '('],
+    provideCompletionItems: function(model, pos) {
+      if (!_activeTab) return { suggestions: [] };
+      var word = model.getWordUntilPosition(pos);
+      ideCall('lsp_complete', {
+        path: _activeTab,
+        line: pos.lineNumber - 1,
+        col: pos.column - 1,
+      });
+      return { suggestions: [] };
+    }
+  });
+
+  document.getElementById('editor-welcome').style.display = 'none';
+
+  // ── Ghost completions ─────────────────────────────────────────────────
+  _wireGhostToMonaco();
+}
+
+function initFallbackEditor() {
+  var wrap = document.getElementById('monaco-container');
+  wrap.innerHTML = '<textarea id="fallback-editor" style="width:100%;height:100%;background:#0a0b0f;color:#e2e8f0;border:none;outline:none;padding:10px;font:13px/1.6 Consolas,monospace;resize:none;" spellcheck="false"></textarea>';
+  _monacoLoaded = false;
+}
+
+function getEditorValue() {
+  if (_monacoLoaded && _monacoEditor) return _monacoEditor.getValue();
+  var fb = document.getElementById('fallback-editor');
+  return fb ? fb.value : '';
+}
+
+function setEditorValue(content, lang) {
+  if (_monacoLoaded && _monacoEditor) {
+    var langId = lang || 'plaintext';
+    var model = _monacoEditor.getModel();
+    if (model) {
+      monaco.editor.setModelLanguage(model, langId);
+      _monacoEditor.setValue(content);
+    }
+  } else {
+    var fb = document.getElementById('fallback-editor');
+    if (fb) fb.value = content;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Project & Tree
+// ══════════════════════════════════════════════════════════════════════
+function openFolder() {
+  ideCall('open_folder', {});
+}
+
+function onProjectOpened(d) {
+  _projectRoot = d.path;
+  _projectName = d.name;
+  document.getElementById('project-name').textContent = d.name;
+  document.getElementById('sb-project-name').textContent = d.name.toUpperCase();
+  document.getElementById('term-cwd').textContent = d.path;
+  renderTree(d.tree);
+  ideCall('git_status', {root: d.path});
+  ideCall('git_branches', {root: d.path});
+  showToast('Проект відкрито: ' + d.name, 'success');
+  // Reset .axisrules badge (Python will re-show it if .axisrules exists)
+  var arBadge = document.getElementById('axisrules-badge');
+  if (arBadge) arBadge.style.display = 'none';
+  // Reset @ mentions
+  _atMentions = []; _atRenderChips();
+  // Auto-scan for problems
+  _probAllIssues = [];
+  _updateProblemsBadge();
+  setTimeout(function() { ideCall('check_project', {root: d.path}); }, 800);
+  // Reset token counters on project open
+  _totalInputTokens = 0; _totalOutputTokens = 0;
+  var fill = document.getElementById('ctx-usage-fill');
+  if (fill) { fill.style.width = '0%'; fill.className = ''; }
+  _todoPanelEl = null;
+}
+
+function renderTree(node) {
+  var ft = document.getElementById('file-tree');
+  ft.innerHTML = '';
+  if (!node) return;
+  ft.appendChild(buildTreeNode(node, 0));
+}
+
+function buildTreeNode(node, depth) {
+  var frag = document.createDocumentFragment();
+  if (node.type === 'dir') {
+    var item = document.createElement('div');
+    item.className = 'tree-item';
+    item.style.paddingLeft = (8 + depth * 14) + 'px';
+    item.dataset.path = node.path;
+    item.dataset.type = 'dir';
+    var arrow = document.createElement('span');
+    arrow.className = 'ti-icon';
+    arrow.textContent = '▶';
+    arrow.style.fontSize = '9px';
+    arrow.style.transition = 'transform .15s';
+    var icon = document.createElement('span');
+    icon.className = 'ti-icon';
+    icon.textContent = '📁';
+    var name = document.createElement('span');
+    name.className = 'ti-name';
+    name.textContent = node.name;
+    item.appendChild(arrow);
+    item.appendChild(icon);
+    item.appendChild(name);
+
+    var children = document.createElement('div');
+    children.className = 'tree-children';
+
+    if (node.children) {
+      node.children.forEach(function(child) {
+        children.appendChild(buildTreeNode(child, depth + 1));
+      });
+    }
+
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var open = children.classList.toggle('open');
+      arrow.style.transform = open ? 'rotate(90deg)' : '';
+      icon.textContent = open ? '📂' : '📁';
+    });
+    item.addEventListener('contextmenu', function(e) {
+      e.preventDefault(); showCtxMenu(e, node, 'dir');
+    });
+
+    frag.appendChild(item);
+    frag.appendChild(children);
+  } else {
+    var item = document.createElement('div');
+    item.className = 'tree-item';
+    item.style.paddingLeft = (22 + depth * 14) + 'px';
+    item.dataset.path = node.path;
+    item.dataset.type = 'file';
+    var icon = document.createElement('span');
+    icon.className = 'ti-icon';
+    icon.textContent = getFileIcon(node.name, node.lang);
+    var name = document.createElement('span');
+    name.className = 'ti-name';
+    name.textContent = node.name;
+    item.appendChild(icon);
+    item.appendChild(name);
+
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      setActiveTreeItem(node.path);
+      ideCall('open_file', {path: node.path});
+    });
+    item.addEventListener('contextmenu', function(e) {
+      e.preventDefault(); showCtxMenu(e, node, 'file');
+    });
+    frag.appendChild(item);
+  }
+  return frag;
+}
+
+function setActiveTreeItem(path) {
+  document.querySelectorAll('.tree-item.active').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  var el = document.querySelector('.tree-item[data-path="' + CSS.escape(path) + '"]');
+  if (el) el.classList.add('active');
+}
+
+function getFileIcon(name, lang) {
+  var icons = {
+    'python':'🐍','javascript':'📜','typescript':'📘','html':'🌐','css':'🎨',
+    'json':'{}','markdown':'📝','yaml':'⚙','shell':'🖥','cpp':'⚙','c':'⚙',
+    'csharp':'#','java':'☕','go':'🐹','rust':'🦀','ruby':'💎','php':'🐘',
+    'swift':'🍎','kotlin':'🎯','sql':'🗄','xml':'📋','toml':'⚙','ini':'⚙',
+    'file':'📄','dir':'📁',
+  };
+  return icons[lang] || '📄';
+}
+
+function newFilePrompt() {
+  if (!_projectRoot) { showToast('Спочатку відкрийте проект', 'warn'); return; }
+  var name = prompt('Ім\'я файлу:');
+  if (!name) return;
+  ideCall('create_file', {path: _projectRoot + '\\' + name});
+}
+
+function newFolderPrompt() {
+  if (!_projectRoot) { showToast('Спочатку відкрийте проект', 'warn'); return; }
+  var name = prompt('Ім\'я папки:');
+  if (!name) return;
+  ideCall('create_folder', {path: _projectRoot + '\\' + name});
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Tabs & Editor
+// ══════════════════════════════════════════════════════════════════════
+function openTab(d) {
+  var existing = _tabs.find(function(t) { return t.path === d.path; });
+  if (!existing) {
+    var tab = { path: d.path, name: d.name, lang: d.lang, dirty: false, content: d.content };
+    _tabs.push(tab);
+  } else {
+    existing.content = d.content;
+    existing.lang = d.lang;
+    existing.dirty = false;
+  }
+  activateTab(d.path, d.content, d.lang);
+  renderTabs();
+  setActiveTreeItem(d.path);
+  document.getElementById('editor-welcome').style.display = 'none';
+}
+
+function activateTab(path, content, lang) {
+  _activeTab = path;
+  if (content !== undefined) {
+    setEditorValue(content, lang);
+    if (_monacoLoaded && _monacoEditor) {
+      _monacoEditor.setScrollPosition({scrollTop: 0, scrollLeft: 0});
+    }
+  } else {
+    var tab = _tabs.find(function(t) { return t.path === path; });
+    if (tab) {
+      setEditorValue(tab.content || '', tab.lang);
+    }
+  }
+  renderTabs();
+  setActiveTreeItem(path);
+}
+
+function renderTabs() {
+  var bar = document.getElementById('tab-bar');
+  bar.innerHTML = '';
+  _tabs.forEach(function(tab) {
+    var el = document.createElement('div');
+    el.className = 'tab' + (tab.path === _activeTab ? ' active' : '') + (tab.dirty ? ' dirty' : '');
+    el.title = tab.path;
+    var icon = document.createElement('span');
+    icon.className = 't-icon';
+    icon.textContent = getFileIcon(tab.name, tab.lang);
+    var lbl = document.createElement('span');
+    lbl.textContent = tab.name;
+    var dot = document.createElement('span');
+    dot.className = 't-dot';
+    var close = document.createElement('span');
+    close.className = 't-close';
+    close.textContent = '✕';
+    close.addEventListener('click', function(e) {
+      e.stopPropagation();
+      closeTab(tab.path);
+    });
+    el.appendChild(icon);
+    el.appendChild(lbl);
+    el.appendChild(dot);
+    el.appendChild(close);
+    el.addEventListener('click', function() { activateTab(tab.path); });
+    bar.appendChild(el);
+  });
+}
+
+function closeTab(path) {
+  var idx = _tabs.findIndex(function(t) { return t.path === path; });
+  if (idx === -1) return;
+  var tab = _tabs[idx];
+  if (tab.dirty && !confirm('Файл має незбережені зміни. Закрити?')) return;
+  _tabs.splice(idx, 1);
+  if (_activeTab === path) {
+    if (_tabs.length > 0) {
+      var newIdx = Math.min(idx, _tabs.length - 1);
+      activateTab(_tabs[newIdx].path);
+    } else {
+      _activeTab = null;
+      setEditorValue('', 'plaintext');
+      document.getElementById('editor-welcome').style.display = 'flex';
+    }
+  }
+  renderTabs();
+}
+
+function closeTabByPath(path) {
+  _tabs = _tabs.filter(function(t) { return t.path !== path; });
+  if (_activeTab === path) {
+    _activeTab = _tabs.length > 0 ? _tabs[_tabs.length-1].path : null;
+    if (_activeTab) activateTab(_activeTab);
+    else { setEditorValue('', 'plaintext'); document.getElementById('editor-welcome').style.display = 'flex'; }
+  }
+  renderTabs();
+}
+
+function renameTab(oldPath, newPath) {
+  var tab = _tabs.find(function(t) { return t.path === oldPath; });
+  if (tab) {
+    tab.path = newPath;
+    tab.name = newPath.split(/[/\\]/).pop();
+    if (_activeTab === oldPath) _activeTab = newPath;
+    renderTabs();
+  }
+}
+
+function markTabDirty(path) {
+  var tab = _tabs.find(function(t) { return t.path === path; });
+  if (tab && !tab.dirty) { tab.dirty = true; renderTabs(); }
+}
+
+function markTabClean(path) {
+  var tab = _tabs.find(function(t) { return t.path === path; });
+  if (tab) { tab.dirty = false; renderTabs(); }
+}
+
+function saveCurrentFile() {
+  if (!_activeTab) return;
+  var content = getEditorValue();
+  var tab = _tabs.find(function(t) { return t.path === _activeTab; });
+  if (tab) tab.content = content;
+  ideCall('save_file', {path: _activeTab, content: content});
+}
+
+function runCurrentFile() {
+  if (!_activeTab) { showToast('Немає відкритого файлу', 'warn'); return; }
+  var ext = _activeTab.split('.').pop().toLowerCase();
+  if (ext === 'html' || ext === 'htm') {
+    ideCall('run_file', {path: _activeTab});
+    showToast('🌐 Відкриваю в браузері…', 'info');
+  } else {
+    ideCall('run_code', {path: _activeTab});
+    showToast('▶ Запускаю: ' + _activeTab.split(/[/\\]/).pop(), 'info');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Terminal
+// ══════════════════════════════════════════════════════════════════════
+function appendTerminal(text, kind) {
+  var out = document.getElementById('terminal-output');
+  var el = document.createElement('div');
+  el.className = 'to-' + (kind || 'out');
+  el.textContent = text;
+  out.appendChild(el);
+  out.scrollTop = out.scrollHeight;
+}
+
+function clearTerminal() {
+  document.getElementById('terminal-output').innerHTML = '';
+}
+
+document.getElementById('term-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    var cmd = this.value.trim();
+    if (!cmd) return;
+    _termHistory.unshift(cmd);
+    _termHistIdx = -1;
+    appendTerminal('› ' + cmd, 'info');
+    ideCall('run_terminal', {cmd: cmd, cwd: _projectRoot || ''});
+    this.value = '';
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _termHistIdx = Math.min(_termHistIdx + 1, _termHistory.length - 1);
+    if (_termHistory[_termHistIdx]) this.value = _termHistory[_termHistIdx];
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _termHistIdx = Math.max(_termHistIdx - 1, -1);
+    this.value = _termHistIdx >= 0 ? _termHistory[_termHistIdx] : '';
+  }
+});
+
+function runTermAI() {
+  var cmd = document.getElementById('term-input').value.trim();
+  if (!cmd) return;
+  appendTerminal('AI› ' + cmd, 'info');
+  ideCall('run_terminal', {cmd: cmd, cwd: _projectRoot || '', ai: true});
+  document.getElementById('term-input').value = '';
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Image / Vision — paste or drag images into the chat
+// ══════════════════════════════════════════════════════════════════════
+var _pendingImages = [];   // [{data: base64, media_type: "image/jpeg", thumb: dataURL}]
+
+var _IMG_TYPES = {
+  'image/jpeg': true, 'image/jpg': true, 'image/png': true,
+  'image/gif': true,  'image/webp': true,'image/bmp': true,
+};
+
+function _imgAddFile(file) {
+  if (!file || !_IMG_TYPES[file.type]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var dataURL = e.target.result;                  // data:image/png;base64,XXXX
+    var comma   = dataURL.indexOf(',');
+    var b64     = dataURL.slice(comma + 1);
+    _pendingImages.push({ data: b64, media_type: file.type, thumb: dataURL });
+    _imgRenderPreviews();
+  };
+  reader.readAsDataURL(file);
+}
+
+function _imgFromFileInput(input) {
+  if (!input.files) return;
+  for (var i = 0; i < input.files.length; i++) _imgAddFile(input.files[i]);
+  input.value = '';  // reset so same file can be re-selected
+}
+
+function _imgRenderPreviews() {
+  var wrap = document.getElementById('img-previews');
+  if (!wrap) return;
+  wrap.innerHTML = _pendingImages.map(function(img, i) {
+    return '<div class="img-preview-wrap">' +
+           '<img src="' + img.thumb + '" title="' + img.media_type + '">' +
+           '<button class="img-preview-rm" data-idx="' + i + '">✕</button>' +
+           '</div>';
+  }).join('');
+  wrap.querySelectorAll('.img-preview-rm').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _pendingImages.splice(parseInt(btn.dataset.idx), 1);
+      _imgRenderPreviews();
+    });
+  });
+}
+
+// Show image in chat message bubble
+function _imgAppendToMsg(el, images) {
+  if (!images || !images.length) return;
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;';
+  images.forEach(function(img) {
+    var im = document.createElement('img');
+    im.src = img.thumb;
+    im.style.cssText = 'max-width:120px;max-height:90px;border-radius:6px;object-fit:cover;';
+    row.appendChild(im);
+  });
+  el.prepend(row);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var ta   = document.getElementById('ai-textarea');
+  var area = document.getElementById('ai-input-area');
+  if (!ta || !area) return;
+
+  // ── Ctrl+V paste ─────────────────────────────────────────────────────
+  ta.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    var hasImg = false;
+    for (var i = 0; i < items.length; i++) {
+      if (_IMG_TYPES[items[i].type]) {
+        e.preventDefault();
+        _imgAddFile(items[i].getAsFile());
+        hasImg = true;
+      }
+    }
+  });
+
+  // ── Drag & Drop ───────────────────────────────────────────────────────
+  area.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    area.classList.add('drag-over');
+  });
+  area.addEventListener('dragleave', function() {
+    area.classList.remove('drag-over');
+  });
+  area.addEventListener('drop', function(e) {
+    e.preventDefault();
+    area.classList.remove('drag-over');
+    var files = e.dataTransfer.files;
+    for (var i = 0; i < files.length; i++) {
+      _imgAddFile(files[i]);
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// Simple File Picker — click +📄 to browse and add project files to context
+// ══════════════════════════════════════════════════════════════════════
+var _fpAllFiles = [];  // [{name, path}]
+var _fpFiltered = [];
+
+function _fpOpen() {
+  if (!_projectRoot) { showToast('Спочатку відкрийте проект', 'error'); return; }
+  _fpAllFiles = _atGetAllFiles();
+  _fpFiltered = _fpAllFiles.slice();
+  var dd = document.getElementById('fp-dropdown');
+  var inp = document.getElementById('fp-search-inp');
+  if (inp) inp.value = '';
+  _fpRenderList(_fpFiltered);
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open') && inp) inp.focus();
+}
+
+function _fpClose() {
+  var dd = document.getElementById('fp-dropdown');
+  if (dd) dd.classList.remove('open');
+}
+
+function _fpFilter(q) {
+  var lq = q.toLowerCase();
+  _fpFiltered = _fpAllFiles.filter(function(f) {
+    return !lq || f.name.toLowerCase().includes(lq) || f.path.toLowerCase().includes(lq);
+  });
+  _fpRenderList(_fpFiltered);
+}
+
+function _fpRenderList(files) {
+  var list = document.getElementById('fp-file-list');
+  if (!list) return;
+  if (!files.length) {
+    list.innerHTML = '<div class="fp-row" style="color:var(--text3);cursor:default;">Файли не знайдені</div>';
+    return;
+  }
+  list.innerHTML = '';
+  // "All files" shortcut
+  var allRow = document.createElement('div');
+  allRow.className = 'fp-row all-row';
+  allRow.textContent = '📋 Додати всі файли (' + files.length + ')';
+  allRow.onclick = function() {
+    files.forEach(function(f) { _fpAddFile(f); });
+    _fpClose();
+    showToast('Додано ' + files.length + ' файлів до контексту', 'success');
+  };
+  list.appendChild(allRow);
+
+  files.slice(0, 60).forEach(function(f) {
+    var ext = f.name.includes('.') ? f.name.split('.').pop() : '';
+    var row = document.createElement('div');
+    row.className = 'fp-row';
+    var already = _atMentions.find(function(m) { return m.path === f.path; });
+    row.innerHTML = (already ? '✅ ' : '📄 ') + f.name +
+      (ext ? '<span class="fp-ext">.' + ext + '</span>' : '');
+    row.title = f.path;
+    row.onclick = function() {
+      // Re-check at click time
+      var isNow = _atMentions.find(function(m) { return m.path === f.path; });
+      if (isNow) {
+        _atMentions = _atMentions.filter(function(m) { return m.path !== f.path; });
+        _atRenderChips();
+        row.innerHTML = '📄 ' + f.name + (ext ? '<span class="fp-ext">.' + ext + '</span>' : '');
+      } else {
+        _fpAddFile(f);
+        row.innerHTML = '✅ ' + f.name + (ext ? '<span class="fp-ext">.' + ext + '</span>' : '');
+        showToast('Додано: ' + f.name, 'success');
+      }
+    };
+    list.appendChild(row);
+  });
+
+  if (files.length > 60) {
+    var more = document.createElement('div');
+    more.className = 'fp-row';
+    more.style.color = 'var(--text3)';
+    more.style.cursor = 'default';
+    more.textContent = '…ще ' + (files.length - 60) + ' файлів (уточніть пошук)';
+    list.appendChild(more);
+  }
+}
+
+function _fpAddFile(f) {
+  var already = _atMentions.find(function(m) { return m.path === f.path; });
+  if (!already) {
+    _atMentions.push({ path: f.path, name: f.name, content: '' });
+    _atRenderChips();
+    ideCall('read_file_for_mention', { path: f.path });
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  var dd  = document.getElementById('fp-dropdown');
+  var btn = e.target.closest('[onclick="_fpOpen()"]');
+  if (dd && dd.classList.contains('open') && !dd.contains(e.target) && !btn) {
+    _fpClose();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// @ Mention system — type @filename to inject file content into context
+// ══════════════════════════════════════════════════════════════════════
+var _atMentions   = [];   // [{path, name, content}]
+var _atDropActive = -1;   // highlighted index in dropdown
+
+function _atGetAllFiles(root) {
+  // Collect flat list of files from the tree (_treeData must be populated)
+  var files = [];
+  function walk(nodes) {
+    (nodes || []).forEach(function(n) {
+      if (n.type === 'file') files.push({name: n.name, path: n.path});
+      if (n.children) walk(n.children);
+    });
+  }
+  walk(_treeData || []);
+  return files;
+}
+
+function _atShowDropdown(query) {
+  var dd = document.getElementById('at-dropdown');
+  if (!dd) return;
+  var files = _atGetAllFiles();
+  var q = query.toLowerCase();
+  var matches = files.filter(function(f) {
+    return !q || f.name.toLowerCase().includes(q);
+  }).slice(0, 8);
+
+  if (!matches.length) { dd.style.display = 'none'; return; }
+
+  dd.innerHTML = matches.map(function(f, i) {
+    var ext = f.name.split('.').pop();
+    return '<div class="at-item" data-path="' + f.path + '" data-name="' + f.name +
+           '" data-idx="' + i + '">' +
+           '<span>📄</span><span>' + f.name + '</span>' +
+           '<span class="at-ext">.' + ext + '</span></div>';
+  }).join('');
+  dd.style.display = 'block';
+  _atDropActive = -1;
+
+  dd.querySelectorAll('.at-item').forEach(function(el) {
+    el.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      _atSelectFile(el.dataset.path, el.dataset.name);
+    });
+  });
+}
+
+function _atHideDropdown() {
+  var dd = document.getElementById('at-dropdown');
+  if (dd) dd.style.display = 'none';
+  _atDropActive = -1;
+}
+
+function _atSelectFile(path, name) {
+  // Remove the @query from textarea
+  var ta = document.getElementById('ai-textarea');
+  ta.value = ta.value.replace(/@\S*$/, '').replace(/@$/, '');
+  _atHideDropdown();
+
+  // Fetch file content via ideCall, then add chip
+  ideCall('open_file', {path: path});
+  // Store mention (content filled in when file_content event arrives)
+  var existing = _atMentions.find(function(m) { return m.path === path; });
+  if (!existing) {
+    _atMentions.push({path: path, name: name, content: ''});
+    _atRenderChips();
+    // Request content
+    _atPendingPath = path;
+    ideCall('read_file_for_mention', {path: path});
+  }
+  ta.focus();
+}
+
+var _atPendingPath = null;
+
+// Called from push handler when file content arrives for @ mention
+function _atFileMentionContent(path, content) {
+  var m = _atMentions.find(function(x) { return x.path === path; });
+  if (m) m.content = content;
+}
+
+function _atRenderChips() {
+  var wrap = document.getElementById('at-chips');
+  if (!wrap) return;
+  wrap.innerHTML = _atMentions.map(function(m, i) {
+    return '<span class="at-chip">📄 ' + m.name +
+           '<span class="at-chip-x" data-idx="' + i + '">✕</span></span>';
+  }).join('');
+  wrap.querySelectorAll('.at-chip-x').forEach(function(x) {
+    x.addEventListener('click', function() {
+      _atMentions.splice(parseInt(x.dataset.idx), 1);
+      _atRenderChips();
+    });
+  });
+}
+
+// Textarea keydown — handle @ trigger and dropdown navigation
+document.addEventListener('DOMContentLoaded', function() {
+  var ta = document.getElementById('ai-textarea');
+  if (!ta) return;
+
+  ta.addEventListener('input', function() {
+    var val = ta.value;
+    var atMatch = val.match(/@(\S*)$/);
+    if (atMatch) {
+      _atShowDropdown(atMatch[1]);
+    } else {
+      _atHideDropdown();
+    }
+  });
+
+  ta.addEventListener('keydown', function(e) {
+    var dd = document.getElementById('at-dropdown');
+    var visible = dd && dd.style.display !== 'none';
+    if (visible) {
+      var items = dd.querySelectorAll('.at-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _atDropActive = Math.min(_atDropActive + 1, items.length - 1);
+        items.forEach(function(el, i) { el.classList.toggle('active', i === _atDropActive); });
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _atDropActive = Math.max(_atDropActive - 1, 0);
+        items.forEach(function(el, i) { el.classList.toggle('active', i === _atDropActive); });
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (_atDropActive >= 0 && items[_atDropActive]) {
+          e.preventDefault();
+          var el = items[_atDropActive];
+          _atSelectFile(el.dataset.path, el.dataset.name);
+          return;
+        }
+      }
+      if (e.key === 'Escape') { _atHideDropdown(); return; }
+    }
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// AI Chat
+// ══════════════════════════════════════════════════════════════════════
+// ── sendAI → agents ────────────────────────────────────────────────────────
+function sendAI() {
+  var text = document.getElementById('ai-textarea').value.trim();
+  if (!text || _agentsRunning) return;
+  document.getElementById('ai-textarea').value = '';
+  _atHideDropdown();
+
+  // Block button immediately (don't wait for background thread)
+  _setAgentsRunning(true);
+
+  // Reset selected agent badge
+  if (_selectedAgent) {
+    var badge = document.getElementById('ai-model-label');
+    if (badge) badge.textContent = 'AI';
+    _selectedAgent = null;
+  }
+
+  // Snapshot images before clearing
+  var snapshotImgs = _pendingImages.slice();
+
+  // Append user message (with image previews if any)
+  var userMsgEl = _appendAgentMsg('user', text);
+  if (snapshotImgs.length && userMsgEl) _imgAppendToMsg(userMsgEl, snapshotImgs);
+  var qa = document.getElementById('ai-quick-actions');
+  if (qa) qa.style.display = 'none';
+
+  // Build context
+  var activeTab = _tabs.find(function(t) { return t.path === _activeTab; });
+  var ctx = {
+    project_path:    _projectRoot || '',
+    active_file:     _ctxFile && _activeTab ? _activeTab : '',
+    active_code:     _ctxFile && activeTab  ? getEditorValue() : '',
+    use_project:     _ctxProj,
+    // @ mentioned files — included as extra context
+    mentioned_files: _atMentions.filter(function(m) { return m.content; })
+                       .map(function(m) { return {name: m.name, path: m.path, content: m.content}; }),
+    // Images (vision) — base64 without thumb (too large for IPC)
+    images: snapshotImgs.map(function(i) { return {data: i.data, media_type: i.media_type}; }),
+  };
+
+  // Clear @ chips and images after send
+  _atMentions = []; _atRenderChips();
+  _pendingImages = []; _imgRenderPreviews();
+
+  ideCall('agents_run', { request: text, context: ctx });
+}
+
+document.getElementById('ai-textarea').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAI(); }
+});
+
+// ── Message display helpers ────────────────────────────────────────────────
+function _appendAgentMsg(role, content, id) {
+  var msgs = document.getElementById('ai-messages');
+  // Remove welcome screen
+  var w = msgs.querySelector('.ai-welcome');
+  if (w) w.remove();
+
+  var el = document.createElement('div');
+  el.className = 'ai-msg ' + role;
+  if (id) el.id = 'amsg-' + id;
+
+  // Hover action buttons
+  var actions = document.createElement('div');
+  actions.className = 'msg-actions';
+  // Copy button
+  var copyBtn = document.createElement('button');
+  copyBtn.className = 'ma-btn';
+  copyBtn.title = 'Копіювати';
+  copyBtn.textContent = '📋';
+  copyBtn.onclick = function() {
+    var raw = body.dataset.raw || body.textContent;
+    navigator.clipboard.writeText(raw).then(function() {
+      copyBtn.textContent = '✓';
+      setTimeout(function() { copyBtn.textContent = '📋'; }, 1500);
+    });
+  };
+  actions.appendChild(copyBtn);
+  el.appendChild(actions);
+
+  var body = document.createElement('div');
+  body.className = 'ai-msg-body';
+  body.dataset.raw = content;
+  body.innerHTML = formatAIText(content);
+  el.appendChild(body);
+  msgs.appendChild(el);
+  // Auto-scroll only if already at bottom
+  var atBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 80;
+  if (atBottom) msgs.scrollTop = msgs.scrollHeight;
+  return body;
+}
+
+// ── Scroll-to-bottom button logic ──────────────────────────────────────────
+function _scrollToBottom() {
+  var msgs = document.getElementById('ai-messages');
+  if (msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+// Smart scroll: only auto-scroll if user hasn't manually scrolled up
+function _chatAutoScroll() {
+  var msgs = document.getElementById('ai-messages');
+  if (!msgs) return;
+  var distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+  if (distFromBottom < 120) msgs.scrollTop = msgs.scrollHeight;
+}
+
+(function _initScrollBtn() {
+  var msgs = document.getElementById('ai-messages');
+  var btn  = document.getElementById('scroll-to-bottom');
+  if (!msgs || !btn) return;
+  msgs.addEventListener('scroll', function() {
+    var distFromBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+    btn.classList.toggle('visible', distFromBottom > 100);
+  });
+})();
+
+function _updateAgentMsg(id, content) {
+  var el = document.getElementById('amsg-' + id);
+  if (!el) return;
+  var body = el.querySelector('.ai-msg-body');
+  if (body) { body.dataset.raw = content; body.innerHTML = formatAIText(content); }
+  _chatAutoScroll();
+}
+
+// ── AI token/done/error (kept for inline-edit compat) ─────────────────────
+function onAIToken(d) {
+  if (d.id !== _aiCurrentId) return;
+  var typing = document.getElementById('ai-typing');
+  if (typing) typing.remove();
+  if (!_aiCurrentEl) {
+    _aiCurrentEl = _appendAgentMsg('assistant', '', d.id);
+    _aiCurrentEl.dataset.raw = '';
+  }
+  _aiCurrentEl.dataset.raw = (_aiCurrentEl.dataset.raw || '') + d.token;
+  _aiCurrentEl.innerHTML = formatAIText(_aiCurrentEl.dataset.raw);
+  _chatAutoScroll();
+}
+
+function onAIDone(d) {
+  _aiStreaming = false; _aiCurrentEl = null;
+  document.getElementById('ai-send-btn').disabled = false;
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+}
+
+function onAIError(d) {
+  _aiStreaming = false; _aiCurrentEl = null;
+  document.getElementById('ai-send-btn').disabled = false;
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+  if (d.error) showToast('AI: ' + d.error, 'error');
+}
+
+function onAIResponse(d) { onAIDone(d); }
+
+function clearAgentHistory() {
+  _aiMessages = []; _aiCurrentEl = null; _aiStreaming = false;
+  _chatCurrentEl = null; _chatCurrentTool = null;
+  document.getElementById('ai-messages').innerHTML =
+    '<div class="ai-welcome"><div class="aw-icon">⬡</div>' +
+    '<div class="aw-title">AXIS AI</div>' +
+    '<div class="aw-sub">Напиши задачу — я відповім, напишу код, створю файли чи виконаю команди.<br>Натисни 🤖 щоб побачити список всіх агентів.</div></div>';
+  var qa = document.getElementById('ai-quick-actions');
+  if (qa) qa.style.display = 'flex';
+  var sb = document.getElementById('agents-status-bar');
+  if (sb) { sb.style.display = 'none'; sb.textContent = ''; }
+  _setAgentsRunning(false);
+  // Reset token counters
+  _totalInputTokens = 0; _totalOutputTokens = 0;
+  var fill = document.getElementById('ctx-usage-fill');
+  if (fill) { fill.style.width = '0%'; fill.className = ''; }
+  _todoPanelEl = null;
+  // Clear server-side memory too
+  ideCall('agents_clear_history', {});
+}
+
+window._chatHistoryCleared = function() {
+  var msgs = document.getElementById('ai-messages');
+  if (msgs) msgs.innerHTML = '';
+  console.log('[AXIS] Chat history cleared on server');
+};
+
+// Restore session from Python (called on first load when history exists on disk)
+window._chatLoadSession = function(history) {
+  if (!Array.isArray(history) || !history.length) return;
+  var msgs = document.getElementById('ai-messages');
+  if (!msgs || msgs.children.length > 0) return;  // don't overwrite if already has messages
+  history.forEach(function(m) {
+    if (m.role === 'user') {
+      var div = document.createElement('div');
+      div.className = 'ai-msg user-msg';
+      div.textContent = m.content || '';
+      msgs.appendChild(div);
+    } else if (m.role === 'assistant') {
+      _appendAgentMsg('assistant', m.content || '');
+    }
+  });
+  // Add session restored notice
+  var sep = document.createElement('div');
+  sep.style.cssText = 'text-align:center;font-size:10px;color:var(--text3);padding:4px 0;border-top:1px solid var(--border);margin:4px 0;';
+  sep.textContent = '── попередня сесія ──';
+  msgs.insertBefore(sep, msgs.firstChild);
+  setTimeout(function() { _chatAutoScroll(); }, 100);
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// .axisrules — project memory (like CLAUDE.md)
+// ══════════════════════════════════════════════════════════════════════
+var _axisrulesPath = null;
+
+function openAxisRules() {
+  if (!_projectRoot) {
+    showToast('Спочатку відкрийте проект', 'error');
+    return;
+  }
+  // Build the .axisrules path and open it in the editor
+  var sep = _projectRoot.includes('/') ? '/' : '\\';
+  _axisrulesPath = _projectRoot + sep + '.axisrules';
+  ideCall('open_or_create_axisrules', { path: _axisrulesPath, project: _projectRoot });
+}
+
+// Called when Python detects .axisrules is loaded (project opened or first run)
+window._axisrulesLoaded = function(d) {
+  _axisrulesPath = d.path;
+  var badge = document.getElementById('axisrules-badge');
+  if (badge) badge.style.display = 'inline-flex';
+  showToast('📋 .axisrules завантажено', 'success');
+};
+
+window._axisrulesCleared = function() {
+  var badge = document.getElementById('axisrules-badge');
+  if (badge) badge.style.display = 'none';
+};
+
+// Legacy alias
+function clearChat() { clearAgentHistory(); }
+
+function renderAIMessages() {
+  var msgs = document.getElementById('ai-messages');
+  msgs.innerHTML = '';
+  _aiMessages.forEach(function(m) {
+    _appendAgentMsg(m.role, m.content);
+  });
+}
+
+function formatAIText(text) {
+  if (!text) return '';
+
+  // ── 1. Extract fenced code blocks (protect from other transforms) ──────
+  var codeBlocks = [];
+  var result = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_, lang, code) {
+    var l = lang || 'code';
+    var escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    var placeholder = '\x00CB' + codeBlocks.length + '\x00';
+    codeBlocks.push(
+      '<div class="code-header"><span>' + l + '</span>' +
+      '<span><button class="code-copy-btn" onclick="copyCode(this)">Копіювати</button>' +
+      '<button class="apply-btn" onclick="applyCode(this)">Застосувати</button></span></div>' +
+      '<pre><code>' + escaped + '</code></pre>'
+    );
+    return placeholder;
+  });
+
+  // ── 2. Process line-by-line for block-level markdown ──────────────────
+  var lines = result.split('\n');
+  var out = [];
+  var inList = false;
+  var listType = null;  // 'ul' or 'ol'
+  var listItems = [];
+
+  function flushList() {
+    if (!listItems.length) return;
+    out.push('<' + listType + '>');
+    listItems.forEach(function(li) { out.push('<li>' + li + '</li>'); });
+    out.push('</' + listType + '>');
+    listItems = []; inList = false; listType = null;
+  }
+
+  lines.forEach(function(line) {
+    // HR: --- or *** or ___
+    if (/^(\s*[-*_]){3,}\s*$/.test(line)) {
+      flushList();
+      out.push('<hr>');
+      return;
+    }
+    // Headings
+    var hm = line.match(/^(#{1,3})\s+(.+)$/);
+    if (hm) {
+      flushList();
+      var lvl = hm[1].length;
+      out.push('<h' + lvl + '>' + _mdInline(hm[2]) + '</h' + lvl + '>');
+      return;
+    }
+    // Blockquote
+    if (/^\s*>\s?/.test(line)) {
+      flushList();
+      out.push('<blockquote>' + _mdInline(line.replace(/^\s*>\s?/, '')) + '</blockquote>');
+      return;
+    }
+    // Table separator row |---|---|
+    if (/^\s*\|[\s\-|:]+\|\s*$/.test(line)) {
+      return; // skip separator
+    }
+    // Table row  |col|col|
+    if (/^\s*\|.+\|\s*$/.test(line)) {
+      flushList();
+      var cols = line.split('|').slice(1, -1);
+      // Open table if not already in a table (check last item isn't a TR or TABLE_OPEN)
+      var lastOut = out.length ? out[out.length-1] : '';
+      var inTable = lastOut === '<TABLE_OPEN>' || lastOut.indexOf('<TR>') === 0;
+      if (!inTable) out.push('<TABLE_OPEN>');
+      var trHtml = '<TR>' + cols.map(function(c){ return '<TD>' + _mdInline(c.trim()) + '</TD>'; }).join('') + '</TR>';
+      out.push(trHtml);
+      return;
+    }
+
+    // Close open table if current line is not a table row
+    var lastOut2 = out.length ? out[out.length-1] : '';
+    if (lastOut2.indexOf('<TR>') === 0) {
+      out.push('<TABLE_CLOSE>');
+    }
+
+    // Unordered list
+    var ulm = line.match(/^(\s*)[-*+]\s+(.+)$/);
+    if (ulm) {
+      if (!inList || listType !== 'ul') { flushList(); inList = true; listType = 'ul'; }
+      listItems.push(_mdInline(ulm[2]));
+      return;
+    }
+    // Ordered list
+    var olm = line.match(/^(\s*)\d+\.\s+(.+)$/);
+    if (olm) {
+      if (!inList || listType !== 'ol') { flushList(); inList = true; listType = 'ol'; }
+      listItems.push(_mdInline(olm[2]));
+      return;
+    }
+
+    // Regular line — flush any open list
+    flushList();
+    if (line === '') {
+      out.push('<br>');
+    } else {
+      out.push(_mdInline(line) + '<br>');
+    }
+  });
+
+  flushList();
+  // Close any unclosed table
+  if (out.length) {
+    var lastItem = out[out.length-1];
+    if (lastItem.indexOf('<TR>') === 0) out.push('<TABLE_CLOSE>');
+  }
+
+  result = out.join('');
+
+  // ── 3. Convert table placeholders to real HTML ────────────────────────────
+  // Split around TABLE_OPEN/CLOSE pairs and rebuild proper table tags
+  var tblParts = result.split('<TABLE_OPEN>');
+  if (tblParts.length > 1) {
+    result = tblParts[0] + tblParts.slice(1).map(function(seg) {
+      var closeSplit = seg.split('<TABLE_CLOSE>');
+      var rows = closeSplit[0];
+      var after = closeSplit.slice(1).join('<TABLE_CLOSE>');
+      var rowIdx = 0;
+      var trs = rows.replace(/<TR>([\s\S]*?)<\/TR>/g, function(_, cols) {
+        var isHdr = rowIdx++ === 0;
+        var cells = cols.replace(/<TD>([\s\S]*?)<\/TD>/g, function(__, c) {
+          return isHdr ? '<th>' + c + '</th>' : '<td>' + c + '</td>';
+        });
+        return '<tr>' + cells + '</tr>';
+      });
+      return '<table>' + trs + '</table>' + after;
+    }).join('');
+  }
+  // Fallback: clean up any leftover tokens
+  result = result.replace(/<TABLE_OPEN>/g,'<table>').replace(/<TABLE_CLOSE>/g,'</table>');
+  result = result.replace(/<TR>/g,'<tr>').replace(/<\/TR>/g,'</tr>');
+  result = result.replace(/<TD>/g,'<td>').replace(/<\/TD>/g,'</td>');
+
+  // ── 4. Restore code blocks ─────────────────────────────────────────────
+  codeBlocks.forEach(function(block, i) {
+    result = result.replace('\x00CB' + i + '\x00', block);
+  });
+
+  return result;
+}
+
+// Inline markdown: bold, italic, inline-code, links
+function _mdInline(text) {
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, '<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;font-size:11px">$1</code>');
+  // Bold+italic
+  text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+  // Strikethrough
+  text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  // Links [text](url)
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:var(--accent2);text-decoration:underline;" onclick="event.preventDefault()">$1</a>');
+  return text;
+}
+
+function copyCode(btn) {
+  var pre = btn.closest('.code-header').nextElementSibling;
+  if (pre) navigator.clipboard.writeText(pre.textContent);
+  btn.textContent = '✓';
+  setTimeout(function() { btn.textContent = 'Копіювати'; }, 1500);
+}
+
+function applyCode(btn) {
+  var pre = btn.closest('.code-header').nextElementSibling;
+  if (!pre || !_activeTab) { showToast('Немає відкритого файлу', 'warn'); return; }
+  setEditorValue(pre.textContent, null);
+  saveCurrentFile();
+  showToast('Код застосовано', 'success');
+}
+
+function aiQuick(prompt) {
+  document.getElementById('ai-textarea').value = prompt;
+  sendAI();
+}
+
+function toggleCtxFile() {
+  _ctxFile = !_ctxFile;
+  document.getElementById('ctx-file-badge').classList.toggle('on', _ctxFile);
+}
+
+function toggleCtxProj() {
+  _ctxProj = !_ctxProj;
+  document.getElementById('ctx-proj-badge').classList.toggle('on', _ctxProj);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Inline edit
+// ══════════════════════════════════════════════════════════════════════
+function openInlineEdit() {
+  if (!_activeTab || !_monacoLoaded) return;
+  var sel = _monacoEditor.getSelection();
+  _inlineSelectedText = _monacoEditor.getModel().getValueInRange(sel);
+  if (!_inlineSelectedText.trim()) { showToast('Виділіть код для редагування', 'warn'); return; }
+  document.getElementById('inline-overlay').classList.add('show');
+  document.getElementById('inline-instr').focus();
+}
+
+function closeInline() {
+  document.getElementById('inline-overlay').classList.remove('show');
+  _inlineSelectedText = '';
+  _inlineReqId = null;
+}
+
+function applyInline() {
+  var instr = document.getElementById('inline-instr').value.trim();
+  if (!instr) return;
+  var tab = _tabs.find(function(t) { return t.path === _activeTab; });
+  _inlineReqId = 'inline_' + Date.now();
+  ideCall('inline_edit', {
+    id: _inlineReqId,
+    selected_code: _inlineSelectedText,
+    instruction: instr,
+    lang: tab ? tab.lang : 'python',
+  });
+  closeInline();
+  showToast('AI редагує код...', 'info');
+}
+
+function onInlineResult(d) {
+  if (!_monacoLoaded || !_monacoEditor) return;
+  var sel = _monacoEditor.getSelection();
+  _monacoEditor.executeEdits('inline-edit', [{
+    range: sel,
+    text: d.text || d.result || '',
+    forceMoveMarkers: true,
+  }]);
+  saveCurrentFile();
+  showToast('Код оновлено', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Context menu
+// ══════════════════════════════════════════════════════════════════════
+function showCtxMenu(e, node, type) {
+  var menu = document.getElementById('ctx-menu');
+  var items = [];
+  if (type === 'file') {
+    items = [
+      {icon:'📄', label:'Відкрити', fn: function() { ideCall('open_file', {path: node.path}); }},
+      {icon:'✏', label:'Перейменувати', fn: function() {
+        var n = prompt('Нова назва:', node.name);
+        if (n) ideCall('rename_file', {old_path: node.path, new_path: node.path.replace(node.name, n)});
+      }},
+      {sep:true},
+      {icon:'🗑', label:'Видалити', danger: true, fn: function() {
+        if (confirm('Видалити ' + node.name + '?')) ideCall('delete_file', {path: node.path});
+      }},
+    ];
+  } else {
+    items = [
+      {icon:'+', label:'Новий файл', fn: function() {
+        var n = prompt('Ім\'я файлу:');
+        if (n) ideCall('create_file', {path: node.path + '\\' + n});
+      }},
+      {icon:'⊞', label:'Нова папка', fn: function() {
+        var n = prompt('Ім\'я папки:');
+        if (n) ideCall('create_folder', {path: node.path + '\\' + n});
+      }},
+      {icon:'📂', label:'Відкрити в провіднику', fn: function() {
+        ideCall('open_in_explorer', {path: node.path});
+      }},
+      {sep:true},
+      {icon:'🗑', label:'Видалити', danger: true, fn: function() {
+        if (confirm('Видалити папку ' + node.name + '?')) ideCall('delete_file', {path: node.path});
+      }},
+    ];
+  }
+  menu.innerHTML = '';
+  items.forEach(function(item) {
+    if (item.sep) {
+      var sep = document.createElement('div');
+      sep.className = 'ctx-sep';
+      menu.appendChild(sep);
+    } else {
+      var el = document.createElement('div');
+      el.className = 'ctx-item' + (item.danger ? ' danger' : '');
+      el.innerHTML = '<span>' + item.icon + '</span><span>' + item.label + '</span>';
+      el.addEventListener('click', function() { item.fn(); hideCtxMenu(); });
+      menu.appendChild(el);
+    }
+  });
+  menu.style.left = e.clientX + 'px';
+  menu.style.top  = e.clientY + 'px';
+  menu.classList.add('show');
+}
+
+function hideCtxMenu() {
+  document.getElementById('ctx-menu').classList.remove('show');
+}
+document.addEventListener('click', hideCtxMenu);
+
+// ══════════════════════════════════════════════════════════════════════
+// Git
+// ══════════════════════════════════════════════════════════════════════
+function switchSideTab(name) {
+  document.querySelectorAll('.stab').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.tab === name);
+  });
+  document.querySelectorAll('.sidebar-panel').forEach(function(el) {
+    el.classList.toggle('active', el.id === 'panel-' + name);
+  });
+  if (name === 'git' && _projectRoot) {
+    ideCall('git_status',   {root: _projectRoot});
+    ideCall('git_branches', {root: _projectRoot});
+  }
+  if (name === 'agents' && !_agentProfiles.length) {
+    ideCall('agents_get_profiles', {});
+  }
+  if (name === 'search') {
+    setTimeout(function() {
+      var inp = document.getElementById('srch-query');
+      if (inp) { inp.focus(); if (inp.value) inp.select(); }
+    }, 60);
+  }
+}
+
+// ── Git tab switcher ──────────────────────────────────────────────────
+function switchGitTab(name) {
+  document.querySelectorAll('.git-tab').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.gtab === name);
+  });
+  ['changes','log','remotes'].forEach(function(t) {
+    var el = document.getElementById('gtab-' + t);
+    if (el) el.style.display = t === name ? 'flex' : 'none';
+  });
+  if (name === 'log' && _projectRoot)     ideCall('git_log',     {root: _projectRoot, limit: 50});
+  if (name === 'remotes' && _projectRoot) ideCall('git_remotes', {root: _projectRoot});
+}
+
+function gitRefresh() {
+  if (!_projectRoot) return;
+  ideCall('git_status',   {root: _projectRoot});
+  ideCall('git_branches', {root: _projectRoot});
+}
+
+// ── Status / Changes ──────────────────────────────────────────────────
+function onGitStatus(d) {
+  _gitFiles = d.changes || d.files || [];
+  var count = _gitFiles.length;
+  document.getElementById('git-count').textContent = count ? '(' + count + ')' : '';
+
+  // Show remote ahead/behind if available
+  if (d.error === 'not_a_repo') {
+    document.getElementById('git-files').innerHTML =
+      '<div style="padding:10px;font-size:11px;color:var(--text3);text-align:center;">' +
+      'Не git репозиторій<br><button class="git-sm-btn" style="margin-top:6px;" onclick="gitInit()">git init</button></div>';
+    return;
+  }
+
+  var el = document.getElementById('git-files');
+  el.innerHTML = '';
+  _gitFiles.forEach(function(f) {
+    var row = document.createElement('div');
+    row.className = 'git-file';
+    var statusColor = f.status === 'M' ? 'var(--yellow)' : f.status === 'A' ? 'var(--green)' : f.status === 'D' ? 'var(--red)' : 'var(--text3)';
+    row.innerHTML =
+      '<span class="git-badge" style="color:' + statusColor + '">' + (f.status||'?') + '</span>' +
+      '<span style="flex:1;color:var(--text2);overflow:hidden;text-overflow:ellipsis;font-size:11px;">' + _escHtml(f.path||'') + '</span>';
+    row.title = f.path;
+    row.addEventListener('click', function() { ideCall('open_file', {path: (_projectRoot||'') + '/' + f.path}); });
+    el.appendChild(row);
+  });
+  if (!count) {
+    el.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--green);text-align:center;">✓ Немає змін</div>';
+  }
+}
+
+function onGitBranches(d) {
+  document.getElementById('git-branch-name').textContent = d.current || 'main';
+  _gitCurrentBranch = d.current || 'main';
+}
+
+function onGitDiff(d) {}
+
+// ── Commit ────────────────────────────────────────────────────────────
+function gitCommit() {
+  var msg = document.getElementById('git-msg').value.trim();
+  if (!msg) { showToast('Введіть повідомлення', 'warn'); return; }
+  ideCall('git_commit', {root: _projectRoot, message: msg});
+  document.getElementById('git-msg').value = '';
+}
+
+function gitCommitPush() {
+  var msg = document.getElementById('git-msg').value.trim();
+  if (!msg) { showToast('Введіть повідомлення', 'warn'); return; }
+  ideCall('git_commit', {root: _projectRoot, message: msg});
+  document.getElementById('git-msg').value = '';
+  setTimeout(function() { ideCall('git_push', {root: _projectRoot}); }, 1500);
+}
+
+// ── Push / Pull / Fetch ───────────────────────────────────────────────
+var _gitCurrentBranch = '';
+
+function gitPush() {
+  if (!_projectRoot) return;
+  showToast('Pushing…', 'info');
+  ideCall('git_push', {root: _projectRoot, branch: _gitCurrentBranch});
+}
+
+function gitPull() {
+  if (!_projectRoot) return;
+  showToast('Pulling…', 'info');
+  ideCall('git_pull', {root: _projectRoot, branch: _gitCurrentBranch});
+}
+
+function gitFetch() {
+  if (!_projectRoot) return;
+  showToast('Fetching…', 'info');
+  ideCall('git_fetch', {root: _projectRoot});
+}
+
+function gitPushRemote() {
+  var url = document.getElementById('git-remote-url').value.trim();
+  if (!url) { showToast('Введіть URL', 'warn'); return; }
+  ideCall('git_push', {root: _projectRoot, remote: url});
+}
+
+function gitPullRemote() {
+  var url = document.getElementById('git-remote-url').value.trim();
+  if (!url) { showToast('Введіть URL', 'warn'); return; }
+  ideCall('git_pull', {root: _projectRoot, remote: url});
+}
+
+function gitStash(action) {
+  if (!_projectRoot) return;
+  ideCall('git_stash', {root: _projectRoot, action: action});
+}
+
+function gitInit() {
+  if (!_projectRoot) return;
+  ideCall('git_init', {root: _projectRoot});
+}
+
+// ── Push event handlers ───────────────────────────────────────────────
+function onGitOpResult(d) {
+  var out = document.getElementById('git-op-output');
+  if (out) {
+    out.textContent = '[' + d.op + '] ' + d.output;
+    out.style.display = 'block';
+    out.style.color = d.ok ? 'var(--green)' : 'var(--red)';
+    setTimeout(function() { out.style.display = 'none'; }, 8000);
+  }
+  showToast((d.ok ? '✓ ' : '✗ ') + d.op + (d.ok ? ' OK' : ' failed'), d.ok ? 'success' : 'error');
+}
+
+function onGitLog(d) {
+  var list = document.getElementById('git-log-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (d.commits || []).forEach(function(c) {
+    var item = document.createElement('div');
+    item.className = 'git-log-item';
+    item.innerHTML =
+      '<div><span class="git-log-hash">' + _escHtml(c.short) + '</span>' +
+      '<span class="git-log-msg">' + _escHtml(c.message) + '</span></div>' +
+      '<div class="git-log-meta">' + _escHtml(c.author) + ' · ' + _escHtml(c.date) + '</div>';
+    list.appendChild(item);
+  });
+  if (!d.commits || !d.commits.length) {
+    list.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--text3);text-align:center;">Немає комітів</div>';
+  }
+}
+
+function onGitRemotes(d) {
+  var el = document.getElementById('git-remotes-list');
+  if (!el) return;
+  var remotes = d.remotes || {};
+  var keys = Object.keys(remotes);
+  if (!keys.length) {
+    el.innerHTML = '<div style="color:var(--text3);">Немає remote</div>';
+    return;
+  }
+  el.innerHTML = keys.map(function(k) {
+    return '<div style="margin-bottom:6px;"><span style="color:var(--accent2);font-weight:700;">' + _escHtml(k) + '</span><br>' +
+           '<span style="color:var(--text3);font-size:10px;word-break:break-all;">' + _escHtml(remotes[k]) + '</span></div>';
+  }).join('');
+  // Pre-fill remote URL input with origin
+  var inp = document.getElementById('git-remote-url');
+  if (inp && remotes.origin) inp.value = remotes.origin;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// LSP / Ghost
+// ══════════════════════════════════════════════════════════════════════
+function onLspComplete(d) {
+  if (!_monacoLoaded || !d.completions) return;
+  // Completions injected through Monaco completion provider
+}
+function onLspSig(d) {}
+
+// ══════════════════════════════════════════════════════════════════════
+// Ghost Completions (Tab-AI — like Copilot / Cursor)
+// ══════════════════════════════════════════════════════════════════════
+var _ghostEnabled   = true;
+var _ghostDebounce  = null;
+var _ghostReqId     = 0;
+var _ghostPending   = null;   // {id, text, line, col} — text=null while waiting
+var _ghostProvider  = null;   // disposable
+var _ghostActive    = false;  // suggestion currently shown
+
+// Register Monaco InlineCompletionsProvider (called after Monaco loads)
+function initGhostProvider() {
+  if (!window.monaco || _ghostProvider) return;
+
+  _ghostProvider = monaco.languages.registerInlineCompletionsProvider('*', {
+    provideInlineCompletions: function(model, position, context, token) {
+      var p = _ghostPending;
+      if (!p || !p.text || p.line !== position.lineNumber || p.col !== position.column) {
+        return { items: [] };
+      }
+      _ghostActive = true;
+      _setGhostIndicator('ready');
+      return {
+        items: [{
+          insertText: p.text,
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn:     position.column,
+            endLineNumber:   position.lineNumber,
+            endColumn:       position.column,
+          },
+        }],
+        enableForwardStability: true,
+      };
+    },
+    freeInlineCompletions: function() {
+      _ghostActive = false;
+    },
+  });
+}
+
+// Triggered on cursor/content change (debounced)
+function _scheduleGhost() {
+  if (!_ghostEnabled || !_monacoLoaded || !_monacoEditor || !_activeTab) return;
+  clearTimeout(_ghostDebounce);
+  _ghostPending = null;
+  _ghostActive  = false;
+  _setGhostIndicator('idle');
+
+  _ghostDebounce = setTimeout(function() {
+    var model = _monacoEditor.getModel();
+    var pos   = _monacoEditor.getPosition();
+    if (!model || !pos) return;
+
+    // Don't trigger on empty or very short lines (avoid noise)
+    var curLine = model.getLineContent(pos.lineNumber);
+    if (curLine.trim().length < 2) return;
+
+    // Get up to 80 lines of context before cursor
+    var startLine = Math.max(1, pos.lineNumber - 80);
+    var codeBefore = model.getValueInRange({
+      startLineNumber: startLine, startColumn: 1,
+      endLineNumber:   pos.lineNumber, endColumn: pos.column,
+    });
+    if (!codeBefore.trim()) return;
+
+    var reqId = 'ghost_' + (++_ghostReqId);
+    _ghostPending = { id: reqId, text: null, line: pos.lineNumber, col: pos.column };
+    _setGhostIndicator('loading');
+
+    ideCall('ghost_complete', {
+      id:          reqId,
+      path:        _activeTab || '',
+      code_before: codeBefore,
+    });
+  }, 750);
+}
+
+// Receive completion from Python
+function onGhostComplete(d) {
+  if (!_ghostPending || _ghostPending.id !== d.id) return;
+  if (!d.text || !d.text.trim()) {
+    _ghostPending = null;
+    _setGhostIndicator('idle');
+    return;
+  }
+
+  _ghostPending.text = d.text;
+  _setGhostIndicator('ready');
+
+  // Ask Monaco to re-query the provider → shows gray inline text
+  if (_monacoLoaded && _monacoEditor) {
+    _monacoEditor.trigger('ghost', 'editor.action.inlineSuggest.trigger', {});
+  }
+}
+
+// Accept: Tab key when suggestion is active
+function _ghostAccept() {
+  if (!_ghostActive || !_ghostPending || !_ghostPending.text) return false;
+  if (_monacoLoaded && _monacoEditor) {
+    // Monaco handles Tab accept natively via the provider — but also bind explicitly
+    _monacoEditor.trigger('ghost', 'editor.action.inlineSuggest.commit', {});
+  }
+  _ghostPending = null;
+  _ghostActive  = false;
+  _setGhostIndicator('idle');
+  return true;
+}
+
+// Dismiss: Esc
+function _ghostDismiss() {
+  _ghostPending = null;
+  _ghostActive  = false;
+  clearTimeout(_ghostDebounce);
+  _setGhostIndicator('idle');
+  if (_monacoLoaded && _monacoEditor) {
+    _monacoEditor.trigger('ghost', 'editor.action.inlineSuggest.hide', {});
+  }
+}
+
+// Status indicator in titlebar area
+function _setGhostIndicator(state) {
+  var el = document.getElementById('ghost-indicator');
+  if (!el) return;
+  var map = {
+    idle:    { text: '',        title: '' },
+    loading: { text: '👻…',     title: 'Ghost: запит до AI…' },
+    ready:   { text: '👻 Tab',  title: 'Ghost: натисни Tab щоб прийняти' },
+  };
+  var s = map[state] || map.idle;
+  el.textContent = s.text;
+  el.title       = s.title;
+  el.style.opacity = state === 'idle' ? '0' : '1';
+}
+
+function toggleGhost() {
+  var btn = document.getElementById('ghost-toggle');
+  btn.classList.toggle('on');
+  _ghostEnabled = btn.classList.contains('on');
+  if (!_ghostEnabled) _ghostDismiss();
+  showToast('Ghost completions: ' + (_ghostEnabled ? 'ON' : 'OFF'), 'info');
+}
+
+// Wire up after Monaco is ready (called from initMonaco)
+function _wireGhostToMonaco() {
+  if (!_monacoEditor) return;
+  initGhostProvider();
+
+  // Trigger on cursor position change (only when line actually changed or column at end)
+  _monacoEditor.onDidChangeCursorPosition(function(e) {
+    if (e.reason === monaco.editor.CursorChangeReason.Explicit) {
+      _scheduleGhost();
+    }
+  });
+
+  // Cancel on content change (user is still typing)
+  _monacoEditor.onDidChangeModelContent(function() {
+    // Reset pending — new content invalidates old suggestion
+    _ghostPending = null;
+    _ghostActive  = false;
+    _scheduleGhost();
+  });
+
+  // Tab key: accept if ghost is active, else normal tab
+  _monacoEditor.addCommand(monaco.KeyCode.Tab, function() {
+    if (_ghostActive && _ghostPending && _ghostPending.text) {
+      // Let Monaco handle it via inlineSuggest.commit
+      _monacoEditor.trigger('ghost', 'editor.action.inlineSuggest.commit', {});
+      _ghostPending = null;
+      _ghostActive  = false;
+      _setGhostIndicator('idle');
+    } else {
+      // Normal tab behavior
+      _monacoEditor.trigger('keyboard', 'tab', {});
+    }
+  });
+
+  // Esc: dismiss ghost
+  _monacoEditor.addCommand(monaco.KeyCode.Escape, function() {
+    if (_ghostActive) {
+      _ghostDismiss();
+    }
+  });
+}
+function onCheckErrors(d) {
+  if (!d.issues || !d.issues.length) { showToast('Помилок не знайдено', 'success'); return; }
+  showToast(d.issues.length + ' проблем знайдено', 'warn');
+  if (_monacoLoaded && _monacoEditor) {
+    var markers = d.issues.map(function(i) {
+      return {
+        severity: monaco.MarkerSeverity.Warning,
+        startLineNumber: i.line, startColumn: 1,
+        endLineNumber: i.line, endColumn: 100,
+        message: i.message + ' [' + i.symbol + ']',
+      };
+    });
+    monaco.editor.setModelMarkers(_monacoEditor.getModel(), 'pylint', markers);
+  }
+}
+function onVenvStatus(d) {
+  showToast('venv: ' + (d.active ? d.path : 'не активовано'), 'info');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Settings
+// ══════════════════════════════════════════════════════════════════════
+function applyConfig(d) {
+  _ideConfig = d;
+  var keys = d.api_keys || {};
+
+  // Unified AI tab
+  var prov = d.provider || 'openai';
+  var provEl = document.getElementById('set-provider');
+  if (provEl) provEl.value = prov;
+  var modelEl = document.getElementById('set-model');
+  if (modelEl) modelEl.value = d.model || '';
+  var ollEl = document.getElementById('set-ollama');
+  if (ollEl) ollEl.value = d.ollama_model || 'llama3';
+  var ollUrl = document.getElementById('set-ollama-url');
+  if (ollUrl) ollUrl.value = d.ollama_url || 'http://localhost:11434';
+  var projEl = document.getElementById('set-projdir');
+  if (projEl) projEl.value = d.projects_dir || '';
+
+  // API key for current provider
+  var keyMap = {openai: keys.openai||'', anthropic: keys.anthropic||'', gemini: keys.google||'', ollama:''};
+  var keyInp = document.getElementById('set-apikey');
+  if (keyInp) keyInp.value = keyMap[prov] || '';
+  setProviderChange();
+
+  // Ghost toggle
+  var gt = document.getElementById('ghost-toggle');
+  if (gt) gt.classList.toggle('on', d.ghost_enabled !== false);
+  _ghostEnabled = d.ghost_enabled !== false;
+
+  // Model badge — shows provider + model
+  var label = d.privacy_mode ? (d.ollama_model || 'Ollama') : (prov.charAt(0).toUpperCase() + prov.slice(1));
+  document.getElementById('ai-model-label').textContent = label;
+
+  // Sync _agentConfig — same keys as main config
+  _agentConfig = {
+    provider: prov,
+    api_key:  keyMap[prov] || '',
+    model:    d.model || '',
+    base_url: d.ollama_url || '',
+  };
+
+  // Load agents list if not yet loaded
+  if (!_agentProfiles.length) {
+    ideCall('agents_get_profiles', {});
+  }
+}
+
+function switchSetTab(name) {
+  document.querySelectorAll('.set-tab').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.stab === name);
+  });
+  document.querySelectorAll('.set-tab-panel').forEach(function(el) {
+    el.classList.toggle('active', el.id === 'set-panel-' + name);
+  });
+}
+
+function setProviderChange() {
+  var provEl  = document.getElementById('set-provider');
+  if (!provEl) return;
+  var prov    = provEl.value;
+  var keyRow  = document.getElementById('set-key-row');
+  var keyLbl  = document.getElementById('set-key-label');
+  var ollRow  = document.getElementById('set-ollama-row');
+  var urlRow  = document.getElementById('set-baseurl-row');
+  var lblMap  = {openai:'OpenAI API Ключ', anthropic:'Anthropic API Ключ', gemini:'Google API Ключ', ollama:''};
+  var isOll   = prov === 'ollama';
+  if (keyRow) keyRow.style.display = isOll ? 'none' : '';
+  if (keyLbl) keyLbl.textContent   = lblMap[prov] || 'API Ключ';
+  if (ollRow) ollRow.style.display = isOll ? '' : 'none';
+  if (urlRow) urlRow.style.display = isOll ? '' : 'none';
+  // Default model hint
+  var mdlEl = document.getElementById('set-model');
+  if (mdlEl && !mdlEl.value) {
+    var defaults = {openai:'gpt-4.1', anthropic:'claude-opus-4-5', gemini:'gemini-2.0-flash', ollama:'llama3'};
+    mdlEl.placeholder = defaults[prov] || '';
+  }
+}
+
+function toggleKeyVis(inputId, btnId) {
+  var inp = document.getElementById(inputId);
+  var btn = document.getElementById(btnId);
+  if (!inp) return;
+  var show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  if (btn) btn.textContent = show ? '🙈' : '👁';
+}
+
+function showSettings(tab) {
+  document.getElementById('settings-modal').classList.add('show');
+  switchSetTab(tab || 'ai');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+function togglePrivacy() {
+  var btn = document.getElementById('privacy-toggle');
+  btn.classList.toggle('on');
+}
+
+function saveSettings() {
+  var prov   = document.getElementById('set-provider').value;
+  var apiKey = document.getElementById('set-apikey').value.trim();
+  var keys   = Object.assign({}, (_ideConfig.api_keys || {}));
+
+  if (prov === 'openai')    keys.openai    = apiKey;
+  if (prov === 'anthropic') keys.anthropic = apiKey;
+  if (prov === 'gemini')    keys.google    = apiKey;
+
+  var model   = document.getElementById('set-model').value.trim();
+  var ollMdl  = (document.getElementById('set-ollama')     || {}).value || '';
+  var ollUrl  = (document.getElementById('set-ollama-url') || {}).value || '';
+
+  // Unified agent config — same as main
+  _agentConfig = {provider: prov, api_key: apiKey, model: model, base_url: ollUrl};
+
+  var cfg = {
+    provider:     prov,
+    model:        model,
+    ollama_model: ollMdl,
+    ollama_url:   ollUrl,
+    projects_dir: (document.getElementById('set-projdir') || {}).value || '',
+    ghost_enabled: document.getElementById('ghost-toggle').classList.contains('on'),
+    api_keys:     keys,
+    agent_config: _agentConfig,
+  };
+
+  ideCall('save_config', cfg);
+  ideCall('agents_set_config', _agentConfig);
+  applyConfig(cfg);
+  closeSettings();
+  showToast('Налаштування збережено', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Toast
+// ══════════════════════════════════════════════════════════════════════
+function showToast(msg, kind) {
+  var wrap = document.getElementById('toast-wrap');
+  var el = document.createElement('div');
+  el.className = 'toast ' + (kind || 'info');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(function() {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity .3s';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 2800);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Sidebar resize
+// ══════════════════════════════════════════════════════════════════════
+(function() {
+  var handle = document.getElementById('sidebar-resize');
+  var sidebar = document.getElementById('sidebar');
+  var dragging = false, startX, startW;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startW = sidebar.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var w = Math.max(160, Math.min(360, startW + e.clientX - startX));
+    sidebar.style.width = w + 'px';
+    document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+  });
+  document.addEventListener('mouseup', function() {
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// Terminal resize
+(function() {
+  var handle = document.getElementById('term-resize');
+  var wrap   = document.getElementById('terminal-wrap');
+  var dragging = false, startY, startH;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startY = e.clientY; startH = wrap.offsetHeight;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var h = Math.max(80, Math.min(500, startH - (e.clientY - startY)));
+    wrap.style.height = h + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// AI panel resize
+(function() {
+  var handle = document.getElementById('ai-resize');
+  var panel  = document.getElementById('ai-panel');
+  var dragging = false, startX, startW;
+  handle.addEventListener('mousedown', function(e) {
+    dragging = true; startX = e.clientX; startW = panel.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var w = Math.max(240, Math.min(480, startW - (e.clientX - startX)));
+    panel.style.width = w + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    dragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.shiftKey && e.key === 'F') { e.preventDefault(); openSearch(); return; }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveCurrentFile(); }
+  if (e.key === 'F5') { e.preventDefault(); runCurrentFile(); }
+  if (e.ctrlKey && e.key === 'i') { e.preventDefault(); openInlineEdit(); }
+
+  // ── AI panel shortcuts ────────────────────────────────────────────────
+  // Ctrl+K → focus chat input (switch to AI tab if needed)
+  if (e.ctrlKey && e.key === 'k') {
+    e.preventDefault();
+    var aiTab = document.querySelector('.ai-tab-btn[data-tab="aip-chat-tab"]');
+    if (aiTab) aiTab.click();
+    setTimeout(function() {
+      var ta = document.getElementById('ai-textarea');
+      if (ta) { ta.focus(); ta.select(); }
+    }, 60);
+    return;
+  }
+  // Ctrl+L → clear chat
+  if (e.ctrlKey && e.key === 'l') {
+    e.preventDefault();
+    ideCall('agents_clear_history', {});
+    var msgs = document.getElementById('ai-messages');
+    if (msgs) msgs.innerHTML = '';
+    showToast('Чат очищено', 'info');
+    return;
+  }
+
+  if (e.key === 'Escape') {
+    closeInline();
+    closeSettings();
+    hideCtxMenu();
+    // Stop agent if running
+    var stopBtn = document.getElementById('agents-stop-btn');
+    if (stopBtn && stopBtn.style.display !== 'none') {
+      agentsStop();
+    }
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// Project-wide Search & Replace
+// ══════════════════════════════════════════════════════════════════════
+var _srchOpts        = {case: false, word: false, regex: false};
+var _srchReplVisible = false;
+var _srchResults     = [];    // [{path, name, line, text}]
+var _srchSelFile     = null;  // selected file path for replace
+var _srchLastQuery   = '';
+
+function openSearch() {
+  switchSideTab('search');
+  setTimeout(function() {
+    var inp = document.getElementById('srch-query');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 60);
+}
+
+// Toggle option buttons (Aa, ab, .*)
+function srchToggleOpt(opt) {
+  _srchOpts[opt] = !_srchOpts[opt];
+  var btn = document.getElementById('srch-btn-' + opt);
+  if (btn) btn.classList.toggle('active', _srchOpts[opt]);
+  if (_srchLastQuery) doSearch();
+}
+
+// Show / hide replace row
+function srchToggleReplace() {
+  _srchReplVisible = !_srchReplVisible;
+  var wrap = document.getElementById('srch-replace-wrap');
+  var btn  = document.getElementById('srch-toggle-repl-btn');
+  if (wrap) wrap.style.display = _srchReplVisible ? 'flex' : 'none';
+  if (btn)  btn.textContent    = (_srchReplVisible ? '▼' : '▶') + ' Замінити';
+  if (_srchReplVisible) {
+    setTimeout(function() {
+      var r = document.getElementById('srch-replace');
+      if (r) r.focus();
+    }, 50);
+  }
+}
+
+// Trigger search
+function doSearch() {
+  var query = document.getElementById('srch-query').value;
+  _srchLastQuery = query;
+  if (!query.trim()) {
+    _srchResults = [];
+    renderSearchResults([], '', false);
+    return;
+  }
+  // Show loading state
+  var el = document.getElementById('srch-results');
+  el.innerHTML = '<div class="srch-loading">🔍 Пошук…</div>';
+  document.getElementById('srch-count').textContent = '';
+
+  ideCall('project_search', {
+    query:          query,
+    root:           _projectRoot || '',
+    case_sensitive: _srchOpts.case,
+    regex:          _srchOpts.regex,
+  });
+}
+
+// Receive results from Python
+function onSearchResults(d) {
+  _srchResults = d.results || [];
+  renderSearchResults(_srchResults, d.query || '', d.capped || false);
+}
+
+function renderSearchResults(results, query, capped) {
+  var container = document.getElementById('srch-results');
+  var countEl   = document.getElementById('srch-count');
+  container.innerHTML = '';
+
+  if (!results.length) {
+    container.innerHTML = '<div class="srch-empty">' +
+      (query ? 'Нічого не знайдено для «' + _escHtml(query) + '»' : 'Введіть запит і натисніть Enter') +
+      '</div>';
+    countEl.textContent = '';
+    return;
+  }
+
+  // Group by file
+  var groups = {};
+  var order  = [];
+  results.forEach(function(r) {
+    if (!groups[r.path]) { groups[r.path] = []; order.push(r.path); }
+    groups[r.path].push(r);
+  });
+
+  var total = results.length;
+  countEl.textContent = total + (capped ? '+ збігів' : ' збігів') + ' у ' + order.length + ' файлах';
+
+  order.forEach(function(fpath) {
+    var matches  = groups[fpath];
+    var fname    = matches[0].name;
+    var relPath  = _projectRoot ? fpath.replace(_projectRoot, '').replace(/^[\\/]/, '') : fpath;
+
+    var group = document.createElement('div');
+    group.className = 'srch-file-group';
+    group.dataset.path = fpath;
+
+    // File header
+    var hdr = document.createElement('div');
+    hdr.className = 'srch-file-hdr';
+    hdr.innerHTML =
+      '<span style="font-size:13px">📄</span>' +
+      '<span class="srch-file-name">' + _escHtml(fname) + '</span>' +
+      '<span class="srch-file-path" title="' + _escHtml(relPath) + '">' + _escHtml(relPath) + '</span>' +
+      '<span class="srch-file-badge">' + matches.length + '</span>';
+
+    // Toggle collapse
+    var body = document.createElement('div');
+    body.className = 'srch-file-body';
+    hdr.addEventListener('click', function() {
+      body.style.display = body.style.display === 'none' ? '' : 'none';
+    });
+
+    // Match rows
+    matches.forEach(function(m) {
+      var row = document.createElement('div');
+      row.className = 'srch-match';
+
+      var lineEl = document.createElement('span');
+      lineEl.className = 'srch-lineno';
+      lineEl.textContent = m.line;
+
+      var textEl = document.createElement('span');
+      textEl.className = 'srch-line';
+      textEl.innerHTML = _highlightMatch(m.text, query, _srchOpts.case, _srchOpts.regex);
+
+      row.appendChild(lineEl);
+      row.appendChild(textEl);
+
+      row.addEventListener('click', function(e) {
+        // Deselect all
+        document.querySelectorAll('.srch-match.selected').forEach(function(el) { el.classList.remove('selected'); });
+        row.classList.add('selected');
+        _srchSelFile = fpath;
+        // Open file and jump to line
+        ideCall('open_file', {path: fpath});
+        setTimeout(function() {
+          if (_monacoLoaded && _monacoEditor) {
+            _monacoEditor.revealLineInCenter(m.line);
+            _monacoEditor.setPosition({lineNumber: m.line, column: 1});
+            _monacoEditor.focus();
+          }
+        }, 150);
+      });
+
+      body.appendChild(row);
+    });
+
+    group.appendChild(hdr);
+    group.appendChild(body);
+    container.appendChild(group);
+  });
+}
+
+// Replace
+function doReplace(allFiles) {
+  var query  = document.getElementById('srch-query').value.trim();
+  var repl   = document.getElementById('srch-replace').value;
+  if (!query) { showToast('Введіть текст для пошуку', 'warn'); return; }
+
+  var files = null;
+  if (!allFiles && _srchSelFile) {
+    files = [_srchSelFile];
+  }
+
+  ideCall('project_replace', {
+    query:          query,
+    replace:        repl,
+    root:           _projectRoot || '',
+    case_sensitive: _srchOpts.case,
+    regex:          _srchOpts.regex,
+    files:          files,
+  });
+  showToast('Замінюю…', 'info');
+}
+
+function onReplaceDone(d) {
+  showToast(
+    '✅ Замінено ' + d.count + ' входжень у ' + d.files + ' файлах',
+    d.count ? 'success' : 'info'
+  );
+  // Refresh search to show updated results
+  if (_srchLastQuery) doSearch();
+}
+
+// Highlight matching text in result line
+function _highlightMatch(text, query, caseSensitive, useRegex) {
+  var safeText = _escHtml(text.trim());
+  if (!query) return safeText;
+  try {
+    var flags = 'g' + (caseSensitive ? '' : 'i');
+    var pat   = useRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safeText.replace(new RegExp(pat, flags), function(m) {
+      return '<mark>' + m + '</mark>';
+    });
+  } catch(e) { return safeText; }
+}
+
+function _escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Keyboard: Enter in search input → search; Ctrl+Shift+F → open panel
+document.addEventListener('keydown', function(ev) {
+  if (ev.ctrlKey && ev.shiftKey && ev.key === 'F') {
+    ev.preventDefault();
+    openSearch();
+    return;
+  }
+});
+
+(function bindSearchInput() {
+  var timeout = null;
+  document.addEventListener('DOMContentLoaded', function() {
+    var inp = document.getElementById('srch-query');
+    if (!inp) return;
+    inp.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { clearTimeout(timeout); doSearch(); }
+    });
+    inp.addEventListener('input', function() {
+      clearTimeout(timeout);
+      if (inp.value.length > 1) timeout = setTimeout(doSearch, 600);
+    });
+  });
+  // Also bind immediately in case DOM already ready
+  setTimeout(function() {
+    var inp = document.getElementById('srch-query');
+    if (inp && !inp._bound) {
+      inp._bound = true;
+      inp.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter') { clearTimeout(timeout); doSearch(); }
+      });
+      inp.addEventListener('input', function() {
+        clearTimeout(timeout);
+        if (inp.value.length > 1) timeout = setTimeout(doSearch, 600);
+      });
+    }
+    // Hide replace row by default
+    var rw = document.getElementById('srch-replace-wrap');
+    if (rw) rw.style.display = 'none';
+  }, 800);
+})();
+
+// Init
+ideCall('get_config', {});
+
+// ══════════════════════════════════════════════════════════════════════
+// Bottom panel tabs (Terminal / Problems)
+// ══════════════════════════════════════════════════════════════════════
+var _btmTab      = 'terminal';
+var _probAllIssues  = [];   // all issues from last scan
+var _probFilter  = 'all';   // 'all' | 'error' | 'warning'
+
+function switchBtmTab(name) {
+  _btmTab = name;
+  ['terminal','problems'].forEach(function(t) {
+    var tab = document.getElementById('btab-' + t);
+    var pnl = document.getElementById('panel-' + t);
+    if (tab) tab.classList.toggle('active', t === name);
+    if (pnl) pnl.style.display = t === name ? 'flex' : 'none';
+  });
+  var ta = document.getElementById('btm-term-actions');
+  var pa = document.getElementById('btm-prob-actions');
+  if (ta) ta.style.display = name === 'terminal' ? '' : 'none';
+  if (pa) pa.style.display = name === 'problems' ? 'flex' : 'none';
+  // Auto-scan on first open
+  if (name === 'problems' && _probAllIssues.length === 0 && _projectRoot) {
+    scanProject();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// Problems panel
+// ══════════════════════════════════════════════════════════════════════
+function scanProject() {
+  if (!_projectRoot) { showToast('Відкрийте проект спочатку', 'warn'); return; }
+  ideCall('check_project', {root: _projectRoot});
+}
+
+function onProblemsUpdate(d) {
+  var scanning = d.scanning;
+  var sc = document.getElementById('problems-scanning');
+  if (sc) sc.style.display = scanning ? 'block' : 'none';
+  if (scanning) return;
+
+  _probAllIssues = d.issues || [];
+  _renderProblems();
+  _updateProblemsBadge();
+
+  if (d.capped) {
+    showToast('Показано перші 1000 проблем', 'warn');
+  }
+}
+
+function probFilter(type) {
+  _probFilter = type;
+  ['all','err','warn'].forEach(function(k) {
+    var el = document.getElementById('pf-' + k);
+    if (el) el.classList.toggle('active', k === type || (type==='error' && k==='err') || (type==='warning' && k==='warn') || (type==='all' && k==='all'));
+  });
+  _renderProblems();
+}
+
+function _renderProblems() {
+  var list   = document.getElementById('problems-list');
+  var empty  = document.getElementById('problems-empty');
+  if (!list) return;
+  list.innerHTML = '';
+
+  var issues = _probAllIssues.filter(function(i) {
+    if (_probFilter === 'all') return true;
+    return i.type === _probFilter;
+  });
+
+  if (!issues.length) {
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  // Group by file
+  var groups = {}, order = [];
+  issues.forEach(function(i) {
+    var f = i.file || '?';
+    if (!groups[f]) { groups[f] = []; order.push(f); }
+    groups[f].push(i);
+  });
+
+  order.forEach(function(fpath) {
+    var items = groups[fpath];
+    var fname = fpath.split(/[\\/]/).pop();
+    var relPath = _projectRoot ? fpath.replace(_projectRoot, '').replace(/^[\\/]/, '') : fpath;
+    var errCnt  = items.filter(function(i){return i.type==='error';}).length;
+    var warnCnt = items.filter(function(i){return i.type==='warning';}).length;
+
+    // File header
+    var hdr = document.createElement('div');
+    hdr.className = 'prob-file-hdr';
+    hdr.innerHTML =
+      '<span style="font-size:13px">📄</span>' +
+      '<span class="pf-name" title="' + _escHtml(relPath) + '">' + _escHtml(fname) + '</span>' +
+      (errCnt  ? '<span class="pf-count" style="color:var(--red)">'    + errCnt  + ' помил.</span>' : '') +
+      (warnCnt ? '<span class="pf-count" style="color:var(--yellow)">' + warnCnt + ' попер.</span>' : '');
+
+    var body = document.createElement('div');
+    hdr.addEventListener('click', function() {
+      body.style.display = body.style.display === 'none' ? '' : 'none';
+    });
+
+    items.forEach(function(issue) {
+      var row = document.createElement('div');
+      row.className = 'prob-item';
+      var icon = issue.type === 'error' ? '🔴' : (issue.type === 'warning' ? '🟡' : '🔵');
+      row.innerHTML =
+        '<span class="pi-icon">' + icon + '</span>' +
+        '<span class="pi-msg">' + _escHtml(issue.message) + '</span>' +
+        '<span class="pi-sym">' + _escHtml(issue.symbol || '') + '</span>' +
+        '<span class="pi-line">:' + (issue.line || 1) + '</span>';
+
+      row.addEventListener('click', function() {
+        ideCall('open_file', {path: fpath});
+        setTimeout(function() {
+          if (_monacoLoaded && _monacoEditor) {
+            var ln = issue.line || 1;
+            _monacoEditor.revealLineInCenter(ln);
+            _monacoEditor.setPosition({lineNumber: ln, column: (issue.col || 1)});
+            _monacoEditor.focus();
+          }
+        }, 150);
+      });
+      body.appendChild(row);
+    });
+
+    list.appendChild(hdr);
+    list.appendChild(body);
+  });
+}
+
+function _updateProblemsBadge() {
+  var badge = document.getElementById('problems-badge');
+  var tab   = document.getElementById('btab-problems');
+  if (!badge) return;
+  var errs  = _probAllIssues.filter(function(i){return i.type==='error';}).length;
+  var warns = _probAllIssues.filter(function(i){return i.type==='warning';}).length;
+  var total = errs + warns;
+
+  if (total > 0) {
+    badge.textContent = total > 99 ? '99+' : total;
+    badge.style.display = 'inline';
+    badge.className = 'prob-badge' + (errs > 0 ? '' : ' warn');
+    if (tab) tab.style.color = errs > 0 ? 'var(--red)' : 'var(--yellow)';
+  } else {
+    badge.style.display = 'none';
+    if (tab) tab.style.color = '';
+  }
+}
+
+// Auto-scan on save
+var _origSaveCurrentFile;
+setTimeout(function() {
+  _origSaveCurrentFile = window.saveCurrentFile;
+  if (_origSaveCurrentFile) {
+    window.saveCurrentFile = function() {
+      _origSaveCurrentFile();
+      if (_projectRoot) setTimeout(function() {
+        ideCall('check_project', {root: _projectRoot});
+      }, 1500);
+    };
+  }
+}, 2000);
+
+// ══════════════════════════════════════════════════════════════════════
+// AXIS AI — Streaming Chat + Agents List
+// ══════════════════════════════════════════════════════════════════════
+var _agentProfiles   = [];
+var _agentsRunning   = false;
+var _chatCurrentEl   = null;   // current streaming message element
+var _chatCurrentTool = null;   // current tool badge element
+var _selectedAgent   = null;   // agent name override (from agents list)
+
+// ── Token counter state ────────────────────────────────────────────────
+var _totalInputTokens  = 0;
+var _totalOutputTokens = 0;
+var _SESSION_MAX_TOKENS = 200000;
+var _todoPanelEl = null;
+
+// ── Running state ──────────────────────────────────────────────────────
+function _setAgentsRunning(on) {
+  _agentsRunning = on;
+  var send = document.getElementById('ai-send-btn');
+  var stop = document.getElementById('agents-stop-btn');
+  var runBar = document.getElementById('agent-running-bar');
+  if (send) send.disabled = on;
+  if (stop) stop.style.display = on ? 'inline-flex' : 'none';
+  // Main running bar — always visible at top of AI panel
+  if (runBar) runBar.style.display = on ? 'flex' : 'none';
+  // Auto-switch to chat tab when agent starts
+  if (on) {
+    var chatTab = document.getElementById('aip-chat-tab');
+    var agTab   = document.getElementById('aip-agents-tab');
+    if (chatTab && chatTab.style.display === 'none') {
+      chatTab.style.display = 'flex';
+      if (agTab) agTab.style.display = 'none';
+      var b1 = document.getElementById('btn-chat-tab');
+      var b2 = document.getElementById('btn-agents-tab');
+      if (b1) b1.classList.add('active');
+      if (b2) b2.classList.remove('active');
+    }
+  }
+  // Show/hide editor overlay
+  var ov = document.getElementById('agent-editor-overlay');
+  if (ov) {
+    if (on) { ov.classList.add('active'); }
+    else    { ov.classList.remove('active'); }
+  }
+}
+
+// Update running bar text when tool executes
+window._chatToolStart_orig = window._chatToolStart;
+(function() {
+  var _orig = window._chatToolStart;
+  window._chatToolStart = function(d) {
+    var txt = document.getElementById('agent-running-text');
+    if (txt) {
+      var icon = (_TOOL_ICONS && _TOOL_ICONS[d.name]) || '⚡';
+      var arg  = (d.args && (d.args.path || d.args.command || d.args.query || d.args.key)) || '';
+      var label = icon + ' ' + d.name + (arg ? ': ' + String(arg).split(/[\\/]/).pop().slice(0,30) : '');
+      txt.textContent = label;
+    }
+    if (_orig) _orig.call(this, d);
+  };
+})();
+
+function _setEditorOverlayLabel(text) {
+  var lbl = document.getElementById('aeo-label');
+  if (lbl) lbl.textContent = text;
+}
+
+// ── Active agents sidebar chip ────────────────────────────────────────────
+var _agentChip = null;
+var _agentCurrentAction = '';
+
+window._agentWorking = function(active, action) {
+  var bar  = document.getElementById('active-agents-bar');
+  var list = document.getElementById('active-agents-list');
+  if (!bar || !list) return;
+
+  if (active) {
+    _agentCurrentAction = action || '…';
+    if (!_agentChip) {
+      _agentChip = document.createElement('div');
+      _agentChip.className = 'agent-chip';
+      _agentChip.innerHTML =
+        '<div class="agent-chip-dot"></div>' +
+        '<span>AXIS Assistant</span>' +
+        '<span class="agent-chip-action" id="agent-chip-action">' + _agentCurrentAction + '</span>';
+      list.innerHTML = '';
+      list.appendChild(_agentChip);
+      bar.style.display = 'block';
+    } else {
+      var act = document.getElementById('agent-chip-action');
+      if (act) act.textContent = _agentCurrentAction;
+    }
+  } else {
+    // Animate out then remove
+    if (_agentChip) {
+      _agentChip.style.opacity = '0';
+      _agentChip.style.transition = 'opacity .4s';
+      setTimeout(function() {
+        list.innerHTML = '';
+        bar.style.display = 'none';
+        _agentChip = null;
+      }, 450);
+    }
+  }
+};
+
+// ── Highlight new/modified file in tree after agent writes it ─────────────
+window._highlightTreeFile = function(filePath) {
+  if (!filePath) return;
+  var fname = filePath.split(/[\\/]/).pop();
+  document.querySelectorAll('.tree-item').forEach(function(el) {
+    if (el.dataset.path && el.dataset.path.endsWith(fname)) {
+      el.classList.remove('ai-new');
+      void el.offsetWidth; // force reflow
+      el.classList.add('ai-new');
+      setTimeout(function() { el.classList.remove('ai-new'); }, 2000);
+    }
+  });
+};
+
+// ── Switch tabs: 💬 Chat | 🤖 Agents ──────────────────────────────────
+function switchAITab(tab) {
+  var chatDiv    = document.getElementById('aip-chat-tab');
+  var agentsDiv  = document.getElementById('aip-agents-tab');
+  var chatBtn    = document.getElementById('btn-chat-tab');
+  var agentsBtn  = document.getElementById('btn-agents-tab');
+  if (tab === 'chat') {
+    if (chatDiv)   { chatDiv.style.display   = 'flex'; }
+    if (agentsDiv) { agentsDiv.style.display = 'none'; }
+    if (chatBtn)   { chatBtn.classList.add('active'); }
+    if (agentsBtn) { agentsBtn.classList.remove('active'); }
+  } else {
+    if (chatDiv)   { chatDiv.style.display   = 'none'; }
+    if (agentsDiv) { agentsDiv.style.display = 'flex'; }
+    if (chatBtn)   { chatBtn.classList.remove('active'); }
+    if (agentsBtn) { agentsBtn.classList.add('active'); }
+  }
+}
+
+// ── Render agents list ─────────────────────────────────────────────────
+function _renderAgentsList(categories) {
+  var container = document.getElementById('agents-list-content');
+  if (!container) return;
+  container.innerHTML = '';
+  categories.forEach(function(cat) {
+    var catDiv = document.createElement('div');
+    catDiv.className = 'ag2-cat';
+    var hdr = document.createElement('div');
+    hdr.className = 'ag2-cat-hdr';
+    hdr.textContent = cat.category;
+    catDiv.appendChild(hdr);
+    cat.agents.forEach(function(agent) {
+      var item = document.createElement('div');
+      item.className = 'ag2-item';
+      item.title = agent.description;
+      item.innerHTML =
+        '<span class="ag2-emoji">' + agent.emoji + '</span>' +
+        '<div class="ag2-info">' +
+          '<div class="ag2-name">' + agent.name + '</div>' +
+          '<div class="ag2-desc">' + agent.description + '</div>' +
+        '</div>' +
+        '<span class="ag2-use">Вибрати</span>';
+      item.onclick = function() {
+        _selectedAgent = agent.name;
+        switchAITab('chat');
+        var ta = document.getElementById('ai-textarea');
+        if (ta) { ta.focus(); }
+        showToast('Агент: ' + agent.emoji + ' ' + agent.name, 'info');
+        // Show chip in input
+        var badge = document.getElementById('ai-model-label');
+        if (badge) badge.textContent = agent.emoji + ' ' + agent.name;
+      };
+      catDiv.appendChild(item);
+    });
+    container.appendChild(catDiv);
+  });
+}
+
+// Profiles callback — also renders list
+window._agentsProfiles = function(categories) {
+  _agentProfiles = categories;
+  _renderAgentsList(categories);
+};
+
+// ── STREAMING CALLBACKS (called from Python via runJavaScript) ─────────
+
+window._chatUsage = function(d) {
+  _totalInputTokens  += (d.input  || 0);
+  _totalOutputTokens += (d.output || 0);
+  var total = _totalInputTokens + _totalOutputTokens;
+  // Update context bar
+  var pct = Math.min(100, (total / _SESSION_MAX_TOKENS) * 100);
+  var fill = document.getElementById('ctx-usage-fill');
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.className = (pct > 80 ? 'danger' : pct > 60 ? 'warn' : '');
+  }
+  // Add token count to last assistant message
+  if (_chatCurrentEl) {
+    var existing = _chatCurrentEl.parentElement.querySelector('.msg-tokens');
+    if (!existing) {
+      var tk = document.createElement('div');
+      tk.className = 'msg-tokens';
+      _chatCurrentEl.parentElement.appendChild(tk);
+    }
+    var tkEl = _chatCurrentEl.parentElement.querySelector('.msg-tokens');
+    if (tkEl) tkEl.textContent = 'in:' + d.input + ' out:' + d.output + '  total:' + total.toLocaleString() + ' tok';
+  }
+};
+
+function _renderTodoPanelInChat(tasks) {
+  var msgs = document.getElementById('ai-messages');
+  if (!msgs) return;
+  var icons = {done:'✅', in_progress:'🔄', pending:'⬜', error:'❌'};
+  var html = '<div class="todo-title">📋 Задачі</div>' +
+    tasks.map(function(t) {
+      return '<div class="todo-item ' + (t.status||'pending') + '">' +
+        '<span class="todo-icon">' + (icons[t.status] || '⬜') + '</span>' +
+        '<span class="todo-text">' + (t.task||'').replace(/</g,'&lt;') + '</span>' +
+      '</div>';
+    }).join('');
+  if (_todoPanelEl && _todoPanelEl.parentElement) {
+    _todoPanelEl.innerHTML = html;
+  } else {
+    _todoPanelEl = document.createElement('div');
+    _todoPanelEl.className = 'ai-msg todo-panel';
+    _todoPanelEl.innerHTML = html;
+    msgs.appendChild(_todoPanelEl);
+  }
+  _chatAutoScroll();
+}
+
+window._chatStart = function() {
+  _setAgentsRunning(true);
+  _chatCurrentEl   = null;
+  _chatCurrentTool = null;
+  // Remove welcome screen
+  var msgs = document.getElementById('ai-messages');
+  if (!msgs) return;
+  var w = msgs.querySelector('.ai-welcome'); if (w) w.remove();
+  // Hide quick actions
+  var qa = document.getElementById('ai-quick-actions'); if (qa) qa.style.display = 'none';
+  // Typing indicator
+  var t = document.getElementById('ai-typing');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ai-typing'; t.className = 'ai-typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
+    msgs.appendChild(t);
+  }
+  _chatAutoScroll();
+};
+
+window._chatToken = function(token) {
+  // Remove typing indicator on first token
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+  _chatCurrentTool = null;
+
+  if (!_chatCurrentEl) {
+    _chatCurrentEl = _appendAgentMsg('assistant', '', 'stream-' + Date.now());
+    _chatCurrentEl.dataset.raw = '';
+  }
+  _chatCurrentEl.dataset.raw = (_chatCurrentEl.dataset.raw || '') + token;
+  _chatCurrentEl.innerHTML =
+    formatAIText(_chatCurrentEl.dataset.raw) +
+    '<span class="stream-cursor"></span>';
+
+  _chatAutoScroll();
+};
+
+var _TOOL_ICONS = {
+  write_file:'✏️', create_file:'📝', create_dir:'📁', read_file:'👁',
+  str_replace:'🔧', insert_text:'➕', list_dir:'📂',
+  delete_file:'🗑', delete_dir:'🗑', run_command:'⚡',
+  run_python:'🐍', install_package:'📦', move_file:'↗️', rename_file:'✏️',
+  search_files:'🔍', search_in_files:'🔍', http_request:'🌐', download_file:'⬇️',
+  git_status:'🌿', git_diff:'📊', git_commit:'✅', git_log:'📜',
+  todo_write:'📋',
+  // Eyes & Hands
+  screenshot:'📸', mouse_click:'🖱️', mouse_move:'🖱️',
+  type_text:'⌨️', press_key:'⌨️', scroll:'🖱️',
+  get_screen_info:'🖥️', search_system:'🔭', list_windows:'🪟',
+};
+var _TERMINAL_TOOLS = new Set(['run_command', 'run_python', 'install_package']);
+
+window._chatToolStart = function(d) {
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+  _chatCurrentEl = null;  // next tokens go to a fresh message
+
+  var msgs = document.getElementById('ai-messages');
+  if (!msgs) return;
+
+  var icon = _TOOL_ICONS[d.name] || '🔵';
+  // Extract just the filename from path for display
+  var pathArg = (d.args && (d.args.path || d.args.src)) ? (d.args.path || d.args.src) : '';
+  var fname = pathArg ? pathArg.replace(/\\/g, '/').split('/').pop() : '';
+  var displayText = fname
+    ? icon + ' ' + fname
+    : icon + ' ' + d.name;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'ai-msg tool-badge-wrap';
+  wrap.innerHTML = '<span class="tool-badge running" title="' + d.name + (pathArg ? ': ' + pathArg : '') + '">'
+    + displayText + '</span>';
+  msgs.appendChild(wrap);
+  _chatCurrentTool = wrap.querySelector('.tool-badge');
+  _chatAutoScroll();
+
+  // Update status bar + editor overlay + sidebar chip
+  var label = fname ? (icon + ' ' + fname) : (icon + ' ' + d.name + '…');
+  var sb = document.getElementById('agents-status-bar');
+  if (sb) { sb.style.display = 'flex'; sb.textContent = label; }
+  _setEditorOverlayLabel(label);
+  window._agentWorking && window._agentWorking(true, label);
+};
+
+var _FILE_TOOLS = new Set(['write_file','create_file','create_dir','move_file','rename_file','delete_file','delete_dir']);
+
+window._chatToolDone = function(d) {
+  var msgs = document.getElementById('ai-messages');
+  if (_chatCurrentTool) {
+    var icon      = _TOOL_ICONS[d.name] || '';
+    var isFile    = _FILE_TOOLS.has(d.name);
+    var isTerm    = _TERMINAL_TOOLS.has(d.name);
+    var doneFname = '';
+
+    if (isFile && d.preview) {
+      // For file tools, preview = absolute path → show just filename
+      doneFname = d.preview.replace(/\\/g, '/').split('/').pop();
+    } else if (isTerm) {
+      doneFname = d.name;
+    } else {
+      doneFname = d.preview ? d.preview.slice(0, 40) : d.name;
+    }
+
+    _chatCurrentTool.className = 'tool-badge ' + (d.ok ? 'done' : 'failed');
+    _chatCurrentTool.textContent = (d.ok ? '✅ ' : '❌ ') + icon + ' ' + doneFname;
+
+    // Make file badges clickable → open in editor
+    if (d.ok && isFile && d.preview && d.name !== 'create_dir' && d.name !== 'delete_file') {
+      _chatCurrentTool.classList.add('clickable');
+      _chatCurrentTool.title = 'Відкрити: ' + d.preview;
+      (function(path) {
+        _chatCurrentTool.addEventListener('click', function() {
+          ideCall('open_file', {path: path});
+        });
+      })(d.preview);
+    } else if (d.preview) {
+      _chatCurrentTool.title = d.preview;
+    }
+
+    // Terminal output — show as code block below the badge
+    if (isTerm && d.preview && d.preview.length > 0) {
+      var out = document.createElement('div');
+      out.className = 'tool-output' + (d.ok ? '' : ' err');
+      out.textContent = d.preview.slice(0, 1000);
+      var wrap = _chatCurrentTool.closest('.tool-badge-wrap');
+      if (wrap && msgs) { wrap.appendChild(out); }
+    }
+
+    // Diff view toggle
+    if (d.diff && _chatCurrentTool) {
+      var wrap2 = _chatCurrentTool.closest('.tool-badge-wrap');
+      if (wrap2) {
+        var diffToggle = document.createElement('span');
+        diffToggle.className = 'diff-toggle';
+        diffToggle.textContent = '▶ показати diff';
+        var diffBlock = document.createElement('div');
+        diffBlock.className = 'diff-block';
+        diffBlock.style.display = 'none';
+        var lines = d.diff.split('\n');
+        diffBlock.innerHTML = lines.map(function(l) {
+          var cls = l.startsWith('+') ? 'add' : l.startsWith('-') ? 'del' : '';
+          return '<div class="diff-line' + (cls ? ' ' + cls : '') + '">' + l.replace(/</g, '&lt;') + '</div>';
+        }).join('');
+        diffToggle.onclick = function() {
+          var vis = diffBlock.style.display !== 'none';
+          diffBlock.style.display = vis ? 'none' : 'block';
+          diffToggle.textContent = (vis ? '▶' : '▼') + ' diff';
+        };
+        wrap2.appendChild(diffToggle);
+        wrap2.appendChild(diffBlock);
+      }
+    }
+
+    // Revert button
+    if (d.ok && d.revertable && d.path && _chatCurrentTool) {
+      var revBtn = document.createElement('button');
+      revBtn.className = 'revert-btn';
+      revBtn.textContent = '↩';
+      revBtn.title = 'Відновити файл';
+      (function(p) {
+        revBtn.onclick = function(e) {
+          e.stopPropagation();
+          ideCall('agents_revert', {path: p});
+        };
+      })(d.path);
+      _chatCurrentTool.parentElement.appendChild(revBtn);
+    }
+  }
+
+  // Todo panel rendering
+  if (d.tasks && Array.isArray(d.tasks)) {
+    _renderTodoPanelInChat(d.tasks);
+  }
+
+  _chatCurrentTool = null;
+
+  var sb = document.getElementById('agents-status-bar');
+  if (sb) { sb.style.display = 'none'; sb.textContent = ''; }
+
+  // Highlight file in tree
+  if (d.ok && _FILE_TOOLS.has(d.name) && d.preview) {
+    setTimeout(function() { window._highlightTreeFile && window._highlightTreeFile(d.preview); }, 400);
+  }
+  if (msgs) _chatAutoScroll();
+};
+
+// ── Streaming command output (run_command / run_python) ──────────────
+window._chatToolOutput = function(line) {
+  if (!_chatCurrentTool) return;
+  var wrap = _chatCurrentTool.closest('.tool-badge-wrap');
+  if (!wrap) return;
+  var live = wrap.querySelector('.tool-output-live');
+  if (!live) {
+    live = document.createElement('div');
+    live.className = 'tool-output-live';
+    wrap.appendChild(live);
+  }
+  var span = document.createElement('div');
+  span.className = 'tool-output-line';
+  span.textContent = line;
+  live.appendChild(span);
+  // Keep last 200 lines to avoid DOM explosion
+  var lines = live.querySelectorAll('.tool-output-line');
+  if (lines.length > 200) lines[0].remove();
+  _chatAutoScroll();
+};
+
+window._chatDone = function() {
+  // Remove streaming cursor
+  if (_chatCurrentEl) {
+    var cur = _chatCurrentEl.querySelector('.stream-cursor');
+    if (cur) cur.remove();
+  }
+  _chatCurrentEl   = null;
+  _chatCurrentTool = null;
+  // Remove typing indicator
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+  // Hide status bar
+  var sb = document.getElementById('agents-status-bar');
+  if (sb) { sb.style.display = 'none'; sb.textContent = ''; }
+  _setAgentsRunning(false);
+  var qa = document.getElementById('ai-quick-actions');
+  if (qa) qa.style.display = 'flex';
+  // Hide agent chip from sidebar
+  window._agentWorking && window._agentWorking(false);
+  // Tree already refreshed live by Python _push_tree_update() during tool calls
+  // Show continue button
+  var contBtn = document.createElement('button');
+  contBtn.className = 'continue-btn';
+  contBtn.innerHTML = '&#9654; Продовжити';
+  contBtn.title = 'Продовжити якщо відповідь обірвалася';
+  contBtn.onclick = function() {
+    contBtn.remove();
+    document.getElementById('ai-textarea').value = 'continue';
+    sendAI();
+  };
+  var msgs = document.getElementById('ai-messages');
+  if (msgs) msgs.appendChild(contBtn);
+};
+
+window._chatError = function(msg) {
+  var t = document.getElementById('ai-typing'); if (t) t.remove();
+  if (_chatCurrentEl) {
+    var cur = _chatCurrentEl.querySelector('.stream-cursor');
+    if (cur) cur.remove();
+  }
+  _chatCurrentEl   = null;
+  _chatCurrentTool = null;
+  _appendAgentMsg('assistant', '❌ **Помилка:** ' + msg);
+  _setAgentsRunning(false);
+  var sb = document.getElementById('agents-status-bar');
+  if (sb) { sb.style.display = 'none'; }
+  showToast(msg.slice(0, 80), 'error');
+};
+
+// ── Status bar (thinking/tool use) ────────────────────────────────────
+window._agentStatus = function(d) {
+  var sb = document.getElementById('agents-status-bar');
+  if (!sb) return;
+  if (d.status === 'done' || d.status === 'idle') {
+    sb.style.display = 'none'; sb.textContent = ''; return;
+  }
+  var icons = {thinking:'🤔',tool:'⚡',error:'🔴',waiting:'🟣'};
+  var statusText = {thinking:'Думає', tool:'Виконує', error:'Помилка', waiting:'Очікує'};
+  var label = (icons[d.status] || '⚪') + ' ' + (statusText[d.status] || d.status)
+              + (d.detail ? ': ' + d.detail.slice(0, 50) : '');
+  sb.style.display = 'flex';
+  sb.textContent = label;
+  // Update editor overlay + sidebar chip
+  if (d.status === 'thinking') {
+    _setEditorOverlayLabel('🤔 Думає…');
+    window._agentWorking && window._agentWorking(true, '🤔 Думає…');
+  }
+};
+
+window._agentsConfigSaved = function() { showToast('Налаштування збережено', 'success'); };
+
+// ── Stop ──────────────────────────────────────────────────────────────
+function agentsStop() {
+  ideCall('agents_stop', {});
+  window._chatDone();
+}
+
+// Aliases
+function agentsRun() { sendAI(); }
+window._agentsStarted  = window._chatStart;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🎤 Voice Input — Web Speech API
+// ══════════════════════════════════════════════════════════════════════════════
+var _voiceRecognition = null;
+var _voiceActive      = false;
+
+function toggleVoiceInput() {
+  if (_voiceActive) {
+    stopVoiceInput();
+  } else {
+    startVoiceInput();
+  }
+}
+
+function startVoiceInput() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('Голосовий ввід не підтримується в цьому браузері', 'error');
+    return;
+  }
+  var btn = document.getElementById('ai-mic-btn');
+  var ta  = document.getElementById('ai-textarea');
+
+  _voiceRecognition = new SR();
+  _voiceRecognition.lang = 'uk-UA';       // Ukrainian
+  _voiceRecognition.continuous = true;
+  _voiceRecognition.interimResults = true;
+  _voiceRecognition.maxAlternatives = 1;
+
+  var _finalText = ta.value || '';
+
+  _voiceRecognition.onstart = function() {
+    _voiceActive = true;
+    if (btn) btn.classList.add('recording');
+    showToast('🎤 Слухаю…', 'info');
+  };
+
+  _voiceRecognition.onresult = function(e) {
+    var interim = '';
+    var final   = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      var t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    if (final) _finalText += final;
+    ta.value = _finalText + interim;
+    // Auto-resize textarea
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+  };
+
+  _voiceRecognition.onerror = function(e) {
+    showToast('Мікрофон: ' + e.error, 'error');
+    stopVoiceInput();
+  };
+
+  _voiceRecognition.onend = function() {
+    // Auto-send if we got text and user stopped speaking
+    if (_finalText.trim()) {
+      ta.value = _finalText.trim();
+    }
+    stopVoiceInput();
+  };
+
+  try {
+    _voiceRecognition.start();
+  } catch(e) {
+    showToast('Не вдалося запустити мікрофон: ' + e.message, 'error');
+  }
+}
+
+function stopVoiceInput() {
+  _voiceActive = false;
+  var btn = document.getElementById('ai-mic-btn');
+  if (btn) btn.classList.remove('recording');
+  if (_voiceRecognition) {
+    try { _voiceRecognition.stop(); } catch(e) {}
+    _voiceRecognition = null;
+  }
+}
+window._agentsError    = window._chatError;
+window._agentsFinished = function(d) { window._chatDone(); if(d&&d.summary) _appendAgentMsg('assistant', d.summary); };
+
+// ── Permission request dialog ─────────────────────────────────────────
+window._agentsPermissionRequest = function(d) {
+  document.getElementById('perm-agent').textContent = d.agent;
+  document.getElementById('perm-tool').textContent  = d.tool;
+  var args = Object.entries(d.args || {}).map(function(kv){ return kv[0]+': '+kv[1]; }).join('\n');
+  document.getElementById('perm-args').textContent  = args || '(без аргументів)';
+  document.getElementById('perm-overlay').style.display = 'flex';
+};
+
+function permResponse(allowed, allowAll) {
+  document.getElementById('perm-overlay').style.display = 'none';
+  ideCall('agents_permission_response', {allowed: allowed, allow_all: allowAll});
+}
+
+document.addEventListener('keydown', function(e2) {
+  if (e2.key === 'Escape') {
+    var ov = document.getElementById('perm-overlay');
+    if (ov && ov.style.display !== 'none') { permResponse(false, false); }
+    closeProviderModal();
+  }
+});
+</script>
+
+<!-- ── Provider Selector Modal ── -->
+<!-- ── Provider / Model Selector (Claude-style) ─────────────────────── -->
+<div id="pm-overlay" onclick="if(event.target===this)closeProviderModal()">
+  <div id="pm-dialog">
+
+    <!-- Header -->
+    <div id="pm-header">
+      <span style="font-size:13px;font-weight:600;color:var(--text);">🤖 Вибір моделі</span>
+      <input id="pm-search" placeholder="🔍  Пошук моделей…" oninput="_pmFilter(this.value)" autocomplete="off"/>
+      <button onclick="closeProviderModal()"
+              style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;padding:0 4px;line-height:1;flex-shrink:0;">✕</button>
+    </div>
+
+    <!-- Body: left providers + right models -->
+    <div id="pm-body">
+      <div id="pm-provs"></div>
+      <div id="pm-models"></div>
+    </div>
+
+    <!-- Footer: API key + save -->
+    <div id="pm-footer">
+      <div id="pm-footer-title">🔑 API ключ для <b id="pm-prov-label" style="color:var(--accent2);">—</b></div>
+      <div id="pm-key-row">
+        <input id="pm-key-inp" type="password" placeholder="Вставте ваш API ключ…" autocomplete="off" spellcheck="false"/>
+        <button id="pm-eye-btn" onclick="_pmToggleKey()" title="Показати/сховати">👁</button>
+      </div>
+      <div id="pm-baseurl-wrap">
+        <div style="font-size:11px;color:var(--text2);">Base URL <span style="color:var(--text3);">(для Azure / власного Ollama)</span></div>
+        <input id="pm-baseurl-inp" type="text" placeholder="https://…"/>
+      </div>
+      <div id="pm-custom-row">
+        <span style="font-size:11px;color:var(--text2);">Своя модель:</span>
+        <input id="pm-custom-inp" placeholder="my-model-name" spellcheck="false"/>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:var(--text3);">Ключі зберігаються тільки у localStorage браузера</span>
+        <button id="pm-save-btn" onclick="saveProviderConfig()">✓ Використати</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// Provider / Model Selector — Claude-style 2-column panel
+// ══════════════════════════════════════════════════════════════════════════════
+var _providersList  = [];          // full list from Python
+var _selectedProvId = 'anthropic'; // currently active provider
+var _selectedModel  = '';          // currently active model id
+var _providerKeys   = {};          // {provider_id: api_key}
+var _providerModels = {};          // {provider_id: selected_model_id}
+var _pmFilter_query = '';
+
+// ── Restore from localStorage on boot ────────────────────────────────────────
+(function _pmBootstrap() {
+  try {
+    var k = localStorage.getItem('axis_provider_keys');
+    var m = localStorage.getItem('axis_provider_models');
+    var a = localStorage.getItem('axis_active_provider');
+    var s = localStorage.getItem('axis_active_model');
+    if (k) _providerKeys   = JSON.parse(k);
+    if (m) _providerModels = JSON.parse(m);
+    if (a) _selectedProvId = a;
+    if (s) _selectedModel  = s;
+  } catch(e) {}
+  _updateProviderChip();
+})();
+
+// ── Open / Close ──────────────────────────────────────────────────────────────
+function openProviderModal() {
+  document.getElementById('pm-overlay').style.display = 'flex';
+  document.getElementById('pm-search').value = '';
+  _pmFilter_query = '';
+  ideCall('agents_get_providers', {});
+}
+function closeProviderModal() {
+  document.getElementById('pm-overlay').style.display = 'none';
+}
+
+// ── Receive providers list from Python ───────────────────────────────────────
+window._agentsProviders = function(list) {
+  _providersList = list;
+  _pmRenderProviders();
+  // Auto-select current provider
+  var cur = list.find(function(p){ return p.id === _selectedProvId; }) || list[0];
+  if (cur) _pmSelectProvider(cur.id);
+};
+
+// ── Render left provider tabs ─────────────────────────────────────────────────
+function _pmRenderProviders() {
+  var el = document.getElementById('pm-provs');
+  if (!el) return;
+  el.innerHTML = '';
+  _providersList.forEach(function(p) {
+    var hasKey = !!(_providerKeys[p.id]);
+    var isSel  = p.id === _selectedProvId;
+    var tab = document.createElement('div');
+    tab.className = 'pm-ptab' + (isSel ? ' active' : '') + (hasKey ? ' has-key' : '');
+    tab.dataset.pid = p.id;
+    tab.innerHTML =
+      '<span class="pt-icon">' + p.icon + '</span>' +
+      '<span class="pt-name">' + p.name + '</span>' +
+      '<span class="pt-dot" title="API ключ налаштовано"></span>';
+    tab.onclick = function() { _pmSelectProvider(p.id); };
+    el.appendChild(tab);
+  });
+}
+
+// ── Select a provider — update tabs + model list + footer ────────────────────
+function _pmSelectProvider(pid) {
+  _selectedProvId = pid;
+  // Update tab highlights
+  document.querySelectorAll('.pm-ptab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.pid === pid);
+  });
+  var p = _providersList.find(function(x){ return x.id === pid; });
+  if (!p) return;
+  // Footer
+  document.getElementById('pm-prov-label').textContent = p.name;
+  document.getElementById('pm-key-inp').value = _providerKeys[pid] || '';
+  document.getElementById('pm-key-inp').type = 'password';
+  document.getElementById('pm-key-inp').placeholder = p.key_hint || 'API ключ…';
+  var buWrap = document.getElementById('pm-baseurl-wrap');
+  buWrap.style.display = (pid === 'azure' || pid === 'ollama') ? 'flex' : 'none';
+  // Render models
+  _pmRenderModels(p, _pmFilter_query);
+}
+
+// ── Render right model list ───────────────────────────────────────────────────
+function _pmRenderModels(p, query) {
+  var el = document.getElementById('pm-models');
+  if (!el) return;
+  el.innerHTML = '';
+  var curModel = _providerModels[p.id] || _selectedModel || (p.models[0] && p.models[0].id) || '';
+  var q = (query || '').toLowerCase();
+
+  // Tag colour mapping
+  var _tagCls = {
+    'новий':'new','топ':'top','рекомендована':'top',
+    'reasoning':'reasoning','thinking':'reasoning',
+    'код':'kod','search':'search','vision':'kod'
+  };
+
+  var shown = 0;
+  p.models.forEach(function(m) {
+    var mid   = m.id   || m;
+    var label = m.label || mid;
+    var desc  = m.desc  || '';
+    var tags  = m.tags  || [];
+    // Filter
+    if (q && label.toLowerCase().indexOf(q) < 0 && desc.toLowerCase().indexOf(q) < 0 &&
+        mid.toLowerCase().indexOf(q) < 0) return;
+
+    var isSel = mid === curModel;
+    var row = document.createElement('div');
+    row.className = 'pm-mitem' + (isSel ? ' active' : '');
+    row.dataset.mid = mid;
+
+    var tagsHtml = tags.map(function(t) {
+      var cls = _tagCls[t] || '';
+      return '<span class="pm-mtag' + (cls ? ' ' + cls : '') + '">' + t + '</span>';
+    }).join('');
+
+    row.innerHTML =
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="pm-mname">' + _escHtml(label) + '</div>' +
+        (desc ? '<div class="pm-mdesc">' + _escHtml(desc) + '</div>' : '') +
+      '</div>' +
+      (tagsHtml ? '<div class="pm-mtags">' + tagsHtml + '</div>' : '') +
+      (isSel ? '<span style="color:var(--green);font-size:11px;flex-shrink:0;">✓</span>' : '');
+
+    row.onclick = function() {
+      // Deselect all, select this
+      el.querySelectorAll('.pm-mitem').forEach(function(r){ r.classList.remove('active'); });
+      row.classList.add('active');
+      _selectedModel = mid;
+      _providerModels[p.id] = mid;
+    };
+    el.appendChild(row);
+    shown++;
+  });
+
+  // "Add custom model" row
+  var addRow = document.createElement('div');
+  addRow.className = 'pm-mitem';
+  addRow.style.cssText = 'opacity:.6;border-top:1px solid var(--border);margin-top:4px;';
+  addRow.innerHTML = '<div class="pm-mname" style="color:var(--text3);">＋ Своя назва моделі…</div>';
+  addRow.onclick = function() {
+    var customWrap = document.getElementById('pm-custom-row');
+    var customInp  = document.getElementById('pm-custom-inp');
+    customWrap.style.display = 'flex';
+    customInp.style.display = 'block';
+    customInp.focus();
+  };
+  el.appendChild(addRow);
+
+  if (shown === 0 && q) {
+    var empty = document.createElement('div');
+    empty.style.cssText = 'padding:20px;text-align:center;color:var(--text3);font-size:12px;';
+    empty.textContent = 'Нічого не знайдено для «' + q + '»';
+    el.insertBefore(empty, addRow);
+  }
+}
+
+// ── Search filter ─────────────────────────────────────────────────────────────
+function _pmFilter(q) {
+  _pmFilter_query = q;
+  var p = _providersList.find(function(x){ return x.id === _selectedProvId; });
+  if (p) _pmRenderModels(p, q);
+}
+
+// ── Toggle key visibility ──────────────────────────────────────────────────────
+function _pmToggleKey() {
+  var inp = document.getElementById('pm-key-inp');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ── Save and apply ────────────────────────────────────────────────────────────
+function saveProviderConfig() {
+  var pid     = _selectedProvId;
+  var key     = document.getElementById('pm-key-inp').value.trim();
+  var baseUrl = document.getElementById('pm-baseurl-inp').value.trim();
+  var customV = document.getElementById('pm-custom-inp').value.trim();
+  var model   = customV || _providerModels[pid] || _selectedModel || '';
+
+  if (!model) {
+    showToast('Виберіть модель', 'error'); return;
+  }
+
+  _providerKeys[pid]   = key;
+  _providerModels[pid] = model;
+  _selectedModel       = model;
+
+  try {
+    localStorage.setItem('axis_provider_keys',   JSON.stringify(_providerKeys));
+    localStorage.setItem('axis_provider_models', JSON.stringify(_providerModels));
+    localStorage.setItem('axis_active_provider', pid);
+    localStorage.setItem('axis_active_model',    model);
+  } catch(e) {}
+
+  ideCall('agents_set_provider', {provider: pid, model: model, api_key: key, base_url: baseUrl});
+  closeProviderModal();
+  _updateProviderChip();
+  // Re-render tabs to update key indicator
+  _pmRenderProviders();
+}
+
+window._agentsProviderSaved = function() {};
+
+// ── Update chip in AI panel header ────────────────────────────────────────────
+function _updateProviderChip() {
+  var chip = document.getElementById('ai-provider-chip');
+  if (!chip) return;
+  var p = _providersList.find(function(x){ return x.id === _selectedProvId; });
+  var model = _selectedModel || _providerModels[_selectedProvId] || '';
+  var hasKey = !!(_providerKeys[_selectedProvId]);
+
+  chip.classList.toggle('configured', hasKey);
+
+  if (model) {
+    // Show just the model short name (strip org prefix like "anthropic/")
+    var shortModel = model.split('/').pop();
+    // Try to get a nice label from providers list
+    if (p) {
+      var mobj = (p.models || []).find(function(m){ return (m.id || m) === model; });
+      if (mobj && mobj.label) shortModel = mobj.label;
+    }
+    chip.querySelector('.pc-dot').style.background = hasKey ? 'var(--green)' : 'var(--text3)';
+    chip.querySelector('.pc-text').textContent = (p ? p.icon + ' ' : '') + shortModel;
+    chip.title = (p ? p.name : '') + ' › ' + model;
+  } else {
+    chip.querySelector('.pc-text').textContent = 'Вибрати модель';
+    chip.title = 'Натисніть щоб вибрати AI модель';
+  }
+}
+
+// Helper: escape HTML
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// On boot, send active provider config to Python if we have keys in localStorage
+(function _pmApplyOnBoot() {
+  var pid   = _selectedProvId;
+  var key   = _providerKeys[pid] || '';
+  var model = _selectedModel || _providerModels[pid] || '';
+  if (key && model) {
+    ideCall('agents_set_provider', {provider: pid, model: model, api_key: key, base_url: ''});
+  }
+})();
+</script>
+</body>
+</html>

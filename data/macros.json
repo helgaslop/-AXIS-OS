@@ -1,0 +1,172 @@
+{
+  "macros": [
+    {
+      "id": "28ff94e1",
+      "name": "Копіювати",
+      "triggers": [
+        "копіюй",
+        "copy",
+        "скопіюй"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+c"
+        }
+      ]
+    },
+    {
+      "id": "9620c647",
+      "name": "Вставити",
+      "triggers": [
+        "встав",
+        "paste",
+        "вставити"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+v"
+        }
+      ]
+    },
+    {
+      "id": "2bc525d0",
+      "name": "Відмінити",
+      "triggers": [
+        "відміни",
+        "undo",
+        "назад"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+z"
+        }
+      ]
+    },
+    {
+      "id": "45abeba8",
+      "name": "Зберегти",
+      "triggers": [
+        "збережи",
+        "save",
+        "зберегти"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+s"
+        }
+      ]
+    },
+    {
+      "id": "5a3208e9",
+      "name": "Скріншот області",
+      "triggers": [
+        "скрін області",
+        "screenshot area"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "win+shift+s"
+        }
+      ]
+    },
+    {
+      "id": "b1ee02f5",
+      "name": "Закрити вкладку",
+      "triggers": [
+        "закрий вкладку",
+        "close tab"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+w"
+        }
+      ]
+    },
+    {
+      "id": "33b708e4",
+      "name": "Нова вкладка",
+      "triggers": [
+        "нова вкладка",
+        "new tab"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "ctrl+t"
+        }
+      ]
+    },
+    {
+      "id": "cfca622f",
+      "name": "Перемкнути вікно",
+      "triggers": [
+        "наступне вікно",
+        "switch window"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "alt+tab"
+        }
+      ]
+    },
+    {
+      "id": "b35adeba",
+      "name": "Робочий стіл",
+      "triggers": [
+        "покажи робочий стіл",
+        "show desktop"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "win+d"
+        }
+      ]
+    },
+    {
+      "id": "5f6d8051",
+      "name": "Закрити програму",
+      "triggers": [
+        "закрий програму",
+        "close app"
+      ],
+      "profile": "default",
+      "enabled": true,
+      "steps": [
+        {
+          "type": "hotkey",
+          "value": "alt+f4"
+        }
+      ]
+    }
+  ],
+  "profiles": [
+    "default"
+  ],
+  "active_profile": "default"
+}
