@@ -1,0 +1,67 @@
+{
+  "sphere_size": "medium",
+  "sphere_color": "#a855f7",
+  "sphere_particle_count": 20,
+  "sphere_wake": "джарвіс",
+  "sphere_opacity": 90,
+  "sphere_anim": "fire",
+  "sphere_particles": true,
+  "sphere_color2": "#4c1d95",
+  "sphere_anim_speed": 5,
+  "sphere_autostart": false,
+  "sphere_position": "center",
+  "sphere_visual": "energy",
+  "jarvis_sounds": true,
+  "tts_voice": "onyx",
+  "tts_speed": 1.2,
+  "ai_provider": "openai",
+  "language": "uk-UA",
+  "edge_voice": "uk-UA-PolinaNeural",
+  "mic_off_phrase": "вимкни мікрофон",
+  "tts_volume": 80,
+  "jarvis_volume": 100,
+  "dialog_provider": "openai",
+  "weather_city": "DUISBURG",
+  "tts_provider": "openai",
+  "telegram_enabled": true,
+  "telegram_token": "8150996028:AAEzZ8A0NcOL8c76QMturPg3S1MioTaIH7Y",
+  "telegram_allowed_ids": "8530902292",
+  "telegram_commands": [
+    {
+      "label": "🎮 Ігри",
+      "type": "submenu_steam"
+    },
+    {
+      "label": "🎬 Серіал",
+      "type": "submenu_watch"
+    },
+    {
+      "label": "🔊 Гучність",
+      "type": "submenu_volume"
+    },
+    {
+      "label": "🖥️ Система",
+      "type": "submenu_system"
+    },
+    {
+      "label": "💻 Робота",
+      "type": "command",
+      "action": "відкрий робочий процес"
+    },
+    {
+      "label": "🎵 Музика",
+      "type": "command",
+      "action": "включи музику"
+    },
+    {
+      "label": "📷 Скріншот",
+      "type": "command",
+      "action": "зроби скріншот"
+    },
+    {
+      "label": "❌ Вимкнути ПК",
+      "type": "command",
+      "action": "виключи пк"
+    }
+  ]
+}

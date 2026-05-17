@@ -1,0 +1,8 @@
+{
+  "telegram_token": "8150996028:AAEzZ8A0NcOL8c76QMturPg3S1MioTaIH7Y",
+  "telegram_allowed_ids": "8530902292",
+  "target_mac": "74:04:F1:4F:B0:7D",
+  "target_ip": "192.168.1.139",
+  "broadcast_ip": "192.168.1.255",
+  "hostname": "DESKTOP-IOKHHQR"
+}

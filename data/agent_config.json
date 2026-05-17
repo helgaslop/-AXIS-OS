@@ -1,0 +1,30 @@
+{
+  "provider": "openai",
+  "model": "gpt-4.1",
+  "privacy_mode": false,
+  "projects_dir": "",
+  "recent_projects": [
+    "C:/Users/Acer Nitro 5/Desktop/EME",
+    "C:/Users/Acer Nitro 5/Desktop/SHOP",
+    "C:/Users/Acer Nitro 5/Desktop/AUTO",
+    "C:/Users/Acer Nitro 5/Desktop/Папки/проекти от АИ/arbitrage-extension",
+    "C:/Users/Acer Nitro 5/Desktop/файл сорт оптимизация/ai-povarenok",
+    "C:/Users/Acer Nitro 5/Desktop/проекти от АИ/arbitrage-extension",
+    "C:/Users/Acer Nitro 5/Desktop/finance-assistant",
+    "C:/Users/Acer Nitro 5/Desktop/Axis_OS",
+    "C:/Users/Acer Nitro 5/lux-listener-app"
+  ],
+  "ollama_model": "llama3",
+  "theme": "dark",
+  "ollama_url": "http://localhost:11434",
+  "ghost_enabled": true,
+  "api_keys": {
+    "openai": "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"
+  },
+  "agent_config": {
+    "provider": "openai",
+    "api_key": "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",
+    "model": "gpt-4.1",
+    "base_url": "http://localhost:11434"
+  }
+}

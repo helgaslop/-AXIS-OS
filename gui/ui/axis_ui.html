@@ -1,0 +1,2029 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>AXIS OS v1.0</title>
+<!-- CodeMirror CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<!-- AXIS OS Stylesheet -->
+<link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splashScreen">
+  <div class="splash-bg" id="splashBg"></div>
+  <div class="splash-hex-wrap">
+    <div class="splash-hex"></div>
+    <div class="splash-ring-hex"></div>
+    <div class="splash-ring-hex2"></div>
+    <span class="splash-hex-text">A</span>
+  </div>
+  <div class="splash-title">AXIS</div>
+  <div class="splash-sub">AI Operating System</div>
+  <div class="splash-progress"><div class="splash-bar" id="splashBar"></div></div>
+  <div class="splash-status" id="splashStatus">Initializing core...</div>
+  <div class="splash-ver">v1.0 · AXIS OS</div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="palette-overlay" id="paletteOverlay" onclick="closePalette(event)">
+  <div class="palette-box">
+    <div class="palette-input-wrap">
+      <span class="palette-icon">⬡</span>
+      <input class="palette-input" id="paletteInput" placeholder="Пошук команд..." onkeyup="filterPalette(this.value)" onkeydown="paletteNav(event)">
+    </div>
+    <div id="paletteList"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-hex">A</div>
+    <span class="logo-text">AXIS</span>
+    <span class="logo-ver">v1.0</span>
+  </div>
+  <div class="nav-sect">Головне</div>
+  <div class="nav-btn active" data-page="dashboard"><span class="ico">⬡</span>Головна</div>
+  <div class="nav-btn" data-page="monitor"><span class="ico">📊</span>Монітор</div>
+  <div class="nav-btn" data-page="agents"><span class="ico">🤖</span>Агенти <span class="nav-badge" id="agentNavBadge">7</span></div>
+  <div class="nav-btn" data-page="chat"><span class="ico">💬</span>AI Чат</div>
+  <div class="nav-btn" data-page="ide"><span class="ico">💻</span>IDE</div>
+  <div class="nav-sect">Інструменти</div>
+  <div class="nav-btn" data-page="generator"><span class="ico">✨</span>Генератор</div>
+  <div class="nav-btn" data-page="music"><span class="ico">🎵</span>Музика</div>
+  <div class="nav-btn" data-page="commands"><span class="ico">📋</span>Команди</div>
+  <div class="nav-btn" data-page="macros"><span class="ico">⚡</span>Автоматизація</div>
+  <div class="nav-btn" data-page="network"><span class="ico">📝</span>Нотатки</div>
+  <div class="nav-sect">Система</div>
+  <div class="nav-btn" data-page="api"><span class="ico">🔑</span>API Ключі</div>
+  <div class="nav-btn" data-page="settings"><span class="ico">⚙</span>Налаштування</div>
+  <div class="nav-btn" data-page="logs"><span class="ico">📋</span>Логи</div>
+  <div class="nav-spacer"></div>
+  <div class="sidebar-bottom">
+    <div class="sphere-status-row">
+      <div class="sphere-dot offline" id="sphereDot"></div>
+      <span class="sphere-status-lbl offline" id="sphereStatusLbl">Перевірка...</span>
+    </div>
+    <button class="launch-btn" id="sphereLaunchBtn" onclick="toggleSphere()">⬡ Запустити Sphere</button>
+    <div class="ver-text">AXIS OS v1.0 · PyQt6</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title" id="hTitle">Головна</div>
+      <div class="header-breadcrumb" id="hBreadcrumb">/ Огляд системи</div>
+    </div>
+    <div class="header-time" id="hTime">--:--:--</div>
+    <div class="hdr-model-badge" id="hdrModelBadge" onclick="showPage('chat')">
+      <div class="hdr-mdot" id="hdrModelDot"></div>
+      <span id="hdrModelName">GPT-4.1</span>
+    </div>
+    <div class="header-status">● ONLINE</div>
+    <div class="hbtn" onclick="showPalette()" title="⌘K">⌘K</div>
+    <div class="hbtn" onclick="toggleClipPanel()" title="Буфер обміну 📋" style="position:relative;">📋</div>
+    <div class="hbtn" onclick="pyCall('minimize')" title="Згорнути">─</div>
+    <div class="hbtn" onclick="pyCall('maximize')" title="Розгорнути">□</div>
+    <div class="hbtn danger" onclick="pyCall('close_app')" title="Закрити">✕</div>
+  </div>
+  <div class="content" id="contentArea">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="dash-layout">
+        <div style="overflow-y:auto;">
+          <div class="dash-hero">
+            <div class="hex-orb-wrap" onclick="showPage('chat')">
+              <div class="hex-glow"></div>
+              <div class="hex-orb"></div>
+              <div class="hex-particles">
+                <div class="hex-p"></div><div class="hex-p"></div><div class="hex-p"></div>
+                <div class="hex-p"></div><div class="hex-p"></div>
+              </div>
+              <span class="hex-orb-text">AXIS</span>
+            </div>
+            <div class="dash-name">Вітаємо в AXIS OS</div>
+            <div class="dash-sub">AI OPERATING SYSTEM · v1.0</div>
+            <div class="dash-last" id="dashLast">Система готова до роботи</div>
+            <div class="quick-grid">
+              <div class="quick-card" onclick="showPage('chat')"><span class="qico">💬</span><span class="qlbl">AI Чат</span></div>
+              <div class="quick-card" onclick="showPage('ide')"><span class="qico">💻</span><span class="qlbl">IDE</span></div>
+              <div class="quick-card" onclick="showPage('agents')"><span class="qico">🤖</span><span class="qlbl">Агенти</span></div>
+              <div class="quick-card" onclick="showPage('macros')"><span class="qico">⚡</span><span class="qlbl">Макроси</span></div>
+            </div>
+          </div>
+          <div class="grid g2" style="margin-top:16px;">
+            <div class="card">
+              <div class="card-title"><span class="card-title-dot"></span>CPU</div>
+              <div class="stat-val" id="cpuVal">—</div>
+              <div class="stat-sub" id="cpuSub">Процесор</div>
+              <div class="prog"><div class="prog-bar prog-green" id="cpuBar" style="width:0%"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-title-dot" style="background:var(--indigo)"></span>RAM</div>
+              <div class="stat-val" id="ramVal" style="color:var(--indigo)">—</div>
+              <div class="stat-sub" id="ramSub">Оперативна пам'ять</div>
+              <div class="prog"><div class="prog-bar prog-indigo" id="ramBar" style="width:0%"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-title-dot" style="background:var(--orange)"></span>Диск</div>
+              <div class="stat-val" id="diskVal" style="color:var(--orange)">—</div>
+              <div class="stat-sub" id="diskSub">Зберігання</div>
+              <div class="prog"><div class="prog-bar prog-orange" id="diskBar" style="width:0%"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-title"><span class="card-title-dot" style="background:var(--cyan)"></span>Мережа</div>
+              <div class="stat-val" id="netVal" style="color:var(--cyan)">—</div>
+              <div class="stat-sub">Трафік</div>
+              <div class="prog"><div class="prog-bar" style="background:linear-gradient(90deg,var(--cyan),var(--indigo));width:40%"></div></div>
+            </div>
+          </div>
+          <!-- RECENT COMMANDS -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-title" style="justify-content:space-between;">
+              <span><span class="card-title-dot" style="background:var(--orange)"></span>⚡ Нещодавні команди</span>
+              <button class="btn btn-sm" style="font-size:10px;padding:2px 8px;" onclick="showPage('commands')">Всі →</button>
+            </div>
+            <div id="recentCmdsList" style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+              <div style="font-size:11px;color:var(--text3);padding:6px 0;">Ще немає запусків — використайте команди</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <!-- МЕДІА КОНТРОЛІ -->
+          <div class="card" id="mediaCard">
+            <div class="card-title" style="justify-content:space-between;">
+              <span><span class="card-title-dot" style="background:#1db954"></span>🎵 Медіа</span>
+              <div style="display:flex;gap:4px;">
+                <button class="media-src-btn active" id="mediaSrcYt"  onclick="switchMediaSrc('yt')"  style="font-size:9px;padding:2px 7px;">▶ YouTube</button>
+                <button class="media-src-btn"        id="mediaSrcSpt" onclick="switchMediaSrc('spt')" style="font-size:9px;padding:2px 7px;">🎵 Spotify</button>
+              </div>
+            </div>
+            <!-- Now playing display -->
+            <div id="mediaNowPlaying" style="display:flex;align-items:center;gap:10px;padding:6px 0 4px;">
+              <div id="mediaThumb" style="width:44px;height:44px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎵</div>
+              <div style="min-width:0;flex:1;">
+                <div id="mediaTitle" style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Нічого не грає</div>
+                <div id="mediaArtist" style="font-size:10px;color:var(--text3);margin-top:1px;">—</div>
+              </div>
+            </div>
+            <!-- Controls -->
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaPrev()" title="Назад">⏮</button>
+              <button class="btn btn-sm" id="mediaPlayBtn" style="flex:1;font-size:14px;background:rgba(29,185,84,.12);color:#1db954;border-color:rgba(29,185,84,.3);" onclick="mediaPlayPause()" title="Грати/Пауза">⏯</button>
+              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaNext()" title="Далі">⏭</button>
+              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaVolDown()" title="Тихіше">🔉</button>
+              <button class="btn btn-sm" style="flex:1;font-size:14px;" onclick="mediaVolUp()" title="Гучніше">🔊</button>
+            </div>
+            <!-- Quick links -->
+            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenYt()">▶ YouTube</button>
+              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenSpotify()">🎵 Spotify</button>
+              <button class="btn btn-sm" style="font-size:10px;" onclick="mediaOpenYtMusic()">🎶 YT Music</button>
+            </div>
+          </div>
+          <!-- ПОГОДА -->
+          <div class="card" id="weatherCard">
+            <div class="card-title"><span class="card-title-dot" style="background:var(--cyan)"></span>🌤 Погода <span id="weatherCity" style="font-size:10px;color:var(--text3);margin-left:4px;"></span></div>
+            <div id="weatherBody" style="display:flex;align-items:center;gap:16px;padding:6px 0;">
+              <div id="weatherIcon" style="font-size:40px;line-height:1;">⏳</div>
+              <div>
+                <div id="weatherTemp" style="font-size:26px;font-weight:700;color:var(--accent);">—</div>
+                <div id="weatherDesc" style="font-size:12px;color:var(--text2);margin-top:2px;">Завантаження...</div>
+                <div id="weatherWind" style="font-size:11px;color:var(--text3);margin-top:2px;"></div>
+              </div>
+            </div>
+            <div id="weatherForecast" style="display:flex;gap:8px;margin-top:4px;"></div>
+          </div>
+          <!-- АКТИВНІСТЬ -->
+          <div class="card">
+            <div class="card-title"><span class="card-title-dot"></span>Активність</div>
+            <div id="activityFeed"></div>
+          </div>
+          <!-- TODO -->
+          <div class="card">
+            <div class="card-title"><span class="card-title-dot" style="background:var(--indigo)"></span>✅ Завдання</div>
+            <div style="display:flex;gap:6px;margin-bottom:8px;">
+              <input id="todoInput" placeholder="Нове завдання..." style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:12px;outline:none;" onkeydown="if(event.key==='Enter')addTodo()">
+              <button class="btn btn-sm" onclick="addTodo()" style="padding:5px 10px;">+</button>
+            </div>
+            <div id="todoList" style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MONITOR -->
+    <div class="page" id="page-monitor">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this,'mon-overview')">Огляд</div>
+        <div class="tab" onclick="switchTab(this,'mon-proc')">Процеси</div>
+        <div class="tab" onclick="switchTab(this,'mon-disk')">Диски</div>
+        <div class="tab" onclick="switchTab(this,'mon-network')">🌐 Мережа</div>
+      </div>
+      <div class="tab-content active" id="mon-overview">
+        <div class="grid g4" style="margin-bottom:16px;">
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;">CPU</div>
+            <div class="sys-gauge">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="201" id="cpuGaugeArc" stroke-dashoffset="201"/>
+              </svg>
+              <div><div class="sys-gauge-val" id="cpuGaugeVal">0%</div></div>
+            </div>
+            <div class="sys-gauge-lbl">Процесор</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;">RAM</div>
+            <div class="sys-gauge">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--indigo)" stroke-width="6" stroke-linecap="round" stroke-dasharray="201" id="ramGaugeArc" stroke-dashoffset="201"/>
+              </svg>
+              <div><div class="sys-gauge-val" id="ramGaugeVal" style="color:var(--indigo)">0%</div></div>
+            </div>
+            <div class="sys-gauge-lbl" id="ramGaugeSub">Пам'ять</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;">GPU</div>
+            <div class="sys-gauge">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--orange)" stroke-width="6" stroke-linecap="round" stroke-dasharray="201" id="gpuGaugeArc" stroke-dashoffset="201"/>
+              </svg>
+              <div><div class="sys-gauge-val" id="gpuGaugeVal" style="color:var(--orange)">—</div></div>
+            </div>
+            <div class="sys-gauge-lbl">GPU</div>
+          </div>
+          <div class="card" style="text-align:center;">
+            <div class="card-title" style="justify-content:center;">Temp</div>
+            <div class="sys-gauge">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--border)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--cyan)" stroke-width="6" stroke-linecap="round" stroke-dasharray="201" id="tempGaugeArc" stroke-dashoffset="201"/>
+              </svg>
+              <div><div class="sys-gauge-val" id="tempGaugeVal" style="color:var(--cyan)">—</div></div>
+            </div>
+            <div class="sys-gauge-lbl">CPU °C</div>
+          </div>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-title"><span class="card-title-dot"></span>Системна інформація</div>
+            <div id="sysInfoList"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="card-title-dot" style="background:var(--orange)"></span>Зберігання</div>
+            <div id="diskInfoList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-content" id="mon-proc">
+        <div class="card"><div class="card-title"><span class="card-title-dot"></span>Активні процеси</div><div id="procList"></div></div>
+      </div>
+      <div class="tab-content" id="mon-disk">
+        <div class="card"><div class="card-title"><span class="card-title-dot" style="background:var(--orange)"></span>Диски</div><div id="diskDetailList"></div></div>
+      </div>
+      <div class="tab-content" id="mon-network">
+        <div class="grid g4" style="margin-bottom:16px;">
+          <div class="net-stat"><div class="net-val" style="color:var(--accent)" id="netDown">—</div><div class="net-lbl">↓ Отримано</div></div>
+          <div class="net-stat"><div class="net-val" style="color:var(--indigo)" id="netUp">—</div><div class="net-lbl">↑ Відправлено</div></div>
+          <div class="net-stat"><div class="net-val" style="color:var(--orange)" id="netPing">— ms</div><div class="net-lbl">Ping</div></div>
+          <div class="net-stat"><div class="net-val" id="netConns">—</div><div class="net-lbl">Процеси</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="card"><div class="card-title"><span class="card-title-dot"></span>Топ процеси (CPU)</div><div id="netProcList"></div></div>
+          <div class="card"><div class="card-title"><span class="card-title-dot" style="background:var(--indigo)"></span>Диски</div><div id="netDiskList"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENTS — IDE CONTROL PANEL -->
+    <div class="page" id="page-agents">
+      <div class="idectl-wrap">
+
+        <!-- Hero: status + launch -->
+        <div class="idectl-hero">
+          <div class="idectl-hero-ico">🤖</div>
+          <div class="idectl-hero-info">
+            <div class="idectl-hero-title">AXIS IDE — AI-First редактор</div>
+            <div class="idectl-hero-sub">Monaco Editor · AI Chat · Inline Edit · AI Terminal · Проверка ошибок</div>
+          </div>
+          <div class="idectl-status-pill" id="ideStatusPill">
+            <div class="idectl-dot" id="ideDot"></div>
+            <span id="ideStatusText">Остановлено</span>
+          </div>
+          <button class="btn btn-p" id="ideLaunchBtn" onclick="ideLaunch()" style="padding:8px 22px;font-size:13px;font-weight:700;">▶ Запустить IDE</button>
+          <button class="btn" id="ideStopBtn" onclick="ideStop()" style="display:none;padding:8px 22px;font-size:13px;">⏹ Остановить</button>
+        </div>
+
+        <div class="idectl-grid">
+          <!-- Left col -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+
+            <!-- AI Settings -->
+            <div class="idectl-card">
+              <div class="idectl-card-title">🧠 AI Настройки IDE</div>
+              <div class="srow">
+                <label style="font-size:12px;color:var(--text2);flex:1;">Провайдер</label>
+                <select class="sel" id="ideProvider" onchange="ideSaveSettings()" style="width:140px;">
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="google">Google Gemini</option>
+                  <option value="xai">xAI / Grok</option>
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="ollama">Ollama (Local)</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label style="font-size:12px;color:var(--text2);flex:1;">Модель</label>
+                <select class="sel" id="ideModel" onchange="ideSaveSettings()" style="width:140px;">
+                  <option value="gpt-4o">gpt-4o</option>
+                  <option value="gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="gpt-4.1">gpt-4.1</option>
+                  <option value="claude-sonnet-4-5">claude-sonnet-4-5</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="llama3">llama3 (local)</option>
+                </select>
+              </div>
+              <div class="srow" style="margin-top:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.04);">
+                <label style="font-size:12px;color:var(--text2);flex:1;">🔒 Privacy Mode <span style="font-size:10px;color:var(--text3);">(только Ollama)</span></label>
+                <label class="toggle"><input type="checkbox" id="idePrivacy" onchange="ideSaveSettings()"><span class="slider"></span></label>
+              </div>
+              <div id="idePrivacyBadge" style="display:none;margin-top:8px;">
+                <span class="privacy-badge">🔒 Privacy Mode — данные не покидают ПК</span>
+              </div>
+              <div style="margin-top:10px;">
+                <button class="btn btn-sm" style="width:100%;font-size:11px;" onclick="showPage('api')">🔑 Управление API ключами</button>
+              </div>
+            </div>
+
+            <!-- Features -->
+            <div class="idectl-card">
+              <div class="idectl-card-title">⚡ Возможности IDE</div>
+              <div class="idectl-features">
+                <div class="idectl-feat"><span class="fi">📝</span>Monaco Editor</div>
+                <div class="idectl-feat"><span class="fi">💬</span>AI Chat</div>
+                <div class="idectl-feat"><span class="fi">⌨</span>Inline Edit (Ctrl+K)</div>
+                <div class="idectl-feat"><span class="fi">🖥</span>AI Terminal</div>
+                <div class="idectl-feat"><span class="fi">🐛</span>Проверка ошибок</div>
+                <div class="idectl-feat"><span class="fi">▶</span>Запуск кода</div>
+                <div class="idectl-feat"><span class="fi">⚡</span>Форматирование</div>
+                <div class="idectl-feat"><span class="fi">🎙</span>Голосовой ввод</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right col -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+
+            <!-- Recent projects -->
+            <div class="idectl-card">
+              <div class="idectl-card-title" style="display:flex;align-items:center;justify-content:space-between;">
+                📂 Недавние проекты
+                <button class="btn btn-sm" style="font-size:10px;" onclick="ideLaunchWithFolder()">📂 Открыть папку</button>
+              </div>
+              <div class="idectl-recent" id="ideRecentList">
+                <div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 0;">Нет недавних проектов</div>
+              </div>
+            </div>
+
+            <!-- Templates -->
+            <div class="idectl-card">
+              <div class="idectl-card-title">🚀 Создать проект из шаблона</div>
+              <div class="idectl-tpl-grid">
+                <div class="idectl-tpl" onclick="ideNewProject('python_app')">🐍 Python App</div>
+                <div class="idectl-tpl" onclick="ideNewProject('fastapi')">⚡ FastAPI</div>
+                <div class="idectl-tpl" onclick="ideNewProject('pyqt6')">🖥 PyQt6 App</div>
+                <div class="idectl-tpl" onclick="ideNewProject('telegram_bot')">🤖 Telegram Bot</div>
+                <div class="idectl-tpl" onclick="ideNewProject('web_app')">🌐 Web App</div>
+                <div class="idectl-tpl" onclick="ideNewProject('django')">🌍 Django</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /idectl-wrap -->
+    </div>
+
+    <!-- CHAT -->
+    <div class="page page-flex" id="page-chat">
+      <div class="chat-wrap" style="flex:1;">
+        <div class="chat-header">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1;" id="modelChips"></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <div class="live-trigger" onclick="startLiveMode()" title="AXIS Live — постійний голосовий режим">
+              <span class="lt-dot"></span> Live
+            </div>
+            <button class="voice-btn" id="ttsBtn" onclick="toggleTts()" title="Голос AI вимкнено">🔈</button>
+            <button class="btn btn-sm" onclick="clearChat()">Очистити</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:5px;padding:6px 16px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;">
+          <span style="font-size:10px;color:var(--text3);white-space:nowrap;margin-right:2px;margin-top:3px;">Роль:</span>
+          <div id="roleChips" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="chat-footer">
+          <!-- AI Command Creator bar -->
+          <div class="chat-cmd-bar">
+            <span class="chat-cmd-bar-label">⚡ Команда:</span>
+            <input id="chatCmdInput" placeholder="відкрий телеграм, зроби скріншот, відкрий сайт..." onkeydown="if(event.key==='Enter')createCmdFromChat()">
+            <button class="btn btn-sm" onclick="createCmdFromChat()" style="font-size:10px;white-space:nowrap;flex-shrink:0;background:rgba(99,102,241,.12);color:var(--indigo);border-color:rgba(99,102,241,.25);" title="AI створить команду автоматично">✨ Створити</button>
+          </div>
+          <div class="chat-quick">
+            <div class="cq-btn" onclick="quickMsg('Поясни цей код')">Поясни код</div>
+            <div class="cq-btn" onclick="quickMsg('Напиши Python скрипт для')">Python скрипт</div>
+            <div class="cq-btn" onclick="quickMsg('Допоможи з дебагінгом')">Дебагінг</div>
+            <div class="cq-btn" onclick="quickMsg('Оптимізуй цей код')">Оптимізація</div>
+            <div class="cq-btn" onclick="quickMsg('Перекладіть текст: ')">Переклад</div>
+            <div class="cq-btn" onclick="quickMsg('Підсумуй: ')">Підсумок</div>
+          </div>
+          <div class="chat-input-wrap">
+            <input id="chatInput" placeholder="Повідомлення або 🎤 для голосу..." onkeydown="chatKey(event)">
+            <button class="voice-btn" id="micBtn" onclick="toggleRecording()" title="Голосовий ввід" style="margin-right:2px;">🎤</button>
+            <div class="chat-send" onclick="sendChat()">➤</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IDE -->
+    <div class="page page-flex" id="page-ide" style="height:calc(100vh - 108px);">
+      <div class="ide-wrap">
+
+        <!-- SIDEBAR -->
+        <div class="ide-sidebar">
+          <div class="ide-sb-hdr"><span>ФАЙЛИ</span></div>
+          <button class="btn btn-sm" style="width:100%;margin:0 0 4px;font-size:10px;" onclick="pyCall('open_ide_file')">📂 Відкрити файл</button>
+          <button class="btn btn-sm" style="width:100%;margin:0 0 6px;font-size:10px;background:rgba(99,102,241,.1);color:var(--indigo);border-color:rgba(99,102,241,.25);" onclick="ideAiNewFile()">✨ AI: Новий файл</button>
+          <div style="padding:2px 0;" id="fileTree"></div>
+          <!-- Open files history -->
+          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
+            <div style="font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Недавні</div>
+            <div id="ideRecentFiles" style="display:flex;flex-direction:column;gap:2px;"></div>
+          </div>
+        </div>
+
+        <!-- CENTER — editor + inline bar + terminal -->
+        <div class="ide-center">
+          <div class="ide-tabs" id="ideTabs"></div>
+          <div class="ide-toolbar">
+            <span class="ide-lang" id="ideLang">Python</span>
+            <div style="display:flex;gap:5px;align-items:center;">
+              <span id="ideAiStatus" style="font-size:10px;color:var(--text3);"></span>
+              <button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:var(--indigo);border-color:rgba(99,102,241,.2);font-size:10px;" onclick="toggleIdeAiBar()" title="Ctrl+K">✦ Edit</button>
+              <button class="btn btn-sm" style="background:rgba(34,197,94,.1);color:var(--accent);border-color:rgba(34,197,94,.2);" onclick="runCode()">▶ Run</button>
+              <button class="btn btn-sm" onclick="ideSave()">💾 Save</button>
+              <button class="btn btn-sm" onclick="ideSaveAs()">⬆ Як</button>
+            </div>
+          </div>
+
+          <!-- INLINE AI EDIT BAR (Ctrl+K) -->
+          <div id="ideAiBar" style="display:none;padding:8px 10px;background:var(--bg2);border-bottom:1px solid rgba(99,102,241,.3);gap:6px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--indigo);font-weight:700;flex-shrink:0;">✦ AI Edit</span>
+            <input id="ideAiBarInput" placeholder="Що змінити? напр.: додай валідацію email, виправ баг у функції parse(), додай логування..." style="flex:1;min-width:200px;font-size:11px;background:var(--bg3);border:1px solid rgba(99,102,241,.4);border-radius:8px;padding:5px 10px;color:var(--text);outline:none;" onkeydown="ideAiBarKey(event)">
+            <button class="btn btn-sm" style="background:rgba(99,102,241,.15);color:var(--indigo);border-color:rgba(99,102,241,.3);flex-shrink:0;" onclick="ideAiEditRequest()" id="ideAiBarBtn">✦ Аналіз і правка</button>
+            <button class="btn btn-sm" style="flex-shrink:0;" onclick="toggleIdeAiBar()">✕</button>
+          </div>
+
+          <!-- DIFF PANEL (shows before apply) -->
+          <div id="ideAiDiffPanel" style="display:none;background:#06070d;border-bottom:2px solid rgba(99,102,241,.4);overflow-y:auto;max-height:220px;font-family:var(--mono);font-size:11px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--border);">
+              <span style="color:var(--indigo);font-weight:700;font-size:11px;">✦ Запропоновані зміни</span>
+              <div style="display:flex;gap:6px;">
+                <span id="ideAiDiffSummary" style="font-size:10px;color:var(--text3);"></span>
+                <button class="btn btn-sm" style="background:rgba(34,197,94,.15);color:var(--accent);border-color:rgba(34,197,94,.3);" onclick="ideApplyEdits()">✓ Застосувати</button>
+                <button class="btn btn-sm btn-d" onclick="ideRejectEdits()">✕ Скасувати</button>
+              </div>
+            </div>
+            <div id="ideAiDiffBody" style="padding:8px 12px;"></div>
+          </div>
+
+          <div class="ide-editor-wrap" id="ideEditorWrap"></div>
+          <div class="ide-statusbar">
+            <span id="idePos">Ln 1, Col 1</span>
+            <span id="ideLangFull">Python · UTF-8</span>
+            <span id="ideAiStatusBar" style="color:var(--indigo);"></span>
+            <span style="color:var(--accent);">AXIS IDE</span>
+          </div>
+          <div class="ide-term">
+            <div class="ide-term-hdr">
+              <span style="font-size:10px;color:var(--text3);font-weight:700;">ТЕРМІНАЛ</span>
+              <div style="display:flex;gap:4px;">
+                <button class="btn btn-sm" style="font-size:9px;padding:2px 6px;" onclick="ideRunInTerm()">▶ Run</button>
+                <button class="btn btn-sm" style="font-size:9px;padding:2px 6px;" onclick="clearTerm()">Очистити</button>
+              </div>
+            </div>
+            <div class="ide-term-out" id="ideTermOut">axis@os:~$ _</div>
+          </div>
+        </div>
+
+        <!-- RIGHT — AI chat panel -->
+        <div class="ide-right">
+          <div class="ide-right-tabs">
+            <div class="ide-right-tab active" onclick="switchIdeRight(this,'ai')">✦ AI</div>
+            <div class="ide-right-tab" onclick="switchIdeRight(this,'preview')">Preview</div>
+            <div class="ide-right-tab" onclick="switchIdeRight(this,'output')">Output</div>
+          </div>
+          <div class="ide-right-body">
+
+            <!-- AI CHAT PANE — now primary -->
+            <div id="ide-pane-ai" style="display:flex;flex:1;flex-direction:column;">
+              <!-- AI thinking steps display -->
+              <div id="ideAiSteps" style="padding:6px 10px;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);min-height:24px;display:none;">
+                <span id="ideAiStepText"></span>
+              </div>
+              <div style="flex:1;overflow-y:auto;padding:10px;" id="ideAiChat"></div>
+              <div style="padding:8px;border-top:1px solid var(--border);flex-shrink:0;">
+                <!-- Quick actions -->
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
+                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Поясни цей код')">Поясни</div>
+                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Знайди баги та виправ')">Баги</div>
+                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Оптимізуй код')">Оптимізуй</div>
+                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Додай коментарі')">Коментарі</div>
+                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Напиши тести')">Тести</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <input id="ideAiInput" placeholder="Запит до AI (Enter = відповідь, Ctrl+K = правка)..." style="flex:1;font-size:11px;" onkeydown="ideAiKey(event)">
+                  <button class="btn btn-p btn-sm" onclick="sendIdeAi()" style="flex-shrink:0;">➤</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="ide-pane-preview" style="display:none;flex:1;flex-direction:column;">
+              <div class="ide-preview-empty"><div class="ipe-icon">🖥</div><div>Запустіть HTML для перегляду</div></div>
+            </div>
+            <div id="ide-pane-output" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:12px;font-family:var(--mono);font-size:12px;color:var(--text);background:#06070d;white-space:pre-wrap;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- COMMANDS -->
+    <div class="page" id="page-commands">
+
+      <!-- ── LIBRARY VIEW ── -->
+      <div id="cmdLibView">
+        <!-- Вкладки: Мої / Вбудовані -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+          <button id="cmdTabMy" class="btn btn-p" onclick="showCmdTab('my')" style="font-size:12px;">👤 Мої команди <span id="cmdTotalCount" style="opacity:.7">(0)</span></button>
+          <button id="cmdTabBuiltin" class="btn btn-sm" onclick="showCmdTab('builtin')" style="font-size:12px;">⚙️ Вбудовані <span style="opacity:.7">(~130)</span></button>
+        </div>
+
+        <!-- ── Мої команди ── -->
+        <div id="cmdMyPanel">
+          <div class="cmd-lib-hdr">
+            <div style="font-size:12px;color:var(--text3);">👤 — створені тобою &nbsp;|&nbsp; 🤖 — створила сфера</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="background:rgba(139,92,246,.12);color:#a78bfa;border-color:rgba(139,92,246,.3);" onclick="showCmdStats()">📊 Статистика</button>
+              <button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:#fb923c;border-color:rgba(249,115,22,.3);" onclick="exportCmds()">📤 Експорт</button>
+              <button class="btn btn-sm" style="background:rgba(236,72,153,.12);color:#f472b6;border-color:rgba(236,72,153,.3);" onclick="importCmds()">📥 Імпорт</button>
+              <button class="btn btn-sm" style="background:rgba(34,197,94,.12);color:var(--accent);border-color:rgba(34,197,94,.3);" onclick="loadExampleCmds()">+ Приклади</button>
+              <button class="btn btn-p" onclick="showCmdCreate()">+ Додати</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:12px;color:var(--text3);">
+            <span>Сортування:</span>
+            <select id="cmdSortSelect" onchange="sortAndRenderLib()" style="font-size:12px;padding:4px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+              <option value="date_desc">За датою (нові спочатку)</option>
+              <option value="date_asc">За датою (старі спочатку)</option>
+              <option value="name_asc">За назвою (А-Я)</option>
+              <option value="name_desc">За назвою (Я-А)</option>
+              <option value="type">За типом</option>
+            </select>
+          </div>
+          <div id="cmdLibGroups"></div>
+        </div>
+
+        <!-- ── Вбудовані команди ── -->
+        <div id="cmdBuiltinPanel" style="display:none;">
+          <div style="background:rgba(0,212,255,.07);border:1px solid rgba(0,212,255,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.6;">
+            ℹ️ <b>Вбудовані команди</b> — вшиті в сферу, завжди працюють. Їх не можна видалити, але ти можеш додати свою команду з тим же словом — вона матиме <b>вищий пріоритет</b>.
+          </div>
+          <input id="builtinSearch" type="text" placeholder="🔍 Пошук по фразі або категорії..." oninput="renderBuiltinCmds(this.value)"
+            style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;margin-bottom:14px;">
+          <div id="cmdBuiltinGroups"></div>
+        </div>
+      </div>
+
+      <!-- ── CREATE / EDIT VIEW ── -->
+      <div id="cmdCreateView" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <button class="btn btn-sm" onclick="showCmdLib()">← Назад</button>
+          <div style="font-size:15px;font-weight:800;" id="cmdCreateTitle">Створення команди</div>
+        </div>
+        <div class="cmd-split">
+
+          <!-- LEFT: form -->
+          <div class="cmd-create-pane">
+            <input type="hidden" id="cmdEditId" value="">
+            <div id="cmdFileInfo" style="display:none;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--accent);"></div>
+
+            <!-- AI Auto-fill -->
+            <div class="cmd-ai-banner">
+              <span style="font-size:20px;">✨</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:10px;font-weight:700;color:var(--indigo);margin-bottom:4px;">AI ЗАПОВНЕННЯ — опишіть команду одним реченням</div>
+                <input id="cmdAiDesc" placeholder="відкрий телеграм, зроби скріншот, відкрий ютуб..." style="border:none;background:transparent;font-size:12px;color:var(--text);outline:none;width:100%;padding:0;" onkeydown="if(event.key==='Enter')aiAutoFillCmd()">
+              </div>
+              <button class="btn btn-sm" onclick="aiAutoFillCmd()" id="cmdAiBtn" style="font-size:10px;white-space:nowrap;background:rgba(99,102,241,.15);color:var(--indigo);border-color:rgba(99,102,241,.3);">✨ Заповнити</button>
+            </div>
+
+            <!-- STEP 1 -->
+            <div class="cmd-step">
+              <div class="cmd-step-num">1</div>
+              <div class="cmd-step-title">Що ви пишете / говорите?</div>
+            </div>
+            <div class="cmd-step-box s1">
+              <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Слово-тригер</div>
+              <input id="cmdTrigger" placeholder="відкрий chrome" class="cmd-trigger-main">
+              <div class="cmd-trigger-hint">👆 Це слово/фраза запускає команду. Ви пишете або вимовляєте його в чаті.</div>
+              <div style="margin-top:10px;">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Інші варіанти фрази <span style="opacity:.6;">(через кому, необов'язково)</span></div>
+                <textarea id="cmdTriggerAlts" rows="2" placeholder="відкрий браузер, запусти chrome, хром" style="resize:vertical;font-size:11px;"></textarea>
+              </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="cmd-step">
+              <div class="cmd-step-num">2</div>
+              <div class="cmd-step-title">Що запускається?</div>
+            </div>
+            <div class="cmd-step-box s2">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div style="font-size:10px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:1px;">Тип дії</div>
+                <button class="btn btn-sm" onclick="openCmdTemplates()" style="font-size:10px;background:rgba(99,102,241,.12);color:var(--indigo);border-color:rgba(99,102,241,.3);">📚 Шаблони</button>
+              </div>
+              <div class="cmd-type-radio" id="cmdTypeSelect">
+                <div class="cmd-type-radio-btn active" onclick="selectCmdType(this,'shell')" data-type="shell">💻 Програма</div>
+                <div class="cmd-type-radio-btn" onclick="selectCmdType(this,'url')" data-type="url">🌐 Сайт</div>
+                <div class="cmd-type-radio-btn" onclick="selectCmdType(this,'internal')" data-type="internal">⚙ Система</div>
+                <div class="cmd-type-radio-btn" onclick="selectCmdType(this,'python')" data-type="python">🐍 Python</div>
+              </div>
+              <div style="margin-top:10px;">
+                <div style="font-size:10px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Назва команди *</div>
+                <input id="cmdName" placeholder="Chrome">
+              </div>
+              <div style="margin-top:10px;">
+                <label id="cmdBodyLabel" style="font-size:10px;font-weight:700;color:var(--indigo);text-transform:uppercase;letter-spacing:1px;">Шлях / дія *</label>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                  <input id="cmdBody" placeholder="chrome" style="flex:1;font-family:var(--mono);font-size:12px;">
+                  <button class="btn btn-sm" onclick="browseFile()" title="Вибрати файл">📁</button>
+                </div>
+                <div class="field-hint" id="cmdBodyHint">Назва програми або повний шлях до .exe</div>
+              </div>
+            </div>
+
+            <!-- STEP 3 -->
+            <div class="cmd-step">
+              <div class="cmd-step-num">3</div>
+              <div class="cmd-step-title">Додатково <span style="font-size:10px;color:var(--text3);font-weight:400;">(необов'язково)</span></div>
+            </div>
+            <div class="cmd-step-box s3">
+              <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;margin-bottom:10px;">
+                <div>
+                  <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Іконка</div>
+                  <input id="cmdIcon" placeholder="⚙" style="font-size:18px;text-align:center;" maxlength="4">
+                </div>
+                <div>
+                  <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Гаряча клавіша</div>
+                  <input id="cmdHotkey" placeholder="Ctrl+Shift+R">
+                </div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Опис</div>
+                <input id="cmdDesc" placeholder="Що робить ця команда?">
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:14px;">
+              <button class="btn btn-sm" style="flex:1;" onclick="testNewCmd()">🔬 Тест</button>
+              <button class="btn btn-p" style="flex:2;" onclick="saveCmd()">✓ Зберегти</button>
+            </div>
+          </div>
+
+          <!-- RIGHT: list -->
+          <div class="cmd-list-pane">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-shrink:0;">
+              <div style="font-size:13px;font-weight:700;flex:1;">Створені команди <span id="cmdListCount">(0)</span></div>
+              <input id="cmdListSearch" placeholder="🔍 Пошук..." style="max-width:160px;padding:6px 10px;font-size:11px;" oninput="renderCmdListPanel(this.value)">
+            </div>
+            <div id="cmdListItems" style="overflow-y:auto;flex:1;min-height:0;"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GENERATOR -->
+    <div class="page" id="page-generator">
+
+      <!-- Mode switcher -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+        <div class="gen-mode-tabs">
+          <div class="gen-mode-tab active" data-mode="code"  onclick="switchGenMode(this)">💻 Код</div>
+          <div class="gen-mode-tab" data-mode="image" onclick="switchGenMode(this)">🖼 Зображення</div>
+          <div class="gen-mode-tab" data-mode="video" onclick="switchGenMode(this)">🎬 Відео</div>
+        </div>
+      </div>
+
+      <!-- ── CODE MODE ── -->
+      <div id="genModeCode" class="gen-layout">
+        <div class="gen-left">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏ Опишіть що створити</div>
+            <textarea id="genDesc" rows="5" placeholder="Наприклад: Створи гру змійку з красивою графікою, лічильником очків та таблицею рекордів..." style="resize:vertical;font-size:12px;line-height:1.6;"></textarea>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">🗂 Тип проекту</div>
+            <div class="gen-type-grid" id="genTypeGrid">
+              <div class="gen-type-btn active" data-type="game" onclick="selectGenType(this)"><span class="gen-type-ico">🎮</span><span class="gen-type-lbl">Гра</span></div>
+              <div class="gen-type-btn" data-type="app" onclick="selectGenType(this)"><span class="gen-type-ico">📱</span><span class="gen-type-lbl">Застосунок</span></div>
+              <div class="gen-type-btn" data-type="site" onclick="selectGenType(this)"><span class="gen-type-ico">🌐</span><span class="gen-type-lbl">Сайт</span></div>
+              <div class="gen-type-btn" data-type="component" onclick="selectGenType(this)"><span class="gen-type-ico">🧩</span><span class="gen-type-lbl">Компонент</span></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">⚡ AI Провайдер</div>
+            <select id="genProvider" style="width:100%;font-size:12px;" onchange="updateGenModels(this.value)">
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="google">Google Gemini</option>
+              <option value="perplexity">Perplexity</option>
+              <option value="xai">xAI Grok</option>
+              <option value="ollama">Ollama (локальний)</option>
+            </select>
+            <div id="genKeyStatus" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🤖 Модель</div>
+            <select id="genModel" style="width:100%;font-size:12px;"></select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🔥 Складність</div>
+            <select id="genComplexity" style="width:100%;font-size:12px;">
+              <option value="simple">Простий</option>
+              <option value="medium" selected>Середній</option>
+              <option value="complex">Складний з анімаціями</option>
+            </select>
+          </div>
+          <!-- Progress bar (hidden until generating) -->
+          <div id="genProgressWrap" style="display:none;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:6px;display:flex;justify-content:space-between;">
+              <span id="genProgressLabel">Генерую...</span>
+              <span id="genTokenCount" style="font-family:var(--mono);">0 токенів</span>
+            </div>
+            <div style="background:var(--bg);border-radius:6px;overflow:hidden;height:5px;">
+              <div id="genProgressBar" style="height:100%;background:linear-gradient(90deg,var(--accent),var(--indigo));border-radius:6px;width:0%;transition:width .3s;"></div>
+            </div>
+          </div>
+          <button class="gen-generate-btn" id="genBtn" onclick="generateProject()">
+            <span>✨</span><span>Згенерувати проект</span>
+          </button>
+          <div id="genStatus" style="font-size:11px;color:var(--text3);text-align:center;min-height:16px;"></div>
+        </div>
+
+        <div class="gen-right">
+          <div class="gen-right-tabs">
+            <div class="gen-right-tab active" onclick="switchGenTab(this,'gen-pane-preview')">👁 Превью</div>
+            <div class="gen-right-tab" onclick="switchGenTab(this,'gen-pane-code')">💻 Код <span id="genCodeLines" style="font-size:9px;color:var(--text3);"></span></div>
+            <div class="gen-right-tab" onclick="switchGenTab(this,'gen-pane-console')">📟 Консоль</div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-sm" style="margin:6px 0;font-size:10px;" onclick="copyGenCode()">📋 Копіювати</button>
+            <button class="btn btn-sm" style="margin:6px 0 6px 6px;font-size:10px;" onclick="saveGenToIde()">💻 IDE</button>
+          </div>
+          <div class="gen-pane active" id="gen-pane-preview">
+            <div id="genPreviewEmpty" style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text3);">
+              <div style="font-size:48px;opacity:.2;">✨</div>
+              <div style="font-size:13px;">Опишіть проект і натисніть «Згенерувати»</div>
+              <!-- Streaming animation (shown during generation) -->
+              <div id="genStreamAnim" style="display:none;align-items:center;gap:12px;flex-direction:column;">
+                <div style="display:flex;gap:6px;">
+                  <div class="gen-dot" style="animation-delay:0s;"></div>
+                  <div class="gen-dot" style="animation-delay:.2s;"></div>
+                  <div class="gen-dot" style="animation-delay:.4s;"></div>
+                </div>
+                <div id="genStreamMsg" style="font-size:12px;color:var(--accent);"></div>
+              </div>
+            </div>
+            <iframe id="genPreviewFrame" class="gen-preview-frame" style="display:none;" sandbox="allow-scripts"></iframe>
+          </div>
+          <div class="gen-pane" id="gen-pane-code">
+            <div class="gen-code-area" id="genCodeArea">// Тут буде відображатися згенерований код...</div>
+          </div>
+          <div class="gen-pane" id="gen-pane-console">
+            <div class="gen-console" id="genConsole">&gt; Консоль готова.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── IMAGE MODE ── -->
+      <div id="genModeImage" class="gen-layout" style="display:none;">
+        <div class="gen-left">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏ Опис зображення</div>
+            <textarea id="imgPrompt" rows="5" placeholder="Наприклад: Фотореалістичний захід сонця над горами, небо у пурпурових і помаранчевих тонах, дзеркальне озеро внизу..." style="resize:vertical;font-size:12px;line-height:1.6;"></textarea>
+          </div>
+          <!-- Style presets -->
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">🎨 Стиль</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;" id="imgStyleGrid">
+              <div class="gen-type-btn active" data-style="vivid" onclick="selectImgStyle(this)"><span style="font-size:14px;">🌟</span><span class="gen-type-lbl" style="font-size:10px;">Яскравий</span></div>
+              <div class="gen-type-btn" data-style="natural" onclick="selectImgStyle(this)"><span style="font-size:14px;">🌿</span><span class="gen-type-lbl" style="font-size:10px;">Природній</span></div>
+              <div class="gen-type-btn" data-style="anime" onclick="selectImgStyle(this)"><span style="font-size:14px;">🎌</span><span class="gen-type-lbl" style="font-size:10px;">Аніме</span></div>
+              <div class="gen-type-btn" data-style="photo" onclick="selectImgStyle(this)"><span style="font-size:14px;">📷</span><span class="gen-type-lbl" style="font-size:10px;">Фото</span></div>
+              <div class="gen-type-btn" data-style="3d" onclick="selectImgStyle(this)"><span style="font-size:14px;">🔮</span><span class="gen-type-lbl" style="font-size:10px;">3D</span></div>
+              <div class="gen-type-btn" data-style="sketch" onclick="selectImgStyle(this)"><span style="font-size:14px;">✏</span><span class="gen-type-lbl" style="font-size:10px;">Ескіз</span></div>
+            </div>
+          </div>
+          <!-- Size -->
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">📐 Розмір</div>
+            <select id="imgSize" style="width:100%;font-size:12px;">
+              <option value="1024x1024">1:1 Квадрат (1024×1024)</option>
+              <option value="1792x1024">16:9 Широкий (1792×1024)</option>
+              <option value="1024x1792">9:16 Вертикальний (1024×1792)</option>
+            </select>
+          </div>
+          <!-- Provider -->
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">⚡ Провайдер</div>
+            <select id="imgProvider" style="width:100%;font-size:12px;">
+              <option value="openai">OpenAI DALL·E 3</option>
+              <option value="google">Google Imagen (Gemini)</option>
+            </select>
+          </div>
+          <!-- Reference image upload -->
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🖼 Референс-зображення <span style="opacity:.6;">(необов'язково)</span></div>
+            <div id="imgRefDrop" class="img-ref-drop" onclick="triggerImgRefInput()" ondragover="imgDragOver(event)" ondrop="imgDrop(event)">
+              <div id="imgRefEmpty" style="display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;">
+                <div style="font-size:28px;opacity:.4;">🖼</div>
+                <div style="font-size:11px;color:var(--text3);">Натисніть або перетягніть зображення</div>
+                <div style="font-size:10px;color:var(--text3);opacity:.7;">AI додасть елементи до вашого фото</div>
+              </div>
+              <img id="imgRefPreview" alt="Reference image preview" style="display:none;max-width:100%;max-height:140px;border-radius:8px;object-fit:contain;">
+              <input type="file" id="imgRefInput" accept="image/*" style="display:none;" onchange="imgRefSelected(this)">
+            </div>
+            <div style="display:none;gap:6px;margin-top:6px;" id="imgRefActions">
+              <button class="btn btn-sm" style="flex:1;font-size:10px;" onclick="clearImgRef()">✕ Видалити</button>
+              <button class="btn btn-sm" style="flex:1;font-size:10px;" onclick="triggerImgRefInput()">🔄 Замінити</button>
+            </div>
+          </div>
+          <button class="gen-generate-btn" id="imgGenBtn" onclick="generateImage()">
+            <span>🖼</span><span>Згенерувати зображення</span>
+          </button>
+          <div id="imgStatus" style="font-size:11px;color:var(--text3);text-align:center;min-height:16px;"></div>
+        </div>
+
+        <!-- RIGHT: image result -->
+        <div class="gen-right">
+          <div class="gen-right-tabs">
+            <div class="gen-right-tab active" style="cursor:default;">🖼 Результат</div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-sm" style="margin:6px 0;font-size:10px;" id="imgDownBtn" onclick="downloadGenImage()" style="display:none;">⬇ Завантажити</button>
+            <button class="btn btn-sm" style="margin:6px 0 6px 6px;font-size:10px;" id="imgUseAsRefBtn" onclick="useImageAsRef()" style="display:none;">🔄 Як референс</button>
+          </div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;" id="imgResultWrap">
+            <div id="imgResultEmpty" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text3);">
+              <div style="font-size:56px;opacity:.15;">🖼</div>
+              <div style="font-size:13px;">Введіть опис і натисніть «Згенерувати»</div>
+              <div style="font-size:11px;opacity:.6;">DALL·E 3 або Google Imagen</div>
+            </div>
+            <!-- Image generation progress animation -->
+            <div id="imgGenAnim" style="display:none;flex-direction:column;align-items:center;gap:16px;">
+              <div class="img-gen-spinner"></div>
+              <div style="font-size:12px;color:var(--accent);" id="imgGenMsg">Генерую зображення...</div>
+              <div style="font-size:10px;color:var(--text3);">Зазвичай 10-30 секунд</div>
+            </div>
+            <img id="imgResult" alt="Generated image result" style="display:none;max-width:100%;max-height:calc(100vh - 220px);border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.5);object-fit:contain;">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VIDEO MODE (Luma AI) ── -->
+      <div id="genModeVideo" class="gen-layout" style="display:none;">
+        <div class="gen-left">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏️ Опис відео</div>
+            <textarea id="vidPrompt" rows="4" style="width:100%;font-size:12px;resize:none;" placeholder="Красивий захід сонця над горами, кінематографічна зйомка, 4K..."></textarea>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🎞 Тривалість</div>
+            <select id="vidDuration" style="width:100%;font-size:12px;">
+              <option value="5">5 секунд</option>
+              <option value="9" selected>9 секунд</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">📐 Формат</div>
+            <select id="vidAspect" style="width:100%;font-size:12px;">
+              <option value="16:9" selected>16:9 — Горизонтальне</option>
+              <option value="9:16">9:16 — Вертикальне (Reels)</option>
+              <option value="1:1">1:1 — Квадрат</option>
+              <option value="4:3">4:3 — Класичне</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🖼 Стартовий кадр (необов'язково)</div>
+            <div id="vidRefZone" style="border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;transition:.2s;" onclick="R('vidRefInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleVidRefDrop(event)">
+              📷 Клікніть або перетягніть зображення
+              <div id="vidRefThumb" style="margin-top:8px;display:none;"><img alt="Video reference thumbnail" style="max-width:100%;max-height:80px;border-radius:6px;"></div>
+            </div>
+            <input type="file" id="vidRefInput" accept="image/*" style="display:none;" onchange="handleVidRefFile(this)">
+          </div>
+          <button class="gen-generate-btn" id="vidGenBtn" onclick="generateVideo()">
+            <span>🎬</span><span>Згенерувати відео</span>
+          </button>
+          <div id="vidStatus" style="font-size:11px;color:var(--text3);text-align:center;min-height:16px;"></div>
+          <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;">Luma AI Dream Machine · потрібен API ключ</div>
+        </div>
+        <div class="gen-right">
+          <div class="gen-right-tabs" style="height:44px;">
+            <div class="gen-right-tab active">🎬 Відео</div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-sm" id="vidDownloadBtn" style="display:none;margin:6px 0;" onclick="downloadVideo()">⬇ Завантажити</button>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;">
+            <div id="vidResultEmpty" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text3);">
+              <div style="font-size:48px;opacity:.2;">🎬</div>
+              <div style="font-size:13px;">Введіть опис і натисніть «Згенерувати»</div>
+              <div style="font-size:11px;opacity:.6;">Luma Dream Machine • ~30–120 сек</div>
+            </div>
+            <div id="vidGenAnim" style="display:none;flex-direction:column;align-items:center;gap:16px;">
+              <div style="width:48px;height:48px;border:3px solid rgba(155,89,182,.3);border-top-color:#9b59b6;border-radius:50%;animation:imgSpin 1s linear infinite;"></div>
+              <div id="vidStatusAnim" style="font-size:12px;color:var(--text3);">Надсилаю запит до Luma...</div>
+              <div style="font-size:10px;color:var(--text3);opacity:.7;">Генерація відео займає 30–120 секунд</div>
+            </div>
+            <video id="vidResult" style="display:none;max-width:100%;max-height:100%;border-radius:8px;" controls loop></video>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- MACROS -->
+    <div class="page" id="page-macros">
+      <div class="grid g2">
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:14px;font-weight:700;">Автоматизація</div>
+            <button class="btn btn-p btn-sm" onclick="openMacroModal()">+ Новий макрос</button>
+          </div>
+          <div id="macroList"></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="card-title"><span class="card-title-dot"></span>Гарячі клавіші</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div class="srow"><label>Командна палітра</label><span class="hotkey">Ctrl+K</span></div>
+              <div class="srow"><label>Зберегти файл</label><span class="hotkey">Ctrl+S</span></div>
+              <div class="srow"><label>Запустити код</label><span class="hotkey">F5</span></div>
+              <div class="srow"><label>Новий чат</label><span class="hotkey">Ctrl+N</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="page" id="page-network" style="padding:0;overflow:hidden;">
+      <div style="display:flex;gap:0;height:100%;overflow:hidden;">
+      <div class="notes-sidebar">
+        <div class="notes-sidebar-top">
+          <div style="font-size:13px;font-weight:800;letter-spacing:1px;color:var(--text);">📝 Нотатки</div>
+          <button class="btn btn-p btn-sm" onclick="notesNew()" style="font-size:11px;">+ Нова</button>
+        </div>
+        <input id="notesSearch" placeholder="🔍 Пошук..." style="margin:8px 12px;width:calc(100% - 24px);font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);outline:none;" oninput="notesRenderList()">
+        <div id="notesList" style="flex:1;overflow-y:auto;"></div>
+      </div>
+      <div class="notes-main">
+        <div class="notes-toolbar">
+          <input id="noteTitle" placeholder="Заголовок нотатки..." style="flex:1;background:transparent;border:none;font-size:16px;font-weight:700;color:var(--text);outline:none;" oninput="notesSave()">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="noteTag" style="font-size:11px;max-width:110px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text2);" onchange="notesSave()">
+              <option value="">🏷 Без тегу</option>
+              <option value="робота">💼 Робота</option>
+              <option value="ідея">💡 Ідея</option>
+              <option value="важливо">🔴 Важливо</option>
+              <option value="код">💻 Код</option>
+              <option value="особисте">👤 Особисте</option>
+            </select>
+            <button class="btn btn-sm" onclick="notesTogglePreview()" id="notePreviewBtn" title="Попередній перегляд">👁</button>
+            <button class="btn btn-sm" onclick="notesCopy()" title="Скопіювати">📋</button>
+            <button class="btn btn-sm" style="color:var(--red);border-color:rgba(239,68,68,.3);" onclick="notesDelete()" title="Видалити">🗑</button>
+          </div>
+        </div>
+        <div id="notesEditorWrap" style="flex:1;display:flex;overflow:hidden;">
+          <textarea id="noteBody" placeholder="Пишіть тут... (підтримується Markdown)" style="flex:1;resize:none;background:transparent;border:none;padding:16px 20px;font-size:13px;font-family:var(--font);color:var(--text);line-height:1.7;outline:none;" oninput="notesSave();notesAutoPreview()"></textarea>
+          <div id="notesPreview" style="flex:1;padding:16px 20px;overflow-y:auto;border-left:1px solid var(--border);font-size:13px;line-height:1.7;display:none;"></div>
+        </div>
+        <div class="notes-footer">
+          <span id="notesWordCount" style="font-size:10px;color:var(--text3);">0 слів</span>
+          <span id="notesSavedAt" style="font-size:10px;color:var(--text3);"></span>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- MUSIC / SPOTIFY -->
+    <div class="page" id="page-music">
+      <div class="music-layout">
+
+        <!-- PLAYER CARD -->
+        <div class="music-player-card">
+          <div class="mp-cover-wrap">
+            <img id="spCover" class="mp-cover" src="" alt="">
+            <div class="mp-cover-idle" id="spCoverIdle">🎵</div>
+          </div>
+          <div class="mp-info">
+            <div class="mp-track" id="spTrack">Нічого не грає</div>
+            <div class="mp-artist" id="spArtist">—</div>
+            <div class="mp-progress-wrap">
+              <span class="mp-time" id="spTimePos">0:00</span>
+              <div class="mp-progress-bar" id="spProgressBar">
+                <div class="mp-progress-fill" id="spProgressFill"></div>
+              </div>
+              <span class="mp-time" id="spTimeDur">0:00</span>
+            </div>
+            <div class="mp-controls">
+              <button class="mp-btn" onclick="spAction('prev')" title="Попередня">⏮</button>
+              <button class="mp-btn mp-btn-play" id="spPlayBtn" onclick="spTogglePlay()">▶</button>
+              <button class="mp-btn" onclick="spAction('next')" title="Наступна">⏭</button>
+              <button class="mp-btn mp-btn-shuffle" id="spShuffleBtn" onclick="spToggleShuffle()" title="Шафл">🔀</button>
+            </div>
+            <div class="mp-volume-row">
+              <span style="font-size:13px;">🔊</span>
+              <input type="range" id="spVolume" min="0" max="100" value="50"
+                class="mp-volume-slider" oninput="spSetVolume(this.value)">
+              <span class="mp-vol-val" id="spVolVal">50%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="music-right">
+
+          <!-- SEARCH -->
+          <div class="music-section">
+            <div class="music-sect-title">🔍 Пошук треку</div>
+            <div style="display:flex;gap:8px;">
+              <input id="spSearchInput" class="inp" placeholder="Назва пісні або виконавець..."
+                style="flex:1;" onkeydown="if(event.key==='Enter')spSearch()">
+              <button class="btn btn-p" onclick="spSearch()">Знайти</button>
+            </div>
+            <div id="spSearchResults" class="sp-results"></div>
+          </div>
+
+          <!-- FAVORITES -->
+          <div class="music-section">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div class="music-sect-title">⭐ Вибране</div>
+              <button class="btn btn-sm" onclick="spSaveCurrent()" title="Зберегти поточний трек">+ Додати</button>
+            </div>
+            <div id="spFavorites" class="sp-results"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- API KEYS -->
+    <div class="page" id="page-api">
+      <div style="max-width:720px;">
+        <div style="font-size:14px;font-weight:700;margin-bottom:16px;">API Ключі</div>
+        <div id="apiList"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page-flex" id="page-settings">
+      <div class="settings-layout">
+
+        <!-- LEFT NAV -->
+        <div class="settings-nav">
+          <div class="snav-item active" onclick="showSSet(this,'sset-general')"><span class="snav-ico">⚙</span>Загальні</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-startup')"><span class="snav-ico">🚀</span>Автозапуск</div>
+          <div class="snav-divider"></div>
+          <div class="snav-item" onclick="showSSet(this,'sset-ai')"><span class="snav-ico">🤖</span>AI / Моделі</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-voice')"><span class="snav-ico">🔊</span>Голос і STT</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-chat')"><span class="snav-ico">💬</span>Чат і ролі</div>
+          <div class="snav-divider"></div>
+          <div class="snav-item" onclick="showSSet(this,'sset-sphere')"><span class="snav-ico">🔮</span>Сфера</div>
+          <div class="snav-divider"></div>
+          <div class="snav-item" onclick="showSSet(this,'sset-keys')"><span class="snav-ico">⌨️</span>Гарячі клавіші</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-notif')"><span class="snav-ico">🔔</span>Сповіщення</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-theme')"><span class="snav-ico">🎨</span>Вигляд</div>
+          <div class="snav-divider"></div>
+          <div class="snav-item" onclick="showSSet(this,'sset-data')"><span class="snav-ico">📊</span>Дані</div>
+          <div class="snav-item" onclick="showSSet(this,'sset-about')"><span class="snav-ico">ℹ</span>Про систему</div>
+        </div>
+
+        <!-- RIGHT CONTENT -->
+        <div class="settings-content">
+
+          <!-- GENERAL -->
+          <div class="sset active" id="sset-general">
+            <div class="sgroup">
+              <div class="sgroup-title">⚙ Загальні</div>
+              <div class="srow"><label>Мінімізувати в трей</label><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="srow">
+                <label>Мова інтерфейсу</label>
+                <select id="uiLang" style="max-width:180px;" onchange="applyUiLanguage(this.value)">
+                  <option value="uk">🇺🇦 Українська</option>
+                  <option value="en">🇬🇧 English</option>
+                  <option value="ru">🇷🇺 Русский</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Гучність додатку — <span id="appVolVal">100</span>%</label>
+                <input type="range" id="appVolume" min="0" max="100" value="100" style="max-width:180px;" oninput="setAppVolume(this.value)">
+              </div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">🌙 Автосон</div>
+              <div class="srow"><label>Автоматично ховати вікно</label><label class="toggle"><input type="checkbox" id="autoSleepEnabled" onchange="saveAutoSleep()"><span class="toggle-slider"></span></label></div>
+              <div class="srow">
+                <label>Час бездіяльності</label>
+                <select id="autoSleepTimeout" style="max-width:180px;" onchange="saveAutoSleep()">
+                  <option value="1">1 хвилина</option>
+                  <option value="5" selected>5 хвилин</option>
+                  <option value="10">10 хвилин</option>
+                  <option value="30">30 хвилин</option>
+                  <option value="60">1 година</option>
+                </select>
+              </div>
+              <div class="srow"><label>Затемнити перед сном</label><label class="toggle"><input type="checkbox" id="autoSleepDim" checked onchange="saveAutoSleep()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Прокидатись від кліку</label><label class="toggle"><input type="checkbox" id="autoSleepWakeClick" checked onchange="saveAutoSleep()"><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+
+          <!-- AUTOSTART -->
+          <div class="sset" id="sset-startup">
+            <div class="sgroup">
+              <div class="sgroup-title">🚀 Автозапуск з Windows</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Обидва додатки запускаються через VBS без консольного вікна</div>
+              <div class="autostart-card" id="axis_autostart_card" onclick="toggleAxisAutostart()">
+                <div class="autostart-card-left">
+                  <div class="autostart-card-icon">⚡</div>
+                  <div>
+                    <div class="autostart-card-title">AXIS OS — панель керування</div>
+                    <div class="autostart-card-sub">Запускати при вході в Windows</div>
+                  </div>
+                </div>
+                <div class="autostart-badge off" id="axis_autostart_badge">○ ВИМКНЕНО</div>
+              </div>
+              <div class="autostart-card" id="sphere_autostart_card2" onclick="toggleSphereAutostart()">
+                <div class="autostart-card-left">
+                  <div class="autostart-card-icon">🔮</div>
+                  <div>
+                    <div class="autostart-card-title">AIVON Sphere — асистент</div>
+                    <div class="autostart-card-sub">Запускати голосового асистента при старті</div>
+                  </div>
+                </div>
+                <div class="autostart-badge off" id="sphere_autostart_badge2">○ ВИМКНЕНО</div>
+              </div>
+              <input type="checkbox" id="axis_autostart" style="display:none;">
+            </div>
+          </div>
+
+          <!-- AI -->
+          <div class="sset" id="sset-ai">
+            <div class="sgroup">
+              <div class="sgroup-title">🤖 AI Провайдери</div>
+              <div class="srow"><label>Типовий провайдер</label>
+                <select style="max-width:200px;" id="defaultProvider">
+                  <option value="openai">OpenAI (GPT-4.1)</option>
+                  <option value="anthropic">Anthropic (Claude)</option>
+                  <option value="google">Google (Gemini)</option>
+                  <option value="xai">xAI (Grok)</option>
+                  <option value="perplexity">Perplexity</option>
+                </select>
+              </div>
+              <div class="srow"><label>Max Tokens</label><input type="number" value="4096" style="max-width:120px;" id="maxTokens"></div>
+              <div class="srow"><label>Температура (0.0–1.0)</label><input type="number" value="0.7" min="0" max="1" step="0.1" style="max-width:120px;" id="aiTemperature"></div>
+              <div class="srow">
+                <label>Ollama URL</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <input id="ollamaUrl" style="max-width:200px;" placeholder="http://localhost:11434" value="http://localhost:11434">
+                  <button class="btn btn-sm" onclick="refreshOllama()">🔄</button>
+                  <span id="ollamaStatus" style="font-size:11px;color:var(--text3);">○</span>
+                </div>
+              </div>
+              <div id="ollamaModelList" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">💬 Системний промт</div>
+              <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">Перевизначає промт ролі. Залиште порожнім для використання ролі.</label>
+              <textarea id="customSystemPrompt" rows="4" placeholder="Ти помічник AXIS OS. Відповідай по-українськи, стисло і чітко."></textarea>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn btn-p btn-sm" onclick="saveAiSettings()">💾 Зберегти</button>
+                <button class="btn btn-sm" onclick="R('customSystemPrompt').value='';showToast('Промт скинуто')">✕ Скинути</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- VOICE -->
+          <div class="sset" id="sset-voice">
+            <div class="sgroup">
+              <div class="sgroup-title">🔊 Голос AI (TTS)</div>
+              <div class="srow">
+                <label>Провайдер голосу</label>
+                <select id="ttsProv" style="max-width:220px;" onchange="onTtsProviderChange(this.value)">
+                  <option value="browser">🌐 Браузер (системний)</option>
+                  <option value="openai">🟢 OpenAI TTS</option>
+                  <option value="xai">⚫ xAI Aurora</option>
+                  <option value="google">🔵 Google TTS</option>
+                </select>
+              </div>
+              <div class="srow" id="ttsVoiceRow">
+                <label id="ttsVoiceLabel">Голос</label>
+                <select id="ttsVoiceSel" style="max-width:240px;" onchange="currentTtsVoice=this.value"></select>
+              </div>
+              <div class="srow" id="ttsApiNote" style="display:none;">
+                <label style="color:var(--text3);font-size:11px;">Потрібен API ключ провайдера</label>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                <button class="btn btn-sm" onclick="testTtsVoice()">▶ Тест голосу</button>
+                <span id="ttsStatus" style="font-size:11px;color:var(--text3);"></span>
+              </div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">🎤 Мікрофон та STT</div>
+              <div class="srow">
+                <label>Мова розпізнавання</label>
+                <select id="sttLangSel" style="max-width:220px;" onchange="setSttLang(this.value)">
+                  <option value="uk-UA">🇺🇦 Українська</option>
+                  <option value="en-US">🇺🇸 English (US)</option>
+                  <option value="en-GB">🇬🇧 English (UK)</option>
+                  <option value="ru-RU">🇷🇺 Русский</option>
+                  <option value="de-DE">🇩🇪 Deutsch</option>
+                  <option value="fr-FR">🇫🇷 Français</option>
+                  <option value="es-ES">🇪🇸 Español</option>
+                  <option value="pl-PL">🇵🇱 Polski</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Пристрій мікрофону</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <select id="micDeviceSel" style="max-width:200px;" onchange="saveMicSettings()">
+                    <option value="-1">🎤 За замовчуванням</option>
+                  </select>
+                  <button class="btn btn-sm" onclick="loadMicDevices()">🔄</button>
+                </div>
+              </div>
+              <div class="srow">
+                <label>Чутливість — <span id="sttSensVal">50</span>%</label>
+                <input type="range" id="sttSensitivity" min="10" max="90" value="50" style="max-width:180px;" oninput="R('sttSensVal').textContent=this.value;saveMicSettings()">
+              </div>
+              <div style="font-size:10px;color:var(--text3);">OpenAI ключ → Whisper API (точніший). Без ключа → Google STT.</div>
+            </div>
+          </div>
+
+          <!-- CHAT & ROLES -->
+          <div class="sset" id="sset-chat">
+            <div class="sgroup">
+              <div class="sgroup-title">📝 Налаштування чату</div>
+              <div class="srow">
+                <label>Макс. повідомлень в історії</label>
+                <select id="chatMaxHistory" style="max-width:160px;" onchange="saveChatSettings()">
+                  <option value="50">50</option>
+                  <option value="100" selected>100</option>
+                  <option value="200">200</option>
+                  <option value="500">500</option>
+                  <option value="0">Необмежено</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Розмір шрифту</label>
+                <select id="chatFontSize" style="max-width:160px;" onchange="applyChatFontSize();saveChatSettings()">
+                  <option value="12">Дрібний (12px)</option>
+                  <option value="13" selected>Звичайний (13px)</option>
+                  <option value="15">Великий (15px)</option>
+                  <option value="17">Дуже великий (17px)</option>
+                </select>
+              </div>
+              <div class="srow"><label>Показувати час повідомлень</label><label class="toggle"><input type="checkbox" id="chatShowTime" onchange="saveChatSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Авто-скрол до нового</label><label class="toggle"><input type="checkbox" id="chatAutoScroll" checked onchange="saveChatSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Стрімінг відповіді</label><label class="toggle"><input type="checkbox" id="chatStreaming" checked onchange="saveChatSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Очищати при перезапуску</label><label class="toggle"><input type="checkbox" id="chatClearOnStart" onchange="saveChatSettings()"><span class="toggle-slider"></span></label></div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title" style="display:flex;align-items:center;justify-content:space-between;">
+                <span>🎭 Ролі AI</span>
+                <button class="btn btn-p btn-sm" onclick="openRoleModal()">+ Нова роль</button>
+              </div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:10px;">Ролі визначають характер і стиль відповідей AI.</div>
+              <div id="rolesList"></div>
+            </div>
+          </div>
+
+          <!-- SPHERE -->
+          <div class="sset" id="sset-sphere">
+            <div class="sgroup">
+              <div class="sgroup-title">⬡ Пробудження та режим</div>
+              <div class="srow">
+                <label>Слово-активатор</label>
+                <input id="sp_wake" style="max-width:180px;" placeholder="Aivon">
+              </div>
+              <div class="srow">
+                <label>Режим</label>
+                <select id="sp_mode" style="max-width:200px;">
+                  <option value="smart">🧠 Smart (авто-маршрутизація)</option>
+                  <option value="dialog">💬 Dialog (тільки розмова)</option>
+                  <option value="command">⚡ Command (тільки команди)</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Фраза тихого режиму</label>
+                <input id="sp_silent_phrase" style="max-width:180px;" placeholder="хватить слухати">
+              </div>
+              <div class="srow">
+                <label>Фраза вимкнення мікро</label>
+                <input id="sp_mic_off_phrase" style="max-width:180px;" placeholder="вимкни мікрофон">
+              </div>
+              <div class="autostart-card" id="sphere_autostart_card" onclick="toggleSphereAutostart()">
+                <div class="autostart-card-left">
+                  <div class="autostart-card-icon">🔮</div>
+                  <div>
+                    <div class="autostart-card-title">Автозапуск Sphere</div>
+                    <div class="autostart-card-sub">Запускати разом із Windows</div>
+                  </div>
+                </div>
+                <div class="autostart-badge off" id="sphere_autostart_badge">○ ВИМКНЕНО</div>
+              </div>
+              <input type="checkbox" id="sp_autostart" style="display:none;">
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">🎙️ STT — Розпізнавання мови</div>
+              <div class="srow">
+                <label>Провайдер STT</label>
+                <select id="sp_stt_provider" style="max-width:200px;" onchange="R('whisper_opts').style.display=this.value==='whisper'?'contents':'none'">
+                  <option value="google">☁️ Google (онлайн)</option>
+                  <option value="whisper">🧠 Whisper (офлайн, GPU)</option>
+                </select>
+              </div>
+              <span id="whisper_opts" style="display:none;contents">
+                <div class="srow">
+                  <label>Whisper модель <small style="opacity:.5">(більше = точніше, але важче)</small></label>
+                  <select id="sp_whisper_model" style="max-width:180px;">
+                    <option value="tiny">tiny (~40MB, дуже швидко)</option>
+                    <option value="base">base (~75MB, швидко)</option>
+                    <option value="small" selected>small (~250MB, баланс ✓)</option>
+                    <option value="medium">medium (~800MB, точно)</option>
+                  </select>
+                </div>
+              </span>
+              <div class="srow" style="font-size:11px;opacity:.55;flex-direction:column;align-items:flex-start;gap:3px;padding-top:4px;">
+                <span>💡 При низькій впевненості (&lt;50%) — сфера автоматично спитає уточнення і покаже підказки.</span>
+                <span>Якщо Whisper завантажено — при низькому score Google автоматично перевіряє через Whisper.</span>
+              </div>
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">📱 Telegram — керування з телефону</div>
+              <div class="srow" style="font-size:12px;opacity:.65;flex-direction:column;align-items:flex-start;gap:3px;padding-bottom:6px;">
+                <span>Пишеш <b>"відкрий гта"</b> у Telegram — сфера відкриє гру. Будь-яка природня команда!</span>
+                <span>Створи бота через <a href="#" onclick="window.open('https://t.me/BotFather');return false" style="color:var(--accent)">@BotFather</a> → /newbot → скопіюй токен.</span>
+              </div>
+              <div class="srow">
+                <label>Увімкнути бота</label>
+                <label class="toggle"><input type="checkbox" id="sp_telegram_enabled" onchange="R('tg_settings').style.display=this.checked?'block':'none'"><span class="toggle-slider"></span></label>
+              </div>
+              <div id="tg_settings" style="display:none;">
+                <div class="srow">
+                  <label>Bot Token <small style="opacity:.5">(від @BotFather)</small></label>
+                  <input id="sp_telegram_token" type="password" style="max-width:260px;font-family:monospace;font-size:12px;" placeholder="1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                </div>
+                <div class="srow">
+                  <label>Дозволені Chat ID <small style="opacity:.5">(через кому)</small></label>
+                  <input id="sp_telegram_allowed_ids" style="max-width:260px;font-family:monospace;font-size:12px;" placeholder="123456789, 987654321">
+                </div>
+                <div class="srow" style="font-size:11px;opacity:.5;flex-direction:column;align-items:flex-start;gap:2px;">
+                  <span>💡 Свій Chat ID: напиши боту /start, або перевір через <a href="#" onclick="window.open('https://t.me/userinfobot');return false" style="color:var(--accent)">@userinfobot</a></span>
+                  <span>⚠ Залиш поле порожнім — бот відповідатиме ВСІМ (небезпечно!)</span>
+                </div>
+                <div class="srow" style="padding-top:4px;">
+                  <button class="btn-sm" onclick="testTelegramBot()" style="font-size:12px;">🔗 Перевірити підключення</button>
+                  <span id="tg_test_result" style="font-size:11px;margin-left:8px;opacity:.7;"></span>
+                </div>
+
+                <!-- КАСТОМНІ TELEGRAM КОМАНДИ -->
+                <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.08);padding-top:12px;">
+                  <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px;">
+                    ⌨️ Кнопки клавіатури в Telegram
+                  </div>
+                  <div style="font-size:11px;opacity:.55;margin-bottom:10px;">
+                    З'являються на панелі знизу чату (не в повідомленнях). Натискаючи кнопку — сфера виконує вказану дію.
+                  </div>
+
+                  <!-- Список команд -->
+                  <div id="tg_cmd_list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+
+                  <!-- Кнопки керування -->
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                    <button class="btn-sm" onclick="tgCmdAdd()" style="font-size:12px;">＋ Додати кнопку</button>
+                    <button class="btn-sm" onclick="tgCmdAddDefaults()" style="font-size:12px;opacity:.7;">📋 Стандартні</button>
+                    <button class="btn-sm" onclick="tgCmdClear()" style="font-size:12px;opacity:.5;">🗑 Очистити всі</button>
+                  </div>
+                  <div style="font-size:11px;opacity:.45;line-height:1.5;">
+                    💡 <b>Назва кнопки</b> — текст на кнопці в Telegram (emoji + назва)<br>
+                    💡 <b>Дія</b> — що виконати (як голосова команда або /status, /start)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">🔊 Голос сфери</div>
+              <div class="srow">
+                <label>Мова</label>
+                <select id="sp_language" style="max-width:180px;">
+                  <option value="uk-UA">🇺🇦 Українська</option>
+                  <option value="en-US">🇺🇸 English (US)</option>
+                  <option value="en-GB">🇬🇧 English (UK)</option>
+                  <option value="ru-RU">🇷🇺 Русский</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>TTS провайдер</label>
+                <select id="sp_tts_prov" style="max-width:180px;">
+                  <option value="openai">OpenAI</option>
+                  <option value="edge">Edge TTS</option>
+                  <option value="pyttsx3">pyttsx3 (офлайн)</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Голос OpenAI</label>
+                <select id="sp_tts_voice" style="max-width:180px;">
+                  <option value="onyx">onyx</option><option value="nova">nova</option>
+                  <option value="alloy">alloy</option><option value="echo">echo</option>
+                  <option value="fable">fable</option><option value="shimmer">shimmer</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Голос Edge TTS</label>
+                <input id="sp_edge_voice" style="max-width:180px;" placeholder="uk-UA-PolinaNeural">
+              </div>
+              <div class="srow">
+                <label>Швидкість — <span id="sp_tts_speed_val">1.2</span>x</label>
+                <input type="range" id="sp_tts_speed" min="0.5" max="2.0" step="0.1" value="1.2" style="max-width:180px;" oninput="R('sp_tts_speed_val').textContent=parseFloat(this.value).toFixed(1)">
+              </div>
+              <div class="srow">
+                <label>Гучність TTS — <span id="sp_tts_vol_val">80</span>%</label>
+                <input type="range" id="sp_tts_volume" min="0" max="100" value="80" style="max-width:180px;" oninput="R('sp_tts_vol_val').textContent=this.value">
+              </div>
+              <div class="srow"><label>Звуки JARVIS</label><label class="toggle"><input type="checkbox" id="sp_jarvis" onchange="R('sp_jarvis_vol_row').style.display=this.checked?'flex':'none'"><span class="toggle-slider"></span></label></div>
+              <div class="srow" id="sp_jarvis_vol_row" style="display:none;">
+                <label>Гучність JARVIS — <span id="sp_jarvis_vol_val">70</span>%</label>
+                <input type="range" id="sp_jarvis_vol" min="0" max="100" value="70" style="max-width:180px;" oninput="R('sp_jarvis_vol_val').textContent=this.value">
+              </div>
+              <div class="srow">
+                <label>✋ Жести рукою <small style="opacity:.5">(opencv-python + mediapipe)</small></label>
+                <label class="toggle"><input type="checkbox" id="sp_hand_gestures" onchange="R('gesture_settings').style.display=this.checked?'block':'none'"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+
+            <div class="sgroup" id="gesture_settings" style="display:none;">
+              <div class="sgroup-title">✋ Налаштування жестів</div>
+              <div class="srow" style="font-size:12px;opacity:.6;padding-bottom:4px;">
+                Камера активується тільки коли увімкнено жести. Кожен жест можна прив'язати до дії.
+              </div>
+              <div class="srow">
+                <label>Індекс камери</label>
+                <select id="sp_gesture_camera" style="max-width:140px;">
+                  <option value="0">Камера 0 (основна)</option>
+                  <option value="1">Камера 1</option>
+                  <option value="2">Камера 2</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Затримка між жестами (сек)</label>
+                <input type="number" id="sp_gesture_cooldown" value="2" min="1" max="10" style="max-width:80px;">
+              </div>
+              <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px;">Дії для кожного жесту:</div>
+              <div class="srow"><label>✋ Відкрита долоня</label>
+                <select id="sp_gesture_open_palm" style="max-width:190px;">
+                  <option value="stop_tts">Стоп / пауза голосу</option>
+                  <option value="screenshot">Скріншот</option>
+                  <option value="show_panel">Відкрити панель</option>
+                  <option value="none">— нічого —</option>
+                </select>
+              </div>
+              <div class="srow"><label>✊ Кулак</label>
+                <select id="sp_gesture_fist" style="max-width:190px;">
+                  <option value="hide">Замовкни + сховатись</option>
+                  <option value="stop_tts">Стоп голосу</option>
+                  <option value="none">— нічого —</option>
+                </select>
+              </div>
+              <div class="srow"><label>👍 Палець вгору</label>
+                <select id="sp_gesture_thumbs_up" style="max-width:190px;">
+                  <option value="confirm">Підтвердити («Добре!»)</option>
+                  <option value="screenshot">Скріншот</option>
+                  <option value="none">— нічого —</option>
+                </select>
+              </div>
+              <div class="srow"><label>👉 Вказівний вправо</label>
+                <select id="sp_gesture_right" style="max-width:190px;">
+                  <option value="next_track">Наступна пісня</option>
+                  <option value="volume_up">Гучніше</option>
+                  <option value="none">— нічого —</option>
+                </select>
+              </div>
+              <div class="srow"><label>👈 Вказівний вліво</label>
+                <select id="sp_gesture_left" style="max-width:190px;">
+                  <option value="prev_track">Попередня пісня</option>
+                  <option value="volume_down">Тихіше</option>
+                  <option value="none">— нічого —</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">🤖 AI сфери</div>
+              <div class="srow">
+                <label>AI провайдер (команди)</label>
+                <select id="sp_ai_prov" style="max-width:200px;">
+                  <option value="openai">⚡ OpenAI (GPT-4.1)</option>
+                  <option value="anthropic">🟠 Anthropic (Claude)</option>
+                  <option value="google">🔵 Google (Gemini)</option>
+                  <option value="xai">🐦 xAI (Grok)</option>
+                  <option value="deepseek">🌊 DeepSeek</option>
+                  <option value="perplexity">🔍 Perplexity</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>AI провайдер (діалог)</label>
+                <select id="sp_dialog_prov" style="max-width:200px;">
+                  <option value="openai">⚡ OpenAI (GPT-4.1)</option>
+                  <option value="anthropic">🟠 Anthropic (Claude)</option>
+                  <option value="gemini">🔵 Google (Gemini)</option>
+                  <option value="xai">🐦 xAI (Grok)</option>
+                  <option value="deepseek">🌊 DeepSeek</option>
+                  <option value="perplexity">🔍 Perplexity</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Місто для погоди</label>
+                <input id="sp_weather_city" style="max-width:180px;" placeholder="Kyiv">
+              </div>
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">🎨 Вигляд сфери</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div class="srow"><label>Розмір</label>
+                  <select id="sp_size" style="max-width:130px;">
+                    <option value="small">Малий</option><option value="medium">Середній</option><option value="large">Великий</option>
+                  </select>
+                </div>
+                <div class="srow"><label>Позиція</label>
+                  <select id="sp_position" style="max-width:170px;">
+                    <option value="bottom-right">Правий нижній</option>
+                    <option value="bottom-left">Лівий нижній</option>
+                    <option value="center">По центру</option>
+                    <option value="top-right">Правий верхній</option>
+                  </select>
+                </div>
+              </div>
+              <div class="srow">
+                <label>Колір 1</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="color" id="sp_color" style="width:44px;height:30px;padding:2px;border-radius:6px;cursor:pointer;">
+                  <span id="sp_color_val" style="font-size:11px;color:var(--text3);font-family:var(--mono);">#00d4ff</span>
+                </div>
+              </div>
+              <div class="srow">
+                <label>Колір 2</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="color" id="sp_color2" style="width:44px;height:30px;padding:2px;border-radius:6px;cursor:pointer;">
+                  <span id="sp_color2_val" style="font-size:11px;color:var(--text3);font-family:var(--mono);">#7b2cbf</span>
+                </div>
+              </div>
+              <div class="srow">
+                <label>Прозорість — <span id="sp_opacity_val">90</span>%</label>
+                <input type="range" id="sp_opacity" min="30" max="100" value="90" style="max-width:200px;" oninput="R('sp_opacity_val').textContent=this.value">
+              </div>
+              <div class="srow">
+                <label>Анімація</label>
+                <select id="sp_anim" style="max-width:180px;">
+                  <option value="pulse">Пульс</option><option value="breathing">Дихання</option>
+                  <option value="waves">Хвилі</option><option value="electric">Електро</option><option value="fire">Вогонь</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Швидкість — <span id="sp_anim_speed_val">5</span></label>
+                <input type="range" id="sp_anim_speed" min="1" max="10" value="5" style="max-width:200px;" oninput="R('sp_anim_speed_val').textContent=this.value">
+              </div>
+              <div class="srow"><label>Частинки</label><label class="toggle"><input type="checkbox" id="sp_particles" checked onchange="R('sp_pcount_row').style.display=this.checked?'flex':'none'"><span class="toggle-slider"></span></label></div>
+              <div class="srow" id="sp_pcount_row">
+                <label>Кількість — <span id="sp_pcount_val">20</span></label>
+                <input type="range" id="sp_particle_count" min="5" max="50" value="20" style="max-width:200px;" oninput="R('sp_pcount_val').textContent=this.value">
+              </div>
+            </div>
+
+            <div class="sgroup">
+              <div class="sgroup-title">🎨 Стиль візуалізації</div>
+              <div class="viz-tabs">
+                <div class="viz-tab active" onclick="switchVizTab(this,'viz-round')">● Круглі (8)</div>
+                <div class="viz-tab" onclick="switchVizTab(this,'viz-wave')">〰 Хвилі (4)</div>
+                <div class="viz-tab" onclick="switchVizTab(this,'viz-music')">♪ Музичні (4)</div>
+              </div>
+              <div id="viz-round" class="viz-grid">
+                <div class="viz-card active" data-viz="plasma" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#7af5ff,#00d4ff 45%,#0ea5e9 70%,#0369a1);box-shadow:0 0 18px #00d4ff80;"></div><span class="viz-name">Плазма</span></div>
+                <div class="viz-card" data-viz="energy" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#e9d5ff,#7b2cbf 50%,#4c1d95);box-shadow:0 0 18px #7b2cbf80;"></div><span class="viz-name">Енергія</span></div>
+                <div class="viz-card" data-viz="neon" onclick="selectViz(this)"><div class="viz-preview" style="background:transparent;border:4px solid #00d4ff;box-shadow:0 0 14px #00d4ff,inset 0 0 14px rgba(0,212,255,.15);"></div><span class="viz-name">Неон</span></div>
+                <div class="viz-card" data-viz="fire" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 40% 35%,#fde68a,#f97316 50%,#ea580c 80%,#7c2d12);box-shadow:0 0 18px #f9731680;"></div><span class="viz-name">Вогонь</span></div>
+                <div class="viz-card" data-viz="galaxy" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#818cf8,#4338ca 50%,#1e1b4b);box-shadow:0 0 14px #4338ca80;"></div><span class="viz-name">Галактика</span></div>
+                <div class="viz-card" data-viz="matrix_viz" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#4ade80,#15803d 50%,#052e16);box-shadow:0 0 14px #15803d80;"></div><span class="viz-name">Matrix</span></div>
+                <div class="viz-card" data-viz="holo" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#cbd5e1,#64748b 50%,#1e293b);background-image:repeating-linear-gradient(0deg,transparent,transparent 6px,rgba(100,200,255,.12) 6px,rgba(100,200,255,.12) 7px);box-shadow:0 0 10px #64748b60;"></div><span class="viz-name">Голограма</span></div>
+                <div class="viz-card" data-viz="dark" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle at 35% 30%,#7f1d1d,#450a0a 60%,#0c0a09);box-shadow:0 0 10px #7f1d1d60;"></div><span class="viz-name">Темрява</span></div>
+              </div>
+              <div id="viz-wave" class="viz-grid" style="display:none;">
+                <div class="viz-card" data-viz="wave-ocean" onclick="selectViz(this)"><div class="viz-preview" style="background:linear-gradient(135deg,#06b6d4,#0ea5e9);border-radius:8px;box-shadow:0 0 14px #06b6d480;"></div><span class="viz-name">Океан</span></div>
+                <div class="viz-card" data-viz="wave-forest" onclick="selectViz(this)"><div class="viz-preview" style="background:linear-gradient(135deg,#22c55e,#15803d);border-radius:8px;box-shadow:0 0 14px #22c55e80;"></div><span class="viz-name">Ліс</span></div>
+                <div class="viz-card" data-viz="wave-aurora" onclick="selectViz(this)"><div class="viz-preview" style="background:linear-gradient(135deg,#a855f7,#7c3aed);border-radius:8px;box-shadow:0 0 14px #a855f780;"></div><span class="viz-name">Аврора</span></div>
+                <div class="viz-card" data-viz="wave-sunset" onclick="selectViz(this)"><div class="viz-preview" style="background:linear-gradient(135deg,#f97316,#dc2626);border-radius:8px;box-shadow:0 0 14px #f9731680;"></div><span class="viz-name">Захід</span></div>
+              </div>
+              <div id="viz-music" class="viz-grid" style="display:none;">
+                <div class="viz-card" data-viz="music-bars" onclick="selectViz(this)"><div class="viz-preview" style="background:#0a0f1e;border-radius:8px;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:6px 4px;"><div style="width:5px;height:18px;background:#22c55e;border-radius:3px;opacity:.7;"></div><div style="width:5px;height:30px;background:#22c55e;border-radius:3px;"></div><div style="width:5px;height:12px;background:#22c55e;border-radius:3px;opacity:.7;"></div><div style="width:5px;height:26px;background:#22c55e;border-radius:3px;"></div><div style="width:5px;height:8px;background:#22c55e;border-radius:3px;opacity:.6;"></div></div><span class="viz-name">Еквалайзер</span></div>
+                <div class="viz-card" data-viz="music-pulse" onclick="selectViz(this)"><div class="viz-preview" style="background:radial-gradient(circle,#a855f7,#1e1b4b);box-shadow:0 0 18px #a855f780;"></div><span class="viz-name">Пульс</span></div>
+                <div class="viz-card" data-viz="music-spectrum" onclick="selectViz(this)"><div class="viz-preview" style="background:linear-gradient(90deg,#22c55e,#06b6d4,#6366f1,#a855f7);border-radius:8px;"></div><span class="viz-name">Спектр</span></div>
+                <div class="viz-card" data-viz="music-sine" onclick="selectViz(this)"><div class="viz-preview" style="background:#06070d;border-radius:8px;border:2px solid rgba(34,197,94,.4);box-shadow:inset 0 0 12px rgba(34,197,94,.2);"></div><span class="viz-name">Синусоїда</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:4px;padding-bottom:16px;">
+              <button class="btn btn-p" onclick="saveSphereSettings()">💾 Зберегти налаштування</button>
+              <button class="btn btn-p" id="sphereLaunchBtn2" onclick="toggleSphere()">⬡ Запустити сферу</button>
+            </div>
+          </div>
+
+          <!-- HOTKEYS -->
+          <div class="sset" id="sset-keys">
+            <div class="sgroup">
+              <div class="sgroup-title">⌨️ Гарячі клавіші</div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Натисніть на поле і введіть комбінацію клавіш</div>
+              <div id="hotkeyList">
+                <div class="srow" style="gap:12px;"><label style="min-width:160px;">🎤 Голосовий ввід</label><input class="hotkey-input" data-action="mic" placeholder="Ctrl+Shift+M" readonly style="max-width:160px;cursor:pointer;" onclick="captureHotkey(this)" value=""><button class="btn btn-sm" onclick="clearHotkey(this.previousElementSibling)">✕</button></div>
+                <div class="srow" style="gap:12px;"><label style="min-width:160px;">⬡ Live режим</label><input class="hotkey-input" data-action="live" placeholder="Ctrl+Shift+L" readonly style="max-width:160px;cursor:pointer;" onclick="captureHotkey(this)" value=""><button class="btn btn-sm" onclick="clearHotkey(this.previousElementSibling)">✕</button></div>
+                <div class="srow" style="gap:12px;"><label style="min-width:160px;">🗑 Очистити чат</label><input class="hotkey-input" data-action="clear_chat" placeholder="Ctrl+Shift+D" readonly style="max-width:160px;cursor:pointer;" onclick="captureHotkey(this)" value=""><button class="btn btn-sm" onclick="clearHotkey(this.previousElementSibling)">✕</button></div>
+                <div class="srow" style="gap:12px;"><label style="min-width:160px;">⚙ Налаштування</label><input class="hotkey-input" data-action="settings" placeholder="Ctrl+," readonly style="max-width:160px;cursor:pointer;" onclick="captureHotkey(this)" value=""><button class="btn btn-sm" onclick="clearHotkey(this.previousElementSibling)">✕</button></div>
+                <div class="srow" style="gap:12px;"><label style="min-width:160px;">➤ Новий чат</label><input class="hotkey-input" data-action="new_chat" placeholder="Ctrl+N" readonly style="max-width:160px;cursor:pointer;" onclick="captureHotkey(this)" value=""><button class="btn btn-sm" onclick="clearHotkey(this.previousElementSibling)">✕</button></div>
+              </div>
+              <div style="margin-top:8px;"><button class="btn btn-sm" onclick="resetHotkeys()">↺ Скинути всі</button></div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">⚡ Виконання команд</div>
+              <div class="srow"><label>Зв'язка команд</label><input id="cmdChainWords" style="max-width:220px;" placeholder="і, та, потім, затем" onchange="saveCmdExecSettings()"></div>
+              <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">«відкрий браузер <b>і</b> запусти сервер»</div>
+              <div class="srow"><label>Фрази підтвердження</label><input id="cmdConfirmPhrases" style="max-width:220px;" placeholder="так, правильно" onchange="saveCmdExecSettings()"></div>
+              <div class="srow"><label>Фрази скасування</label><input id="cmdCancelPhrases" style="max-width:220px;" placeholder="ні, відміна" onchange="saveCmdExecSettings()"></div>
+              <div class="srow"><label>Тригер зупинки</label><input id="cmdStopPhrase" style="max-width:220px;" placeholder="зупини команду" onchange="saveCmdExecSettings()"></div>
+              <div class="srow"><label>Автоскасування (сек)</label><input type="number" id="cmdAutoCancel" min="5" max="120" value="30" style="max-width:80px;" onchange="saveCmdExecSettings()"></div>
+              <div class="srow"><label>Оверлей при виконанні</label><label class="toggle"><input type="checkbox" id="cmdOverlayEnabled" checked onchange="saveCmdExecSettings();toggleOverlayPosRow()"><span class="toggle-slider"></span></label></div>
+              <div class="srow" id="cmdOverlayPosRow">
+                <label>Позиція</label>
+                <div style="display:flex;gap:4px;">
+                  <button class="overlay-pos-btn active" data-pos="tl" onclick="selectOverlayPos(this)">↖</button>
+                  <button class="overlay-pos-btn" data-pos="tc" onclick="selectOverlayPos(this)">↑</button>
+                  <button class="overlay-pos-btn" data-pos="tr" onclick="selectOverlayPos(this)">↗</button>
+                  <button class="overlay-pos-btn" data-pos="bl" onclick="selectOverlayPos(this)">↙</button>
+                  <button class="overlay-pos-btn" data-pos="bc" onclick="selectOverlayPos(this)">↓</button>
+                  <button class="overlay-pos-btn" data-pos="br" onclick="selectOverlayPos(this)">↘</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- NOTIFICATIONS -->
+          <div class="sset" id="sset-notif">
+            <div class="sgroup">
+              <div class="sgroup-title">🔔 Сповіщення</div>
+              <div class="srow"><label>Звук коли AI відповів</label><label class="toggle"><input type="checkbox" id="notifAiSound" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Звук команди</label><label class="toggle"><input type="checkbox" id="notifCmdSound" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Звук помилки</label><label class="toggle"><input type="checkbox" id="notifErrSound" checked onchange="saveNotifSettings()"><span class="toggle-slider"></span></label></div>
+              <div class="srow">
+                <label>Звук сповіщення</label>
+                <select id="notifSoundType" style="max-width:180px;" onchange="saveNotifSettings();previewNotifSound()">
+                  <option value="ding">🔔 Ding</option><option value="chime">🎵 Chime</option>
+                  <option value="pop">💬 Pop</option><option value="beep">📡 Beep</option><option value="none">🔇 Без звуку</option>
+                </select>
+              </div>
+              <div class="srow">
+                <label>Тривалість toast — <span id="toastDurVal">4</span>с</label>
+                <input type="range" id="toastDuration" min="1" max="10" value="4" style="max-width:180px;" oninput="R('toastDurVal').textContent=this.value;saveNotifSettings()">
+              </div>
+            </div>
+          </div>
+
+          <!-- THEME -->
+          <div class="sset" id="sset-theme">
+            <div class="sgroup">
+              <div class="sgroup-title">🖼 Тема панелі</div>
+              <div class="theme-grid" id="themeGrid">
+                <div class="theme-card active" data-theme="cyberneon" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#0a0f1e;"></div><div class="theme-swatch-b" style="background:#22c55e;"></div></div><div class="theme-info"><div class="theme-name">Cyber Neon</div><div class="theme-sub">Неонові ефекти</div></div></div>
+                <div class="theme-card" data-theme="aurora" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#0f0a1e;"></div><div class="theme-swatch-b" style="background:#a855f7;"></div></div><div class="theme-info"><div class="theme-name">Aurora</div><div class="theme-sub">Полярне сяйво</div></div></div>
+                <div class="theme-card" data-theme="matrix" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#030d03;"></div><div class="theme-swatch-b" style="background:#15803d;"></div></div><div class="theme-info"><div class="theme-name">Matrix</div><div class="theme-sub">Зелена матриця</div></div></div>
+                <div class="theme-card" data-theme="minimal" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#1a1a1a;"></div><div class="theme-swatch-b" style="background:#6b7280;"></div></div><div class="theme-info"><div class="theme-name">Minimal</div><div class="theme-sub">Мінімалізм</div></div></div>
+                <div class="theme-card" data-theme="sunset" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#1a0e04;"></div><div class="theme-swatch-b" style="background:#f97316;"></div></div><div class="theme-info"><div class="theme-name">Sunset</div><div class="theme-sub">Оранжевий захід</div></div></div>
+                <div class="theme-card" data-theme="ocean" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#030d1a;"></div><div class="theme-swatch-b" style="background:#06b6d4;"></div></div><div class="theme-info"><div class="theme-name">Ocean</div><div class="theme-sub">Глибокий океан</div></div></div>
+                <div class="theme-card" data-theme="volcano" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#1a0304;"></div><div class="theme-swatch-b" style="background:#ef4444;"></div></div><div class="theme-info"><div class="theme-name">Volcano</div><div class="theme-sub">Вулкан</div></div></div>
+                <div class="theme-card" data-theme="forest" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#040d04;"></div><div class="theme-swatch-b" style="background:#4ade80;"></div></div><div class="theme-info"><div class="theme-name">Forest</div><div class="theme-sub">Ліс</div></div></div>
+                <div class="theme-card" data-theme="galaxy" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:linear-gradient(135deg,#0f0a1e,#1e1b4b);"></div><div class="theme-swatch-b" style="background:linear-gradient(135deg,#6366f1,#a855f7);"></div></div><div class="theme-info"><div class="theme-name">Galaxy</div><div class="theme-sub">Галактика</div></div></div>
+                <div class="theme-card" data-theme="candy" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#1a0514;"></div><div class="theme-swatch-b" style="background:linear-gradient(135deg,#ec4899,#f97316);"></div></div><div class="theme-info"><div class="theme-name">Candy</div><div class="theme-sub">Кенді</div></div></div>
+                <div class="theme-card" data-theme="darkpro" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#111111;"></div><div class="theme-swatch-b" style="background:#4b5563;"></div></div><div class="theme-info"><div class="theme-name">Dark Pro</div><div class="theme-sub">Професійний</div></div></div>
+                <div class="theme-card" data-theme="ice" onclick="applyTheme(this)"><div class="theme-swatch"><div class="theme-swatch-a" style="background:#e0f2fe;"></div><div class="theme-swatch-b" style="background:#67e8f9;"></div></div><div class="theme-info"><div class="theme-name">Ice</div><div class="theme-sub">Лід</div></div></div>
+              </div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">🎨 Акцентний колір</div>
+              <div class="srow">
+                <label>Колір</label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <div style="width:22px;height:22px;border-radius:50%;background:#22c55e;cursor:pointer;border:2px solid #fff;" onclick="setAccent('#22c55e','#6366f1')"></div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#06b6d4;cursor:pointer;" onclick="setAccent('#06b6d4','#6366f1')"></div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#f97316;cursor:pointer;" onclick="setAccent('#f97316','#ec4899')"></div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#a855f7;cursor:pointer;" onclick="setAccent('#a855f7','#ec4899')"></div>
+                  <div style="width:22px;height:22px;border-radius:50%;background:#ef4444;cursor:pointer;" onclick="setAccent('#ef4444','#f97316')"></div>
+                </div>
+              </div>
+              <div class="srow"><label>Анімації</label><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+
+          <!-- DATA -->
+          <div class="sset" id="sset-data">
+            <div class="sgroup">
+              <div class="sgroup-title">📊 Статистика</div>
+              <div id="statsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;"></div>
+              <div id="statsProviders" style="margin-bottom:10px;"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm" onclick="renderStats()">🔄 Оновити</button>
+                <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);" onclick="resetStats()">↺ Скинути</button>
+              </div>
+            </div>
+            <div class="sgroup">
+              <div class="sgroup-title">💾 Імпорт / Експорт</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                <button class="btn btn-p btn-sm" onclick="exportAllData()">⬇ Експорт всього</button>
+                <button class="btn btn-sm" onclick="R('importFileInput').click()">⬆ Імпорт</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importAllData(this)">
+                <button class="btn btn-sm" onclick="exportChatHistory()">💬 Зберегти чат</button>
+              </div>
+              <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Включає: налаштування, API ключі, команди, ролі, макроси</div>
+              <div style="border-top:1px solid var(--border);padding-top:10px;">
+                <button class="btn btn-sm" style="border-color:var(--red);color:var(--red);" onclick="clearAllData()">🗑 Скинути всі дані</button>
+                <span style="font-size:10px;color:var(--text3);margin-left:8px;">Видалить localStorage, команди та ролі</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ABOUT -->
+          <div class="sset" id="sset-about">
+            <div class="sgroup">
+              <div style="text-align:center;padding:20px 0;">
+                <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--accent),var(--indigo));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#fff;">A</div>
+                <div style="font-size:20px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--indigo));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:4px;">AXIS OS</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:4px;">Версія <span id="appVerLbl">1.0.0</span> · AI Operating System</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:12px;line-height:1.7;">Побудовано на Python + PyQt6 + WebEngine</div>
+              </div>
+            </div>
+            <!-- UPDATE SECTION -->
+            <div class="sgroup">
+              <div class="sgroup-title">🔄 Оновлення</div>
+
+              <!-- GitHub update (primary) -->
+              <div style="margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.4px;">🐙 GitHub Releases</div>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                  <input id="githubRepoInp" class="inp" placeholder="owner/repo  (напр. myname/AXIS-OS)"
+                         style="flex:1;font-size:12px;" oninput="ghRepoChanged()">
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <button class="btn btn-sm btn-p" onclick="checkGithubUpdate()" id="ghCheckBtn">🔍 Перевірити на GitHub</button>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--text2);">
+                    <input type="checkbox" id="autoUpdateChk" onchange="saveAutoUpdate(this.checked)"
+                           style="accent-color:var(--accent);width:14px;height:14px;">
+                    Авто-перевірка при запуску
+                  </label>
+                  <div id="ghStatusLbl" style="font-size:11px;color:var(--text3);flex:1;text-align:right;"></div>
+                </div>
+
+                <!-- available card -->
+                <div id="ghAvailCard" style="display:none;margin-top:12px;padding:14px;border-radius:10px;
+                     border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.07);">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                    <div>
+                      <div style="font-size:13px;font-weight:700;color:var(--accent);">🆕 Доступне оновлення!</div>
+                      <div id="ghVerInfo" style="font-size:11px;color:var(--text2);margin:4px 0;"></div>
+                      <div id="ghDateInfo" style="font-size:10px;color:var(--text3);margin-bottom:6px;"></div>
+                    </div>
+                    <a id="ghReleaseLink" href="#" target="_blank" style="font-size:10px;color:var(--accent);white-space:nowrap;">
+                      Сторінка релізу ↗
+                    </a>
+                  </div>
+                  <div id="ghChangelog" style="display:none;font-size:11px;color:var(--text2);
+                       max-height:120px;overflow-y:auto;margin-bottom:10px;padding:8px;
+                       background:rgba(0,0,0,.2);border-radius:6px;white-space:pre-wrap;line-height:1.5;"></div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                    <button class="btn btn-sm" onclick="toggleGhChangelog()" id="ghChangelogBtn">📋 Зміни</button>
+                    <div id="ghAssetsWrap" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;"></div>
+                  </div>
+                  <!-- progress bar (hidden until download) -->
+                  <div id="ghProgressWrap" style="display:none;margin-top:6px;">
+                    <div style="height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;">
+                      <div id="ghProgressBar" style="height:100%;width:0%;background:var(--accent);
+                           transition:width .3s ease;border-radius:3px;"></div>
+                    </div>
+                    <div id="ghProgressLbl" style="font-size:10px;color:var(--text3);margin-top:4px;text-align:center;"></div>
+                  </div>
+                </div>
+
+                <!-- error card -->
+                <div id="ghErrorCard" style="display:none;margin-top:10px;padding:10px;border-radius:8px;
+                     border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.07);">
+                  <div style="font-size:11px;color:#f87171;" id="ghErrorMsg"></div>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div style="border-top:1px solid var(--border);margin:4px 0 14px;"></div>
+
+              <!-- Local folder update (secondary) -->
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;letter-spacing:.4px;">📁 Локальна папка / мережевий диск</div>
+                <div class="srow" style="flex-direction:column;align-items:flex-start;gap:8px;">
+                  <div style="display:flex;gap:8px;width:100%;">
+                    <input id="updateFolderInp" class="inp" placeholder="C:\Updates\AXIS_OS або \\server\updates" style="flex:1;font-size:12px;">
+                    <button class="btn btn-sm btn-p" onclick="saveUpdateFolder()">💾</button>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
+                  <button class="btn btn-sm" onclick="checkUpdate()" id="checkUpdateBtn">🔍 Перевірити</button>
+                  <div id="updateStatusLbl" style="font-size:11px;color:var(--text3);"></div>
+                </div>
+                <div id="updateAvailableCard" style="display:none;margin-top:10px;padding:12px;border-radius:10px;
+                     border:1px solid rgba(34,197,94,.3);background:rgba(34,197,94,.07);">
+                  <div style="font-size:13px;font-weight:700;color:var(--accent);">🆕 Доступне оновлення!</div>
+                  <div id="updateVerInfo" style="font-size:11px;color:var(--text2);margin:4px 0 10px;"></div>
+                  <button class="btn btn-p" id="applyUpdateBtn" onclick="applyUpdate()">⬇ Встановити</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end settings-content -->
+      </div><!-- end settings-layout -->
+    </div>
+
+    <!-- ── LOGS PAGE ─────────────────────────────────────────────── -->
+    <div class="page" id="page-logs" style="display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 20px 10px;flex-shrink:0;">
+        <span style="font-size:18px;font-weight:700;color:var(--text)">📋 Системні логи</span>
+        <span style="flex:1"></span>
+        <button onclick="clearLogs()" style="padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;">Очистити</button>
+        <button onclick="copyAllLogs()" style="padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;">Копіювати</button>
+      </div>
+      <div style="display:flex;gap:8px;padding:0 20px 10px;flex-shrink:0;">
+        <button class="log-filter-btn active" data-filter="all"    onclick="filterLogs(this,'all')">Всі</button>
+        <button class="log-filter-btn"        data-filter="info"   onclick="filterLogs(this,'info')">Info</button>
+        <button class="log-filter-btn"        data-filter="error"  onclick="filterLogs(this,'error')">Error</button>
+      </div>
+      <div id="log-output" style="flex:1;overflow-y:auto;padding:4px 16px 16px;font-family:'Cascadia Code','Consolas',monospace;font-size:12px;line-height:1.7;"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: Command -->
+<!-- cmdModal removed — create form is now inline in page-commands -->
+
+<!-- MODAL: Macro -->
+<div class="modal-overlay" id="macroModal">
+  <div class="modal">
+    <h2>⚡ Новий макрос</h2>
+    <div class="mfield"><label>Назва</label><input id="macroName" placeholder="Мій макрос"></div>
+    <div class="mfield"><label>Гаряча клавіша</label><input id="macroKey" placeholder="Ctrl+Shift+M"></div>
+    <div class="mfield"><label>Команда (shell)</label><textarea id="macroCmd" rows="3" placeholder="python script.py"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeMacroModal()">Скасувати</button>
+      <button class="btn btn-p" onclick="saveMacro()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Role -->
+<div class="modal-overlay" id="roleModal">
+  <div class="modal" style="min-width:460px;">
+    <h2 id="roleModalTitle">🎭 Нова роль</h2>
+    <div class="mfield">
+      <label>Іконка та назва</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input id="roleIcon" placeholder="🤖" style="max-width:58px;font-size:20px;text-align:center;" maxlength="4">
+        <input id="roleName" placeholder="Назва ролі" style="flex:1;">
+      </div>
+    </div>
+    <div class="mfield">
+      <label>Системний промт *</label>
+      <textarea id="rolePrompt" rows="6" placeholder="Ти ... AI асистент. Відповідай по-українськи ...&#10;&#10;Опишіть характер, стиль, обмеження або спеціалізацію цієї ролі." style="margin-top:4px;"></textarea>
+      <div class="field-hint">Цей текст AI отримує на початку кожного діалогу як інструкцію.</div>
+    </div>
+    <input type="hidden" id="roleEditId" value="">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRoleModal()">Скасувати</button>
+      <button class="btn btn-p" onclick="saveRole()">💾 Зберегти роль</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATES MODAL -->
+<div class="tpl-modal" id="cmdTplModal" style="display:none" onclick="closeCmdTemplates()">
+  <div class="tpl-box" onclick="event.stopPropagation()">
+    <div class="tpl-header">
+      <span class="tpl-title">📚 Бібліотека шаблонів</span>
+      <button class="btn btn-sm" onclick="closeCmdTemplates()">✕</button>
+    </div>
+    <div class="tpl-search">
+      <input id="tplSearch" placeholder="🔍 Пошук шаблону..." oninput="filterTemplates(this.value)">
+    </div>
+    <div class="tpl-body" id="tplBody"></div>
+  </div>
+</div>
+
+<!-- AXIS LIVE VOICE OVERLAY -->
+<div class="live-overlay" id="liveOverlay">
+  <div class="live-panel">
+    <div class="live-close" onclick="stopLiveMode()" title="Закрити (або скажіть «стоп»)">✕</div>
+    <div class="live-brand">
+      <span class="live-brand-dot"></span> AXIS LIVE
+    </div>
+    <div class="live-orb-wrap">
+      <div class="live-ring"></div>
+      <div class="live-ring"></div>
+      <div class="live-ring"></div>
+      <div class="live-orb s-idle" id="liveOrb"></div>
+    </div>
+    <div class="live-status" id="liveStatus">Готую...</div>
+    <div class="live-user-text" id="liveUserText"></div>
+    <div class="live-ai-text" id="liveAiText"></div>
+    <div class="live-model-tag" id="liveModelTag">GPT-4o</div>
+    <div class="live-bottom">
+      <div class="live-mute-btn" id="liveMuteBtn" onclick="toggleLiveMute()" title="Вимкнути мікрофон">🎤</div>
+      <button class="live-stop-btn" onclick="stopLiveMode()">⬛ Завершити</button>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:-8px;">Скажіть «стоп» або «вийти» щоб завершити</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- CLIPBOARD HISTORY PANEL -->
+<div id="clipPanel" style="display:none;position:fixed;top:56px;right:14px;width:320px;max-height:440px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;z-index:9900;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border);">
+    <span style="font-size:12px;font-weight:700;color:var(--text);">📋 Буфер обміну</span>
+    <div style="display:flex;gap:6px;">
+      <button class="btn btn-sm btn-d" style="font-size:10px;padding:3px 8px;" onclick="clearClipHistory()">Очистити</button>
+      <button class="btn btn-sm" style="font-size:10px;padding:3px 8px;" onclick="toggleClipPanel()">✕</button>
+    </div>
+  </div>
+  <div id="clipHistoryList" style="overflow-y:auto;flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:4px;">
+    <div style="font-size:11px;color:var(--text3);text-align:center;padding:16px 0;">Буфер порожній</div>
+  </div>
+  <div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);">Клік — вставити · 📋 — скопіювати</div>
+</div>
+
+<!-- AXIS OS Scripts — load order matters -->
+<script src="js/utils.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/ide.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/sphere.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/spotify_player.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

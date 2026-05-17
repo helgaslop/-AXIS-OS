@@ -1,0 +1,107 @@
+{
+  "app": {
+    "name": "AXIS OS",
+    "version": "1.0.0",
+    "theme": "dark",
+    "accent": "#22c55e",
+    "start_minimized": false,
+    "minimize_to_tray": true,
+    "animations": true
+  },
+  "ai": {
+    "default_provider": "openai",
+    "default_model": "gpt-4o",
+    "temperature": 0.7,
+    "max_tokens": 4096
+  },
+  "api_keys": {
+    "openai": "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",
+    "anthropic": "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",
+    "google": "AIzaSyAyV5WFa0PylU9E3fPtAeyuytkA3x7XYq0",
+    "xai": "xai-ehqCGN7JYHti2yC112XszJuMelkSVrMSBAwdFc3f0xnZATWVKoV47q19gRx97Xgq6ZDYUNsiL9u5l44T",
+    "deepseek": "sk-473480c4cbfd4dc5ac38d10392c60864",
+    "perplexity": "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",
+    "spotify_client_id": "6a29480367ae40be90388867da91ff55",
+    "spotify_client_secret": "04399816f7cf47968e118fe8f30cb110",
+    "luma": "750066de-ba50-4f0a-bdcf-3afb02b75b50-0f3d2bcd-870a-42be-898e-4b41f2a6dfe1",
+    "tavily": "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",
+    "serper": "d466c9dcc85df4e0f603e5b4c56a6e3771c61bb4",
+    "openweather": "2baa4a2f9ce890cf9475f265a23058c4"
+  },
+  "window": {
+    "width": 1536,
+    "height": 816,
+    "x": 0,
+    "y": 0
+  },
+  "sphere_wake": "джарвіс",
+  "sphere_mode": "smart",
+  "sphere_size": "medium",
+  "sphere_position": "center",
+  "sphere_color": "#a855f7",
+  "sphere_color2": "#4c1d95",
+  "sphere_opacity": 90,
+  "sphere_anim": "fire",
+  "sphere_anim_speed": 5,
+  "sphere_particles": true,
+  "sphere_particle_count": 20,
+  "sphere_autostart": false,
+  "language": "uk-UA",
+  "tts_provider": "openai",
+  "tts_voice": "onyx",
+  "edge_voice": "uk-UA-PolinaNeural",
+  "tts_speed": 1.2,
+  "tts_volume": 80,
+  "jarvis_sounds": true,
+  "jarvis_volume": 100,
+  "ai_provider": "openai",
+  "dialog_provider": "openai",
+  "weather_city": "DUISBURG",
+  "sphere_visual": "energy",
+  "theme": "cyberneon",
+  "accent_color": "#22c55e",
+  "accent_color2": "#6366f1",
+  "silent_phrase": "хватить слухати",
+  "mic_off_phrase": "вимкни мікрофон",
+  "telegram_enabled": true,
+  "telegram_token": "8150996028:AAEzZ8A0NcOL8c76QMturPg3S1MioTaIH7Y",
+  "telegram_allowed_ids": "8530902292",
+  "telegram_commands": [
+    {
+      "label": "🎮 Ігри",
+      "type": "submenu_steam"
+    },
+    {
+      "label": "🎬 Серіал",
+      "type": "submenu_watch"
+    },
+    {
+      "label": "🔊 Гучність",
+      "type": "submenu_volume"
+    },
+    {
+      "label": "🖥️ Система",
+      "type": "submenu_system"
+    },
+    {
+      "label": "💻 Робота",
+      "type": "command",
+      "action": "відкрий робочий процес"
+    },
+    {
+      "label": "🎵 Музика",
+      "type": "command",
+      "action": "включи музику"
+    },
+    {
+      "label": "📷 Скріншот",
+      "type": "command",
+      "action": "зроби скріншот"
+    },
+    {
+      "label": "❌ Вимкнути ПК",
+      "type": "command",
+      "action": "виключи пк"
+    }
+  ]
+}

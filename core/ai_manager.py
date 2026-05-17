@@ -1,0 +1,602 @@
+"""AI provider manager — handles OpenAI, Anthropic, Google, xAI, Perplexity, Ollama."""
+import threading
+import base64
+import os
+import tempfile
+
+from PyQt6.QtCore import QObject, pyqtSignal
+
+OLLAMA_BASE = "http://localhost:11434"
+
+
+class AIManager(QObject):
+    response_ready = pyqtSignal(str, str)   # (request_id, text)
+    response_error = pyqtSignal(str, str)   # (request_id, error)
+    response_token = pyqtSignal(str, str)   # (request_id, token) — streaming
+    response_done  = pyqtSignal(str)        # (request_id) — streaming complete
+    image_ready    = pyqtSignal(str, str)   # (request_id, base64_or_url)
+    video_ready    = pyqtSignal(str, str)   # (request_id, video_url)
+
+    PROVIDERS = {
+        "openai":    {"label": "OpenAI",    "models": [
+            "gpt-5", "gpt-5-mini",
+            "gpt-4.5", "gpt-4.5-mini",
+            "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano",
+            "gpt-4o", "gpt-4o-mini",
+            "o3", "o4-mini", "o3-mini", "o1", "o1-mini",
+        ]},
+        "anthropic": {"label": "Anthropic", "models": [
+            "claude-opus-4-5", "claude-sonnet-4-5",
+            "claude-haiku-4-5", "claude-haiku-4-5-20251001",
+        ]},
+        "google":    {"label": "Google",    "models": [
+            "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite",
+            "gemini-2.0-flash", "gemini-2.0-flash-lite",
+            "gemini-1.5-pro", "gemini-1.5-flash",
+        ]},
+        "xai":       {"label": "xAI",       "models": [
+            "grok-3", "grok-3-mini", "grok-3-fast", "grok-2",
+        ]},
+        "perplexity": {"label": "Perplexity", "models": [
+            "sonar-pro", "sonar", "sonar-reasoning-pro", "sonar-reasoning",
+            "sonar-deep-research",
+        ]},
+        "ollama":    {"label": "Ollama",    "models": []},
+    }
+
+    def __init__(self, config: dict):
+        super().__init__()
+        self.config = config
+        self.api_keys: dict = dict(config.get("api_keys", {}))
+        # Also accept flat keys like "luma_key", "openweather_key", etc.
+        _flat_map = {
+            "openai":      "openai_key",
+            "anthropic":   "anthropic_key",
+            "google":      "google_key",
+            "xai":         "xai_key",
+            "deepseek":    "deepseek_key",
+            "perplexity":  "perplexity_key",
+            "luma":        "luma_key",
+            "serper":      "serper_key",
+            "tavily":      "tavily_key",
+            "openweather": "openweather_key",
+        }
+        for prov, flat in _flat_map.items():
+            if not self.api_keys.get(prov) and config.get(flat):
+                self.api_keys[prov] = config[flat]
+        self.temperature: float = config.get("ai", {}).get("temperature", 0.7)
+        self.max_tokens: int = config.get("ai", {}).get("max_tokens", 4096)
+        self.ollama_url: str = config.get("ollama_url", OLLAMA_BASE)
+
+    # Default fallback models per provider
+    _FALLBACK_MODELS = {
+        "openai":    "gpt-4.1",
+        "anthropic": "claude-sonnet-4-5",
+        "google":    "gemini-2.5-flash",
+        "xai":       "grok-3",
+        "deepseek":  "deepseek-chat",
+        "perplexity":"sonar",
+        "ollama":    "llama3",
+    }
+
+    # Friendly display names for switch notices
+    _PROVIDER_LABELS = {
+        "openai":    "OpenAI GPT",
+        "anthropic": "Claude",
+        "google":    "Gemini",
+        "xai":       "Grok",
+        "deepseek":  "DeepSeek",
+        "perplexity":"Perplexity",
+        "ollama":    "Ollama",
+    }
+
+    def update_key(self, provider: str, key: str):
+        self.api_keys[provider] = key
+
+    # ── Fallback chain builder ────────────────────────────────────────────────
+    def _build_chain(self, preferred_provider: str, preferred_model: str) -> list:
+        """Return ordered [(provider, key, model)] starting with preferred,
+        then any other providers that have keys configured."""
+        chain = []
+        # preferred first
+        key = self.api_keys.get(preferred_provider, "")
+        if key or preferred_provider == "ollama":
+            chain.append((preferred_provider, key, preferred_model))
+
+        # fallback order (skip preferred, skip ollama unless it was preferred)
+        fallback_order = ["openai", "anthropic", "google", "xai",
+                          "deepseek", "perplexity"]
+        for prov in fallback_order:
+            if prov == preferred_provider:
+                continue
+            k = self.api_keys.get(prov, "")
+            if k:
+                chain.append((prov, k, self._FALLBACK_MODELS.get(prov, "")))
+        return chain
+
+    # ── Text generation (non-streaming) ──────────────────────────────────────
+    def send(self, request_id: str, provider: str, model: str,
+             messages: list, system_prompt: str = ""):
+        t = threading.Thread(
+            target=self._worker,
+            args=(request_id, provider, model, messages, system_prompt),
+            daemon=True,
+        )
+        t.start()
+
+    def _worker(self, request_id, provider, model, messages, system_prompt):
+        chain = self._build_chain(provider, model)
+        if not chain:
+            self.response_error.emit(request_id,
+                "⚠ Немає налаштованих API ключів. Додайте у Налаштування → API Ключі.")
+            return
+
+        last_err = ""
+        for prov, key, mdl in chain:
+            try:
+                text = self._call(prov, mdl, messages, system_prompt)
+                if text:
+                    # Notify if we switched away from preferred
+                    if prov != provider:
+                        label = self._PROVIDER_LABELS.get(prov, prov)
+                        text = f"⚡ *[Переключився на {label}]*\n\n{text}"
+                    self.response_ready.emit(request_id, text)
+                    return
+            except Exception as e:
+                last_err = str(e)
+                print(f"[AI] {prov} failed: {e} — trying next…")
+                continue
+
+        self.response_error.emit(request_id,
+            f"⚠ Всі провайдери не відповіли.\nОстання помилка: {last_err[:120]}")
+
+    # ── Text generation (streaming) ───────────────────────────────────────────
+    def send_stream(self, request_id: str, provider: str, model: str,
+                    messages: list, system_prompt: str = ""):
+        t = threading.Thread(
+            target=self._stream_worker,
+            args=(request_id, provider, model, messages, system_prompt),
+            daemon=True,
+        )
+        t.start()
+
+    # o-series and newer GPT models don't accept temperature or max_tokens
+    _NO_TEMPERATURE = ("o1", "o3", "o4", "gpt-5", "gpt-4.5")
+    _USE_COMPLETION_TOKENS = ("o1", "o3", "o4", "gpt-5", "gpt-4.5", "gpt-4.1")
+
+    def _openai_params(self, model: str) -> dict:
+        """Return only the parameters supported by this OpenAI model."""
+        kw: dict = {}
+        if not model.startswith(self._NO_TEMPERATURE):
+            kw["temperature"] = self.temperature
+        if model.startswith(self._USE_COMPLETION_TOKENS):
+            kw["max_completion_tokens"] = self.max_tokens
+        else:
+            kw["max_tokens"] = self.max_tokens
+        return kw
+
+    def _stream_worker(self, request_id, provider, model, messages, system_prompt):
+        chain = self._build_chain(provider, model)
+        if not chain:
+            self.response_error.emit(request_id,
+                "⚠ Немає налаштованих API ключів. Додайте у Налаштування → API Ключі.")
+            return
+
+        last_err = ""
+        for idx, (prov, key, mdl) in enumerate(chain):
+            # Notify user we're switching (not on first attempt)
+            if idx > 0:
+                label = self._PROVIDER_LABELS.get(prov, prov)
+                self.response_token.emit(request_id,
+                    f"\n\n⚡ *Переключаюсь на {label}…*\n\n")
+
+            try:
+                self._run_stream(request_id, prov, key, mdl, messages, system_prompt)
+                return   # success — done
+            except Exception as e:
+                last_err = str(e)
+                err_lower = str(e).lower()
+                # Decide whether to retry
+                retry = any(code in err_lower for code in
+                            ("401", "402", "403", "429", "insufficient_quota",
+                             "billing", "not active", "invalid_api_key",
+                             "rate limit", "exceeded", "no such model",
+                             "model_not_found", "connection", "timeout",
+                             "nameresolution", "refused"))
+                print(f"[AI] stream {prov} failed ({e}) — {'retry' if retry else 'hard error'}")
+                if not retry:
+                    break   # hard error (bad prompt, etc.) — no point retrying
+
+        self.response_error.emit(request_id,
+            f"⚠ Всі провайдери не відповіли.\nОстання помилка: {last_err[:120]}")
+
+    def _run_stream(self, request_id, provider, key, model, messages, system_prompt):
+        """Dispatch to the right streaming method. Raises on any error."""
+        if provider == "openai":
+            self._openai_stream(request_id, key, model, messages, system_prompt)
+        elif provider == "anthropic":
+            self._anthropic_stream(request_id, key, model, messages, system_prompt)
+        elif provider == "google":
+            self._google_stream(request_id, key, model, messages, system_prompt)
+        elif provider in ("xai", "deepseek", "perplexity"):
+            self._openai_compat_stream(request_id, provider, key, model, messages, system_prompt)
+        elif provider == "ollama":
+            self._ollama_stream(request_id, model, messages, system_prompt)
+        else:
+            raise ValueError(f"Провайдер «{provider}» не підтримується.")
+
+    def _openai_stream(self, req_id, key, model, messages, system_prompt):
+        if not key:
+            raise RuntimeError("no_key: OpenAI API key not set")
+        from openai import OpenAI
+        client = OpenAI(api_key=key)
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        stream = client.chat.completions.create(
+            model=model, messages=msgs, stream=True,
+            **self._openai_params(model),
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                self.response_token.emit(req_id, delta)
+        self.response_done.emit(req_id)
+
+    def _anthropic_stream(self, req_id, key, model, messages, system_prompt):
+        if not key:
+            raise RuntimeError("no_key: Anthropic API key not set")
+        import anthropic
+        client = anthropic.Anthropic(api_key=key)
+        kw = dict(model=model, max_tokens=self.max_tokens,
+                  messages=messages, temperature=self.temperature)
+        if system_prompt:
+            kw["system"] = system_prompt
+        with client.messages.stream(**kw) as stream:
+            for text in stream.text_stream:
+                self.response_token.emit(req_id, text)
+        self.response_done.emit(req_id)
+
+    def _google_stream(self, req_id, key, model, messages, system_prompt):
+        if not key:
+            raise RuntimeError("no_key: Google API key not set")
+        import google.genai as genai
+        client = genai.Client(api_key=key)
+        contents = [
+            {"role": "user" if m["role"] == "user" else "model",
+             "parts": [{"text": m["content"]}]}
+            for m in messages
+        ]
+        cfg = {"system_instruction": system_prompt} if system_prompt else None
+        for chunk in client.models.generate_content_stream(
+            model=model, contents=contents, config=cfg
+        ):
+            if chunk.text:
+                self.response_token.emit(req_id, chunk.text)
+        self.response_done.emit(req_id)
+
+    def _openai_compat_stream(self, req_id, provider, key, model, messages, system_prompt):
+        if not key:
+            raise RuntimeError(f"no_key: {provider} API key not set")
+        from openai import OpenAI
+        bases = {
+            "xai":        "https://api.x.ai/v1",
+            "deepseek":   "https://api.deepseek.com",
+            "perplexity": "https://api.perplexity.ai",
+        }
+        client = OpenAI(api_key=key, base_url=bases[provider])
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        stream = client.chat.completions.create(
+            model=model, messages=msgs,
+            temperature=self.temperature, max_tokens=self.max_tokens,
+            stream=True,
+        )
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                self.response_token.emit(req_id, delta)
+        self.response_done.emit(req_id)
+
+    def _ollama_stream(self, req_id, model, messages, system_prompt):
+        import requests
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        try:
+            resp = requests.post(
+                f"{self.ollama_url}/v1/chat/completions",
+                json={"model": model, "messages": msgs,
+                      "temperature": self.temperature, "stream": True},
+                stream=True, timeout=120,
+            )
+            resp.raise_for_status()
+            import json as _json
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                line = line.decode("utf-8")
+                if line.startswith("data: "):
+                    line = line[6:]
+                if line == "[DONE]":
+                    break
+                try:
+                    chunk = _json.loads(line)
+                    delta = chunk["choices"][0]["delta"].get("content","")
+                    if delta:
+                        self.response_token.emit(req_id, delta)
+                except Exception:
+                    pass
+        except Exception as e:
+            self.response_error.emit(req_id, f"⚠ Ollama помилка: {e}")
+            return
+        self.response_done.emit(req_id)
+
+    # ── Image generation ──────────────────────────────────────────────────────
+    def generate_image(self, request_id: str, provider: str, prompt: str,
+                       size: str = "1024x1024", style: str = "vivid",
+                       ref_image_b64: str = ""):
+        t = threading.Thread(
+            target=self._image_worker,
+            args=(request_id, provider, prompt, size, style, ref_image_b64),
+            daemon=True,
+        )
+        t.start()
+
+    def _image_worker(self, req_id, provider, prompt, size, style, ref_image_b64):
+        try:
+            if provider == "openai":
+                b64 = self._dalle(prompt, size, style, ref_image_b64)
+            elif provider == "google":
+                b64 = self._gemini_imagen(prompt, size, ref_image_b64)
+            else:
+                self.response_error.emit(req_id, f"Генерація зображень не підтримується для «{provider}».\nВикористайте OpenAI (DALL-E 3) або Google (Imagen).")
+                return
+            self.image_ready.emit(req_id, b64)
+        except Exception as e:
+            self.response_error.emit(req_id, str(e))
+
+    def _dalle(self, prompt: str, size: str, style: str, ref_b64: str) -> str:
+        from openai import OpenAI
+        key = self.api_keys.get("openai", "")
+        if not key:
+            raise RuntimeError("⚠ API ключ OpenAI не налаштовано.")
+        client = OpenAI(api_key=key)
+
+        if ref_b64:
+            # DALL-E 2 supports images.edit; DALL-E 3 does NOT.
+            # Input must be square RGBA PNG ≤ 4 MB, size max 1024x1024.
+            try:
+                from PIL import Image as PILImage
+                import io
+                img_bytes = base64.b64decode(ref_b64)
+                img = PILImage.open(io.BytesIO(img_bytes)).convert("RGBA")
+                side = min(img.width, img.height, 1024)
+                img = img.resize((side, side), PILImage.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format="PNG")
+                buf.seek(0)
+                edit_size = f"{side}x{side}" if side in (256, 512, 1024) else "1024x1024"
+                resp = client.images.edit(
+                    model="dall-e-2",
+                    image=buf,
+                    prompt=prompt,
+                    size=edit_size,
+                    n=1,
+                    response_format="b64_json",
+                )
+            except ImportError:
+                raise RuntimeError("Встановіть Pillow для редагування зображень: pip install Pillow")
+            return resp.data[0].b64_json
+        else:
+            # DALL-E 3 for fresh generation — validate size
+            allowed = {"1024x1024", "1024x1792", "1792x1024"}
+            gen_size = size if size in allowed else "1024x1024"
+            resp = client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size=gen_size,
+                quality="standard",
+                style=style if style in ("vivid", "natural") else "vivid",
+                n=1,
+                response_format="b64_json",
+            )
+            return resp.data[0].b64_json
+
+    def _gemini_imagen(self, prompt: str, size: str, ref_b64: str) -> str:
+        key = self.api_keys.get("google", "")
+        if not key:
+            raise RuntimeError("⚠ API ключ Google не налаштовано.")
+        try:
+            import google.genai as genai
+            from google.genai import types as gtypes
+            client = genai.Client(api_key=key)
+
+            if ref_b64:
+                # Gemini multimodal edit — send image + prompt to gemini-2.0-flash-exp
+                img_bytes = base64.b64decode(ref_b64)
+                contents = [
+                    gtypes.Content(parts=[
+                        gtypes.Part(inline_data=gtypes.Blob(mime_type="image/png", data=img_bytes)),
+                        gtypes.Part(text=prompt),
+                    ])
+                ]
+                resp = client.models.generate_content(
+                    model="gemini-2.0-flash-preview-image-generation",
+                    contents=contents,
+                    config=gtypes.GenerateContentConfig(
+                        response_modalities=["IMAGE", "TEXT"]
+                    ),
+                )
+            else:
+                resp = client.models.generate_content(
+                    model="gemini-2.0-flash-preview-image-generation",
+                    contents=prompt,
+                    config=gtypes.GenerateContentConfig(
+                        response_modalities=["IMAGE", "TEXT"]
+                    ),
+                )
+
+            for part in resp.candidates[0].content.parts:
+                if hasattr(part, "inline_data") and part.inline_data:
+                    return base64.b64encode(part.inline_data.data).decode()
+            raise RuntimeError("Gemini не повернув зображення")
+        except ImportError:
+            raise RuntimeError("Встановіть: pip install google-genai")
+
+    # ── Video generation (Luma AI Dream Machine) ─────────────────────────────
+    def generate_video(self, request_id: str, prompt: str,
+                       duration: int = 9, aspect_ratio: str = "16:9",
+                       ref_image_b64: str = ""):
+        t = threading.Thread(
+            target=self._video_worker,
+            args=(request_id, prompt, duration, aspect_ratio, ref_image_b64),
+            daemon=True,
+        )
+        t.start()
+
+    def _video_worker(self, req_id, prompt, duration, aspect_ratio, ref_image_b64):
+        try:
+            url = self._luma_video(prompt, duration, aspect_ratio, ref_image_b64)
+            self.video_ready.emit(req_id, url)
+        except Exception as e:
+            self.response_error.emit(req_id, str(e))
+
+    def _luma_video(self, prompt: str, duration: int, aspect_ratio: str,
+                    ref_b64: str) -> str:
+        """Generate video via Luma AI Dream Machine API.
+        Polls until complete (typically 30–120 s). Returns video URL."""
+        import requests as req
+        import time as _time
+        key = self.api_keys.get("luma", "")
+        if not key:
+            raise RuntimeError("⚠ API ключ Luma AI не налаштовано.\nДодайте у Налаштування → API Ключі → Luma AI.")
+
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        body: dict = {
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio,
+            "loop": False,
+        }
+        if ref_b64:
+            body["keyframes"] = {
+                "frame0": {
+                    "type": "image",
+                    "url": f"data:image/png;base64,{ref_b64}",
+                }
+            }
+
+        # Submit generation
+        r = req.post("https://api.lumalabs.ai/dream-machine/v1/generations",
+                     headers=headers, json=body, timeout=30)
+        if r.status_code not in (200, 201):
+            raise RuntimeError(f"Luma HTTP {r.status_code}: {r.text[:200]}")
+        gen_id = r.json().get("id") or r.json().get("generation_id")
+        if not gen_id:
+            raise RuntimeError(f"Luma: no generation ID in response: {r.text[:200]}")
+
+        # Poll until done (max 3 min)
+        for _ in range(36):   # 36 × 5s = 180s
+            _time.sleep(5)
+            poll = req.get(
+                f"https://api.lumalabs.ai/dream-machine/v1/generations/{gen_id}",
+                headers=headers, timeout=15)
+            if poll.status_code != 200:
+                continue
+            data = poll.json()
+            state = data.get("state", "")
+            if state == "completed":
+                assets = data.get("assets") or {}
+                video_url = assets.get("video") or data.get("video_url") or ""
+                if video_url:
+                    return video_url
+                raise RuntimeError("Luma: completed but no video URL")
+            if state in ("failed", "error"):
+                reason = data.get("failure_reason") or data.get("error") or "failed"
+                raise RuntimeError(f"Luma: generation failed — {reason}")
+            # dreaming / processing — keep polling
+
+        raise RuntimeError("Luma: timeout after 3 minutes")
+
+    # ── Non-streaming ─────────────────────────────────────────────────────────
+    def _call(self, provider, model, messages, system_prompt) -> str:
+        """Raises on any error — caller (_worker) handles fallback."""
+        if provider == "ollama":
+            return self._ollama(model, messages, system_prompt)
+        key = self.api_keys.get(provider, "")
+        if not key:
+            raise RuntimeError(f"no_key: API ключ для «{provider}» не налаштовано")
+        if provider == "openai":
+            return self._openai(key, model, messages, system_prompt)
+        elif provider == "anthropic":
+            return self._anthropic(key, model, messages, system_prompt)
+        elif provider == "google":
+            return self._google(key, model, messages, system_prompt)
+        elif provider in ("xai", "deepseek", "perplexity"):
+            return self._openai_compat(provider, key, model, messages, system_prompt)
+        raise ValueError(f"Провайдер «{provider}» не підтримується.")
+
+    def _ollama(self, model, messages, system_prompt) -> str:
+        import requests
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        try:
+            resp = requests.post(
+                f"{self.ollama_url}/v1/chat/completions",
+                json={"model": model, "messages": msgs,
+                      "temperature": self.temperature, "stream": False},
+                timeout=120,
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        except requests.exceptions.ConnectionError:
+            return "⚠ Ollama не запущено.\nВстановіть: https://ollama.com\nЗапустіть: ollama serve"
+        except Exception as e:
+            return f"⚠ Ollama помилка: {e}"
+
+    def _openai(self, key, model, messages, system_prompt) -> str:
+        from openai import OpenAI
+        client = OpenAI(api_key=key)
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        resp = client.chat.completions.create(
+            model=model, messages=msgs,
+            **self._openai_params(model),
+        )
+        return resp.choices[0].message.content or ""
+
+    def _anthropic(self, key, model, messages, system_prompt) -> str:
+        import anthropic
+        client = anthropic.Anthropic(api_key=key)
+        kw = dict(model=model, max_tokens=self.max_tokens,
+                  messages=messages, temperature=self.temperature)
+        if system_prompt:
+            kw["system"] = system_prompt
+        resp = client.messages.create(**kw)
+        return resp.content[0].text if resp.content else ""
+
+    def _google(self, key, model, messages, system_prompt) -> str:
+        import google.genai as genai
+        client = genai.Client(api_key=key)
+        contents = [
+            {"role": "user" if m["role"] == "user" else "model",
+             "parts": [{"text": m["content"]}]}
+            for m in messages
+        ]
+        cfg = {"system_instruction": system_prompt} if system_prompt else None
+        resp = client.models.generate_content(
+            model=model, contents=contents, config=cfg,
+        )
+        return resp.text or ""
+
+    def _openai_compat(self, provider, key, model, messages, system_prompt) -> str:
+        from openai import OpenAI
+        bases = {
+            "xai":        "https://api.x.ai/v1",
+            "deepseek":   "https://api.deepseek.com",
+            "perplexity": "https://api.perplexity.ai",
+        }
+        client = OpenAI(api_key=key, base_url=bases[provider])
+        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
+        resp = client.chat.completions.create(
+            model=model, messages=msgs,
+            temperature=self.temperature, max_tokens=self.max_tokens,
+        )
+        return resp.choices[0].message.content or ""

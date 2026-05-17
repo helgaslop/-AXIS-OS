@@ -1,0 +1,136 @@
+[
+  {
+    "phrase": "час",
+    "type": "time",
+    "action": "",
+    "response": ""
+  },
+  {
+    "phrase": "година",
+    "type": "time",
+    "action": "",
+    "response": ""
+  },
+  {
+    "phrase": "дата",
+    "type": "date",
+    "action": "",
+    "response": ""
+  },
+  {
+    "phrase": "сьогодні",
+    "type": "date",
+    "action": "",
+    "response": ""
+  },
+  {
+    "phrase": "ютуб",
+    "type": "url",
+    "action": "https://youtube.com",
+    "response": "Відкриваю YouTube"
+  },
+  {
+    "phrase": "youtube",
+    "type": "url",
+    "action": "https://youtube.com",
+    "response": "Відкриваю YouTube"
+  },
+  {
+    "phrase": "гугл",
+    "type": "url",
+    "action": "https://google.com",
+    "response": "Відкриваю Google"
+  },
+  {
+    "phrase": "пошта",
+    "type": "url",
+    "action": "https://gmail.com",
+    "response": "Відкриваю пошту"
+  },
+  {
+    "phrase": "блокнот",
+    "type": "app",
+    "action": "notepad",
+    "response": "Відкриваю блокнот"
+  },
+  {
+    "phrase": "калькулятор",
+    "type": "app",
+    "action": "calc",
+    "response": "Відкриваю калькулятор"
+  },
+  {
+    "phrase": "привіт",
+    "type": "speak",
+    "action": "Привіт! Чим допомогти?",
+    "response": ""
+  },
+  {
+    "phrase": "дякую",
+    "type": "speak",
+    "action": "Будь ласка!",
+    "response": ""
+  },
+  {
+    "phrase": "сховайся",
+    "type": "hide",
+    "action": "До зустрічі!",
+    "response": ""
+  },
+  {
+    "phrase": "стоп",
+    "type": "hide",
+    "action": "Йду в тихий режим",
+    "response": ""
+  },
+  { "id": 500, "ico": "🌑", "name": "Сон", "desc": "Режим сну", "type": "shell", "body": "rundll32.exe powrprof.dll,SetSuspendState 0,1,0", "trigger": "спи" },
+  { "id": 501, "ico": "🔄", "name": "Рестарт", "desc": "Перезавантаження ПК", "type": "shell", "body": "shutdown /r /t 0", "trigger": "перезавантаж" },
+  { "id": 502, "ico": "🛑", "name": "Стоп", "desc": "Вимкнути ПК", "type": "shell", "body": "shutdown /s /t 60", "trigger": "вимкни комп" },
+  { "id": 503, "ico": "🔊", "name": "Гучніше", "desc": "+10% гучності", "type": "shell", "body": "powershell -c \"(new-object -com wscript.shell).SendKeys([char]175)\"", "trigger": "гучніше" },
+  { "id": 504, "ico": "🔇", "name": "Мут", "desc": "Вимкнути звук", "type": "shell", "body": "powershell -c \"(new-object -com wscript.shell).SendKeys([char]173)\"", "trigger": "тихо" },
+  { "id": 505, "ico": "🖥️", "name": "Завдання", "desc": "Диспетчер завдань", "type": "shell", "body": "taskmgr", "trigger": "процеси" },
+  { "id": 506, "ico": "🐍", "name": "Kill Python", "desc": "Зупинити всі скрипти", "type": "shell", "body": "taskkill /f /im python.exe", "trigger": "вбий пітон" },
+  { "id": 507, "ico": "📂", "name": "Проект", "desc": "Папка AIVON", "type": "shell", "body": "explorer .", "trigger": "відкрий проект" },
+  { "id": 508, "ico": "🤖", "name": "Android Studio", "desc": "Запуск IDE", "type": "shell", "body": "\"C:/Program Files/Android/Android Studio/bin/studio64.exe\"", "trigger": "андроїд" },
+  { "id": 509, "ico": "📜", "name": "Логи", "desc": "Перегляд логів", "type": "shell", "body": "type aivon.log", "trigger": "що в логах" },
+  { "id": 510, "ico": "🌐", "name": "Браузер", "desc": "Відкрити Chrome", "type": "shell", "body": "start chrome", "trigger": "браузер" },
+  { "id": 511, "ico": "📸", "name": "Скрін", "desc": "Зробити знімок екрану", "type": "shell", "body": "powershell -c \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{PRTSC}')\"", "trigger": "скріншот" },
+  { "id": 512, "ico": "🧹", "name": "Кеш", "desc": "Очистити __pycache__", "type": "shell", "body": "find . -type d -name __pycache__ -exec rm -rf {} +", "trigger": "чисти кеш" },
+  { "id": 513, "ico": "🚀", "name": "Dev Server", "desc": "Запуск сервера", "type": "shell", "body": "python -m http.server 8080", "trigger": "запусти сервер" },
+  { "id": 514, "ico": "🔍", "name": "Пошук", "desc": "Знайти помилки", "type": "shell", "body": "findstr /s /i \"error\" *.log", "trigger": "шукай помилки" },
+  { "id": 515, "ico": "🛠️", "name": "Налаштування", "desc": "Панель керування", "type": "shell", "body": "control", "trigger": "налаштування" },
+  { "id": 516, "ico": "📶", "name": "Інтернет", "desc": "Перевірка мережі", "type": "shell", "body": "ping google.com", "trigger": "інет живий" },
+  { "id": 517, "ico": "📦", "name": "Update Pip", "desc": "Оновити бібліотеки", "type": "shell", "body": "python -m pip install --upgrade pip", "trigger": "онови модулі" },
+  { "id": 518, "ico": "🗒️", "name": "Нотатки", "desc": "Відкрити блокнот", "type": "shell", "body": "notepad", "trigger": "запиши" },
+  { "id": 519, "ico": "🧛", "name": "Dark", "desc": "Темна тема", "type": "shell", "body": "powershell -c \"Set-ItemProperty -Path HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize -Name AppsUseLightTheme -Value 0\"", "trigger": "темна тема" },
+  { "id": 520, "ico": "🔥", "name": "Trash", "desc": "Очистити кошик", "type": "shell", "body": "powershell -c \"Clear-RecycleBin -Force\"", "trigger": "викинь сміття" },
+  { "id": 521, "ico": "🔌", "name": "IP", "desc": "Мій IP", "type": "shell", "body": "ipconfig", "trigger": "мій айпі" },
+  { "id": 522, "ico": "🔑", "name": "Keys", "desc": "Екранна клава", "type": "shell", "body": "osk", "trigger": "клавіатура" },
+  { "id": 523, "ico": "⚡", "name": "Power", "desc": "Макс. продуктивність", "type": "shell", "body": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "trigger": "на повну" },
+  { "id": 524, "ico": "🛡️", "name": "Defender", "desc": "Захист", "type": "shell", "body": "start windowsdefender:", "trigger": "захист" },
+  { "id": 525, "ico": "📸", "name": "Камера", "desc": "Увімкнути камеру", "type": "shell", "body": "start microsoft.windows.camera:", "trigger": "камера" },
+  { "id": 526, "ico": "📟", "name": "Calc", "desc": "Калькулятор", "type": "shell", "body": "calc", "trigger": "порахуй" },
+  { "id": 527, "ico": "🛸", "name": "Git Pull", "desc": "Оновити код", "type": "shell", "body": "git pull", "trigger": "тягни код" },
+  { "id": 528, "ico": "📂", "name": "Downloads", "desc": "Папка завантажень", "type": "shell", "body": "explorer %USERPROFILE%\\Downloads", "trigger": "завантаження" },
+  { "id": 529, "ico": "🎨", "name": "Paint", "desc": "Малювати", "type": "shell", "body": "mspaint", "trigger": "малюй" },
+  { "id": 530, "ico": "🔐", "name": "Lock", "desc": "Блокування", "type": "shell", "body": "rundll32.exe user32.dll,LockWorkStation", "trigger": "заблокуй" },
+  { "id": 531, "ico": "📉", "name": "Resources", "desc": "Монітор ресурсів", "type": "shell", "body": "resmon", "trigger": "залізо" },
+  { "id": 532, "ico": "📅", "name": "Date", "desc": "Календар", "type": "shell", "body": "start outlookcal:", "trigger": "календар" },
+  { "id": 533, "ico": "📻", "name": "Music", "desc": "Lofi Radio", "type": "url", "body": "https://www.youtube.com/watch?v=jfKfPfyJRdk", "trigger": "музика" },
+  { "id": 534, "ico": "🎤", "name": "Mic", "desc": "Налаштування мікро", "type": "shell", "body": "control mmsys.cpl sounds", "trigger": "мікрофон" },
+  { "id": 535, "ico": "🧩", "name": "ADB", "desc": "Пристрої Android", "type": "shell", "body": "adb devices", "trigger": "девайси" },
+  { "id": 536, "ico": "📦", "name": "APK", "desc": "Збірка Android", "type": "shell", "body": "gradlew assembleDebug", "trigger": "збери апк" },
+  { "id": 537, "ico": "🧹", "name": "Temp", "desc": "Чистка Temp", "type": "shell", "body": "del /q /f /s %temp%\\*", "trigger": "видали сміття" },
+  { "id": 538, "ico": "📡", "name": "DNS", "desc": "Flush DNS", "type": "shell", "body": "ipconfig /flushdns", "trigger": "чисти мережу" },
+  { "id": 539, "ico": "💻", "name": "SysInfo", "desc": "Інфо про систему", "type": "shell", "body": "systeminfo", "trigger": "інфо" },
+  { "id": 540, "ico": "🕵️", "name": "Incognito", "desc": "Інкогніто", "type": "shell", "body": "start chrome --incognito", "trigger": "інкогніто" },
+  { "id": 541, "ico": "🎭", "name": "Display", "desc": "Екран", "type": "shell", "body": "start ms-settings:display", "trigger": "екран" },
+  { "id": 542, "ico": "🛑", "name": "Kill Chrome", "desc": "Закрити хром", "type": "shell", "body": "taskkill /f /im chrome.exe", "trigger": "закрий браузер" },
+  { "id": 543, "ico": "🔊", "name": "Vol Down", "desc": "-10% гучності", "type": "shell", "body": "powershell -c \"(new-object -com wscript.shell).SendKeys([char]174)\"", "trigger": "тихіше" },
+  { "id": 544, "ico": "🛰️", "name": "Ping API", "desc": "Доступність Anthropic", "type": "shell", "body": "ping api.anthropic.com", "trigger": "пінг апі" },
+  { "id": 545, "ico": "📝", "name": "VS Code", "desc": "Відкрити редактор", "type": "shell", "body": "code .", "trigger": "код" },
+  { "id": 546, "ico": "💎", "name": "Admin CMD", "desc": "Термінал адміна", "type": "shell", "body": "powershell -Command \"Start-Process cmd -Verb RunAs\"", "trigger": "адмін" },
+  { "id": 547, "ico": "🚪", "name": "Exit", "desc": "Вихід із системи", "type": "shell", "body": "logoff", "trigger": "вийди" },
+  { "id": 548, "ico": "💾", "name": "Drives", "desc": "Місце на дисках", "type": "shell", "body": "wmic logicaldisk get size,freespace,caption", "trigger": "диски" },
+  { "id": 549, "ico": "🎈", "name": "Notify", "desc": "Тест алерту", "type": "internal", "body": "show_test_notification", "trigger": "маякни" }
+]
