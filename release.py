@@ -413,6 +413,17 @@ def main():
     header("5/5  Git + GitHub")
     git_push(new_ver)
 
+    # Перевіряємо токен перед відправкою
+    token = cfg.get("token", "")
+    try:
+        token.encode("latin-1")   # HTTP headers мають бути latin-1
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        err("Токен містить недопустимі символи — відкрий data/release.cfg і встав правильний ghp_... токен")
+        sys.exit(1)
+    if not token.startswith(("ghp_", "github_pat_")) or len(token) < 20:
+        err(f"Невірний токен: '{token[:30]}...' — має починатись з ghp_ або github_pat_")
+        sys.exit(1)
+
     assets = [a for a in [installer, zip_out] if a and a.exists()]
     try:
         url = publish(cfg["repo"], cfg["token"], new_ver, assets)
