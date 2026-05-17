@@ -324,13 +324,38 @@ def _upload(upload_url, token, path: Path):
     mb   = size / 1024 / 1024
     info(f"Завантажую {path.name}  ({mb:.1f} MB)...")
 
+    # ── Спроба 1: curl (Schannel — нативний Windows SSL, обходить антивірус) ──
+    curl = shutil.which("curl") or r"C:\Windows\System32\curl.exe"
+    if os.path.exists(curl):
+        info("Використовую curl (Schannel)...")
+        cmd = [
+            curl,
+            "-X", "POST",
+            "-H", f"Authorization: token {token}",
+            "-H", "Content-Type: application/octet-stream",
+            "-H", "User-Agent: AXIS-OS/release",
+            "--data-binary", f"@{path}",
+            "--ssl-no-revoke",          # ігноруємо перевірку відкликання cert
+            "--retry", "3",
+            "--retry-delay", "5",
+            "--connect-timeout", "60",
+            "-m", "7200",               # max 2 години
+            "--progress-bar",
+            "-w", "\n%{http_code}",     # виводимо HTTP статус
+            url,
+        ]
+        result = subprocess.run(cmd, cwd=str(ROOT), capture_output=False)
+        if result.returncode == 0:
+            ok(f"Завантажено: {path.name}")
+            return
+        err(f"curl повернув код {result.returncode} — пробуємо requests...")
+
+    # ── Спроба 2: requests з відключеною перевіркою SSL ──────────────────────
     headers = {
         "Authorization": f"token {token}",
         "Content-Type":  "application/octet-stream",
         "User-Agent":    "AXIS-OS/release",
     }
-
-    # Пробуємо через requests (краще для великих файлів + antivirus SSL)
     try:
         import requests as _req
         import urllib3
@@ -345,9 +370,9 @@ def _upload(upload_url, token, path: Path):
         ok(f"Завантажено → {dl_url}")
         return
     except ImportError:
-        pass   # requests не встановлений — використовуємо urllib
+        pass
 
-    # Fallback: urllib.request
+    # ── Спроба 3: urllib (fallback) ──────────────────────────────────────────
     with _ProgressFile(path) as pf:
         req = urllib.request.Request(url, data=pf, method="POST",
                                      headers=headers)
