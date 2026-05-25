@@ -56,6 +56,9 @@ _TIER_CHAR = {"M": "monthly", "Y": "yearly", "L": "lifetime", "T": "trial"}
 def validate_license(raw_key: str) -> dict:
     """Returns {ok, tier, expires_ts} or {ok: False, error}."""
     key = raw_key.strip().upper().replace("-", "").replace(" ", "")
+    # Strip the human-readable "AXIS" prefix produced by generate_key()
+    if key.startswith("AXIS"):
+        key = key[4:]
     if len(key) < 16:
         return {"ok": False, "error": "Invalid key format"}
 
