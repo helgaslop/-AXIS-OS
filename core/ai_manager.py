@@ -1,12 +1,24 @@
-"""AI provider manager — handles OpenAI, Anthropic, Google, xAI, Perplexity, Ollama."""
+"""AI provider manager — handles OpenAI, Anthropic, Google, xAI, Perplexity, Ollama.
+
+Proxy mode:
+  When a paid AXIS OS license is active the manager routes AI requests through
+  the AXIS OS proxy server instead of calling providers directly.
+  Users on paid plans don't need to configure any API keys.
+"""
 import threading
 import base64
 import os
 import tempfile
+import json
+
+import urllib.request
+import urllib.error
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-OLLAMA_BASE = "http://localhost:11434"
+OLLAMA_BASE      = "http://localhost:11434"
+_DEFAULT_PROXY   = "https://api.axis-os.app"
+PROXY_URL        = os.environ.get("AXIS_PROXY_URL", _DEFAULT_PROXY)
 
 
 class AIManager(QObject):
@@ -67,6 +79,38 @@ class AIManager(QObject):
         self.temperature: float = config.get("ai", {}).get("temperature", 0.7)
         self.max_tokens: int = config.get("ai", {}).get("max_tokens", 4096)
         self.ollama_url: str = config.get("ollama_url", OLLAMA_BASE)
+        # Allow config.json to override the proxy URL (set after Railway deploy)
+        global PROXY_URL
+        if config.get("proxy_url"):
+            PROXY_URL = config["proxy_url"]
+
+        # Proxy: load license key once; refresh via reload_license()
+        self._license_key: str | None = None
+        self._license_tier: str = "trial"
+        self.reload_license()
+
+    def reload_license(self):
+        """Re-read license from disk. Call after activation."""
+        try:
+            from core.license import LicenseManager
+            from core.paths import USER_DATA_DIR
+            lic = LicenseManager(USER_DATA_DIR)
+            st = lic.get_status()
+            if st.get("active") and st.get("tier") != "trial":
+                self._license_key  = st.get("key")
+                self._license_tier = st.get("tier", "monthly")
+            else:
+                self._license_key  = None
+                self._license_tier = "trial"
+        except Exception as e:
+            print(f"[AI] license load error: {e}")
+            self._license_key  = None
+            self._license_tier = "trial"
+
+    @property
+    def proxy_active(self) -> bool:
+        """True when a paid license is present → use server proxy."""
+        return bool(self._license_key)
 
     # Default fallback models per provider
     _FALLBACK_MODELS = {
@@ -96,14 +140,27 @@ class AIManager(QObject):
     # ── Fallback chain builder ────────────────────────────────────────────────
     def _build_chain(self, preferred_provider: str, preferred_model: str) -> list:
         """Return ordered [(provider, key, model)] starting with preferred,
-        then any other providers that have keys configured."""
+        then any other providers that have keys configured.
+
+        When proxy_active is True, the first entry is a sentinel
+        ("_proxy_", license_key, model) that routes through the server.
+        """
         chain = []
-        # preferred first
+
+        # ── Proxy mode (paid license) ──────────────────────────────────────
+        if self.proxy_active and preferred_provider != "ollama":
+            chain.append(("_proxy_", self._license_key, preferred_model))
+            # Keep local keys as fallback in case server is down
+            key = self.api_keys.get(preferred_provider, "")
+            if key:
+                chain.append((preferred_provider, key, preferred_model))
+            return chain
+
+        # ── Direct mode (trial / no license) ──────────────────────────────
         key = self.api_keys.get(preferred_provider, "")
         if key or preferred_provider == "ollama":
             chain.append((preferred_provider, key, preferred_model))
 
-        # fallback order (skip preferred, skip ollama unless it was preferred)
         fallback_order = ["openai", "anthropic", "google", "xai",
                           "deepseek", "perplexity"]
         for prov in fallback_order:
@@ -134,10 +191,12 @@ class AIManager(QObject):
         last_err = ""
         for prov, key, mdl in chain:
             try:
-                text = self._call(prov, mdl, messages, system_prompt)
+                if prov == "_proxy_":
+                    text = self._proxy_call(provider, mdl, messages, system_prompt, key)
+                else:
+                    text = self._call(prov, mdl, messages, system_prompt)
                 if text:
-                    # Notify if we switched away from preferred
-                    if prov != provider:
+                    if prov not in (provider, "_proxy_"):
                         label = self._PROVIDER_LABELS.get(prov, prov)
                         text = f"⚡ *[Переключився на {label}]*\n\n{text}"
                     self.response_ready.emit(request_id, text)
@@ -212,7 +271,11 @@ class AIManager(QObject):
 
     def _run_stream(self, request_id, provider, key, model, messages, system_prompt):
         """Dispatch to the right streaming method. Raises on any error."""
-        if provider == "openai":
+        if provider == "_proxy_":
+            # key here is actually the license key
+            self._proxy_stream(request_id, self.config.get("ai_provider", "openai"),
+                               model, messages, system_prompt, key)
+        elif provider == "openai":
             self._openai_stream(request_id, key, model, messages, system_prompt)
         elif provider == "anthropic":
             self._anthropic_stream(request_id, key, model, messages, system_prompt)
@@ -228,17 +291,55 @@ class AIManager(QObject):
     def _openai_stream(self, req_id, key, model, messages, system_prompt):
         if not key:
             raise RuntimeError("no_key: OpenAI API key not set")
+        import json as _j
         from openai import OpenAI
+        from core.ai_tools import TOOLS, run_tool, build_system_with_profile
         client = OpenAI(api_key=key)
-        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
-        stream = client.chat.completions.create(
-            model=model, messages=msgs, stream=True,
-            **self._openai_params(model),
-        )
-        for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                self.response_token.emit(req_id, delta)
+        sys = build_system_with_profile(system_prompt) if system_prompt else ""
+        msgs = ([{"role": "system", "content": sys}] if sys else []) + list(messages)
+
+        use_tools = not model.startswith(self._NO_TEMPERATURE)
+        kw = self._openai_params(model)
+        if use_tools:
+            kw["tools"] = TOOLS
+            kw["tool_choice"] = "auto"
+
+        # First pass — may return tool calls or text
+        resp = client.chat.completions.create(model=model, messages=msgs, **kw)
+        msg  = resp.choices[0].message
+
+        # Handle tool calls before streaming the final answer
+        for _ in range(3):
+            if not getattr(msg, "tool_calls", None):
+                break
+            msgs.append({
+                "role": "assistant", "content": msg.content or "",
+                "tool_calls": [{"id": tc.id, "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                    for tc in msg.tool_calls],
+            })
+            for tc in msg.tool_calls:
+                try: args = _j.loads(tc.function.arguments)
+                except Exception: args = {}
+                print(f"[Chat stream] 🔧 {tc.function.name}({args})")
+                # Emit a subtle "searching..." token so user sees activity
+                self.response_token.emit(req_id, f"\n*🔍 {tc.function.name}…*\n\n")
+                result = run_tool(tc.function.name, args)
+                msgs.append({"role": "tool", "content": result, "tool_call_id": tc.id})
+            resp = client.chat.completions.create(model=model, messages=msgs,
+                                                   **self._openai_params(model))
+            msg = resp.choices[0].message
+
+        # Now stream the final text answer
+        if msg.content:
+            stream = client.chat.completions.create(
+                model=model,
+                messages=msgs + [{"role": "assistant", "content": ""}],
+                stream=True, **self._openai_params(model),
+            )
+            # Actually just emit the already-fetched content token by token
+            for word in (msg.content or "").split(" "):
+                self.response_token.emit(req_id, word + " ")
         self.response_done.emit(req_id)
 
     def _anthropic_stream(self, req_id, key, model, messages, system_prompt):
@@ -553,14 +654,44 @@ class AIManager(QObject):
             return f"⚠ Ollama помилка: {e}"
 
     def _openai(self, key, model, messages, system_prompt) -> str:
+        import json as _j
         from openai import OpenAI
+        from core.ai_tools import TOOLS, run_tool, build_system_with_profile
         client = OpenAI(api_key=key)
-        msgs = ([{"role": "system", "content": system_prompt}] if system_prompt else []) + messages
-        resp = client.chat.completions.create(
-            model=model, messages=msgs,
-            **self._openai_params(model),
-        )
-        return resp.choices[0].message.content or ""
+        sys = build_system_with_profile(system_prompt) if system_prompt else ""
+        msgs = ([{"role": "system", "content": sys}] if sys else []) + list(messages)
+
+        # o-series don't support tools
+        use_tools = not model.startswith(self._NO_TEMPERATURE)
+        kw = self._openai_params(model)
+        if use_tools:
+            kw["tools"] = TOOLS
+            kw["tool_choice"] = "auto"
+
+        resp = client.chat.completions.create(model=model, messages=msgs, **kw)
+        msg  = resp.choices[0].message
+
+        # ── Handle tool calls (up to 3 rounds) ───────────────────────────────
+        for _ in range(3):
+            if not getattr(msg, "tool_calls", None):
+                break
+            msgs.append({
+                "role": "assistant", "content": msg.content or "",
+                "tool_calls": [{"id": tc.id, "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                    for tc in msg.tool_calls],
+            })
+            for tc in msg.tool_calls:
+                try: args = _j.loads(tc.function.arguments)
+                except Exception: args = {}
+                print(f"[Chat] 🔧 {tc.function.name}({args})")
+                result = run_tool(tc.function.name, args)
+                msgs.append({"role": "tool", "content": result, "tool_call_id": tc.id})
+            resp = client.chat.completions.create(model=model, messages=msgs,
+                                                   **self._openai_params(model))
+            msg = resp.choices[0].message
+
+        return msg.content or ""
 
     def _anthropic(self, key, model, messages, system_prompt) -> str:
         import anthropic
@@ -600,3 +731,69 @@ class AIManager(QObject):
             temperature=self.temperature, max_tokens=self.max_tokens,
         )
         return resp.choices[0].message.content or ""
+
+    # ── AXIS OS Proxy (paid license) ──────────────────────────────────────────
+    def _proxy_call(self, provider: str, model: str, messages: list,
+                    system_prompt: str, license_key: str) -> str:
+        """Send a non-streaming request through the AXIS OS proxy server."""
+        payload = json.dumps({
+            "provider":      provider,
+            "model":         model,
+            "messages":      messages,
+            "system_prompt": system_prompt,
+            "stream":        False,
+            "temperature":   self.temperature,
+            "max_tokens":    self.max_tokens,
+        }).encode()
+        req = urllib.request.Request(
+            f"{PROXY_URL}/api/v1/chat",
+            data=payload,
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {license_key}",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read())
+            return data.get("text", "")
+
+    def _proxy_stream(self, request_id: str, provider: str, model: str,
+                      messages: list, system_prompt: str, license_key: str):
+        """Stream tokens from the AXIS OS proxy server via SSE."""
+        payload = json.dumps({
+            "provider":      provider,
+            "model":         model,
+            "messages":      messages,
+            "system_prompt": system_prompt,
+            "stream":        True,
+            "temperature":   self.temperature,
+            "max_tokens":    self.max_tokens,
+        }).encode()
+        req = urllib.request.Request(
+            f"{PROXY_URL}/api/v1/chat",
+            data=payload,
+            headers={
+                "Content-Type":  "application/json",
+                "Authorization": f"Bearer {license_key}",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8").strip()
+                if not line.startswith("data: "):
+                    continue
+                chunk = line[6:]
+                if chunk == "[DONE]":
+                    break
+                try:
+                    data = json.loads(chunk)
+                    if "error" in data:
+                        raise RuntimeError(data["error"])
+                    token = data.get("token", "")
+                    if token:
+                        self.response_token.emit(request_id, token)
+                except json.JSONDecodeError:
+                    pass
+        self.response_done.emit(request_id)
