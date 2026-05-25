@@ -41,12 +41,25 @@ COMPAT_BASES = {
     "perplexity": "https://api.perplexity.ai",
 }
 
+# Admin key for stats endpoint (set ADMIN_KEY env var on Railway)
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "")
+
 # Daily message limits per tier (trial never reaches here; -1 = unlimited)
 TIER_LIMITS: dict[str, int] = {
-    "trial":    50,    # extra safety on server side (client limits are lower)
+    "trial":    50,
     "monthly":  -1,
     "yearly":   -1,
     "lifetime": -1,
+}
+
+# Approximate cost per request per provider (USD, based on ~500 avg tokens)
+PROVIDER_COST_PER_REQ: dict[str, float] = {
+    "openai":     0.002,   # mix of gpt-4o and mini
+    "anthropic":  0.001,   # mix of sonnet and haiku
+    "google":     0.0003,  # gemini flash mostly
+    "xai":        0.0015,  # grok-3
+    "deepseek":   0.00015,
+    "perplexity": 0.0005,
 }
 
 # ── License helpers ─────────────────────────────────────────────────────────
@@ -86,9 +99,32 @@ def validate_license(raw_key: str) -> dict:
     return {"ok": True, "tier": tier, "expires_ts": expiry_ts}
 
 
-# ── Usage tracking (in-memory, resets on restart) ───────────────────────────
-# For production use Redis or SQLite — good enough for start
-_usage: dict[str, dict] = {}   # key_id → {date: "2026-01-01", count: N}
+# ── Usage & spending tracking (in-memory) ────────────────────────────────────
+# Per-license daily usage
+_usage: dict[str, dict] = {}   # key_id → {date, count}
+
+# Global monthly stats per provider  {month: "2026-05", providers: {name: {requests, cost_usd}}}
+_monthly: dict = {}
+
+
+def _this_month() -> str:
+    return datetime.now().strftime("%Y-%m")
+
+
+def _record_provider_request(provider: str):
+    """Increment global monthly counter for a provider."""
+    month = _this_month()
+    if _monthly.get("month") != month:
+        _monthly.clear()
+        _monthly["month"] = month
+        _monthly["providers"] = {}
+    provs = _monthly.setdefault("providers", {})
+    if provider not in provs:
+        provs[provider] = {"requests": 0, "cost_usd": 0.0}
+    provs[provider]["requests"] += 1
+    provs[provider]["cost_usd"] = round(
+        provs[provider]["cost_usd"] + PROVIDER_COST_PER_REQ.get(provider, 0.001), 5
+    )
 
 
 def _key_id(raw_key: str) -> str:
@@ -199,13 +235,47 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
         raise HTTPException(status_code=503,
             detail=f"Provider {body.provider} not configured on server.")
 
-    # 4. Route to provider
+    # 4. Record stats + route to provider
+    _record_provider_request(body.provider)
     if body.stream:
         gen = _stream_response(body, provider_key)
         return StreamingResponse(gen, media_type="text/event-stream")
     else:
         text = await _call_provider(body, provider_key)
         return {"text": text}
+
+
+# ── Admin stats endpoint ──────────────────────────────────────────────────────
+@app.get("/api/v1/admin/stats")
+def admin_stats(authorization: str = Header(None)):
+    """Returns monthly spending per provider. Protected by ADMIN_KEY."""
+    if ADMIN_KEY:
+        provided = (authorization or "").replace("Bearer ", "").strip()
+        if not hmac.compare_digest(provided, ADMIN_KEY):
+            raise HTTPException(status_code=403, detail="Invalid admin key")
+
+    month = _this_month()
+    providers = _monthly.get("providers", {}) if _monthly.get("month") == month else {}
+
+    total_requests = sum(v["requests"] for v in providers.values())
+    total_cost     = round(sum(v["cost_usd"] for v in providers.values()), 4)
+
+    breakdown = [
+        {
+            "provider": prov,
+            "requests": data["requests"],
+            "cost_usd": round(data["cost_usd"], 4),
+        }
+        for prov, data in sorted(providers.items(),
+                                  key=lambda x: x[1]["cost_usd"], reverse=True)
+    ]
+
+    return {
+        "month":          month,
+        "total_requests": total_requests,
+        "total_cost_usd": total_cost,
+        "breakdown":      breakdown,
+    }
 
 
 def _extract_key(authorization: str | None) -> str:

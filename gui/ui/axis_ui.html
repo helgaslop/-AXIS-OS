@@ -143,6 +143,189 @@
 .notif-del { background: none; border: none; color: #6e7681; cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; transition: color .15s; }
 .notif-del:hover { color: #ef4444; }
 .notif-empty { padding: 32px; text-align: center; color: #484f58; font-size: 13px; }
+
+/* ═══ API KEY TESTS ══════════════════════════════════════════════════════════ */
+.api-tests-panel    { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.api-tests-table    { width: 100%; border-collapse: collapse; }
+.api-tests-table td { padding: 7px 10px; font-size: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.api-tests-table tr:last-child td { border-bottom: none; }
+.atr-ico            { width: 28px; font-size: 16px; text-align: center; }
+.atr-name           { color: var(--text); font-weight: 600; min-width: 140px; }
+.atr-status         { width: 80px; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.atr-msg            { color: var(--text3); font-size: 11px; }
+.atr-dot            { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.atr-ok             { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+.atr-err            { background: #ef4444; }
+.atr-nokey          { background: #6e7681; }
+.atr-wait           { background: #334; }
+.atr-testing        { background: #f59e0b; animation: pulse .8s infinite; }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* ═══ PROFILE PAGE ═══════════════════════════════════════════════════════════ */
+.profile-layout      { display: flex; gap: 18px; align-items: flex-start; }
+.profile-card        { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+.profile-avatar-wrap { text-align: center; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.profile-avatar      { font-size: 56px; line-height: 1; margin-bottom: 6px; cursor: default; }
+.profile-since       { font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 14px; }
+.profile-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); margin-bottom: 10px; }
+.av-grid             { display: flex; flex-wrap: wrap; gap: 6px; }
+.av-opt              { font-size: 22px; cursor: pointer; padding: 4px 6px; border-radius: 8px; transition: background .15s; }
+.av-opt:hover        { background: var(--bg3); }
+.av-opt-sel          { background: var(--accent20, rgba(99,102,241,.2)); outline: 2px solid var(--accent); }
+.stats-grid          { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.stat-item           { background: var(--bg3); border-radius: 10px; padding: 12px 10px; text-align: center; }
+.stat-val            { font-size: 22px; font-weight: 800; color: var(--accent); }
+.stat-lbl            { font-size: 10px; color: var(--text3); margin-top: 3px; }
+.help-grid           { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.help-item           { display: flex; align-items: flex-start; gap: 10px; }
+.help-ico            { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+.help-desc           { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.pf-grid             { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.pf-grid .pf-full    { grid-column: 1 / -1; }
+.pf-hint             { font-size: 11px; color: var(--accent); background: rgba(99,102,241,.1); border-radius: 6px; padding: 6px 10px; margin-top: 6px; }
+/* ═══ ONBOARDING ══════════════════════════════════════════════════════════════ */
+.ob-card             { background: var(--bg2); border: 1px solid var(--border); border-radius: 20px; padding: 32px 36px; width: 480px; max-width: calc(100vw - 40px); position: relative; animation: qsFadeIn .2s ease; }
+.ob-logo             { font-size: 48px; text-align: center; margin-bottom: 10px; }
+.ob-title            { font-size: 22px; font-weight: 800; color: var(--text); text-align: center; margin: 0 0 8px; }
+.ob-desc             { font-size: 13px; color: var(--text2); text-align: center; margin: 0 0 16px; line-height: 1.6; }
+.ob-features         { display: flex; flex-direction: column; gap: 8px; background: var(--bg3); border-radius: 12px; padding: 14px 16px; }
+.ob-feat             { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.ob-dots             { display: flex; justify-content: center; gap: 6px; margin-bottom: 20px; }
+.ob-dot              { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); transition: all .2s; }
+.ob-dot-active       { background: var(--accent); width: 20px; border-radius: 4px; }
+.ob-dot-done         { background: var(--green, #22c55e); }
+.ob-nav              { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+.ob-avatar-preview   { font-size: 52px; flex-shrink: 0; }
+.ob-av-grid          { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ob-av               { font-size: 24px; cursor: pointer; padding: 6px 8px; border-radius: 8px; transition: background .15s; }
+.ob-av:hover         { background: var(--bg3); }
+.ob-av-sel           { background: rgba(99,102,241,.2); outline: 2px solid var(--accent); }
+.ob-section-label    { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); margin-top: 14px; }
+.ob-lic-options      { display: flex; flex-direction: column; gap: 10px; }
+.ob-lic-opt          { background: var(--bg3); border-radius: 10px; padding: 14px 16px; }
+.ob-lic-sep          { text-align: center; color: var(--text3); font-size: 12px; }
+.ob-tips             { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.ob-tip              { background: var(--bg3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text2); }
+.ob-tip kbd          { background: var(--bg2); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+/* Tour tooltips */
+.tour-tip            { background: var(--bg2); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; max-width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.tour-text           { font-size: 12px; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+.tour-actions        { display: flex; gap: 6px; justify-content: flex-end; }
+.tour-highlight      { outline: 2px solid var(--accent) !important; border-radius: 8px; }
+/* ═══ LICENSE & AI SUBSCRIPTIONS ════════════════════════════════════════════ */
+.lic-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 20px;
+}
+.lic-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.lic-logo { font-size: 32px; flex-shrink: 0; }
+.lic-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.lic-tier-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.lic-tier-trial    { background: rgba(251,191,36,.15); color: #fbbf24; border: 1px solid rgba(251,191,36,.3); }
+.lic-tier-monthly  { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); }
+.lic-tier-yearly   { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.3); }
+.lic-tier-lifetime { background: rgba(236,72,153,.15);  color: #f9a8d4; border: 1px solid rgba(236,72,153,.3); }
+.lic-status-msg { font-size: 13px; margin-bottom: 12px; }
+.lic-trial-bar  { height: 6px; background: var(--bg3); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
+.lic-trial-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+.lic-key-row    { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.lic-key-label  { font-size: 12px; color: var(--text3); }
+.lic-key-val    { font-size: 12px; color: var(--text2); background: var(--bg3); padding: 3px 10px; border-radius: 6px; letter-spacing: .08em; opacity: 1; }
+.lic-activate-section { display: flex; flex-direction: column; gap: 8px; }
+.lic-activate-row { display: flex; gap: 8px; }
+.lic-key-input  { flex: 1; background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--text); font-family: 'Cascadia Code','Consolas',monospace; letter-spacing: .06em; outline: none; }
+.lic-key-input:focus { border-color: var(--accent); }
+.lic-activate-msg { font-size: 12px; min-height: 16px; }
+.lic-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 14px;
+}
+/* AI Provider Cards */
+.ai-subs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.ai-sub-card  { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; transition: border-color .2s; }
+.ai-sub-card:hover { border-color: var(--accent); }
+.ai-sub-hdr   { display: flex; align-items: center; gap: 10px; }
+.ai-sub-icon  { font-size: 24px; flex-shrink: 0; }
+.ai-sub-info  { flex: 1; min-width: 0; }
+.ai-sub-name  { font-size: 13px; font-weight: 700; color: var(--text); }
+.ai-sub-status { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text3); margin-top: 2px; }
+.ai-dot       { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.ai-dot-ok    { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.6); }
+.ai-dot-err   { background: #ef4444; }
+.ai-dot-none  { background: #6e7681; }
+.ai-sub-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.ai-sub-meta  { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.ai-meta-chip { font-size: 11px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 2px 8px; color: var(--text2); }
+/* Plans modal */
+.plans-grid   { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
+.plan-card    { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+.plan-card.plan-lifetime { border-color: rgba(236,72,153,.4); background: rgba(236,72,153,.05); }
+.plan-card.plan-yearly   { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.05); }
+.plan-icon    { font-size: 28px; margin-bottom: 6px; }
+.plan-name    { font-size: 14px; font-weight: 700; color: var(--text); }
+.plan-price   { font-size: 22px; font-weight: 800; color: var(--accent); margin: 4px 0 2px; }
+.plan-dur     { font-size: 11px; color: var(--text3); margin-bottom: 10px; }
+.plan-features { list-style: none; padding: 0; margin: 0; text-align: left; font-size: 12px; color: var(--text2); display: flex; flex-direction: column; gap: 4px; }
+/* Cost stats block */
+.ai-cost-stats { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.cost-total    { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.cost-row      { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+.cost-name     { color: var(--text2); min-width: 100px; }
+.cost-raw      { color: var(--text3); flex: 1; }
+.cost-usd      { font-size: 11px; background: rgba(16,185,129,.12); color: #6ee7b7; border-radius: 5px; padding: 2px 7px; white-space: nowrap; }
+
+/* ── Proxy spending dashboard ───────────────────────────────────────────── */
+.proxy-spend-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+.spend-budget-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spend-label      { font-size: 13px; color: var(--text2); white-space: nowrap; }
+.spend-budget-input-wrap { display: flex; align-items: center; gap: 6px; }
+.spend-dollar     { font-size: 15px; font-weight: 700; color: var(--accent); }
+.spend-budget-input { width: 90px; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 700; padding: 6px 10px; outline: none; }
+.spend-budget-input:focus { border-color: var(--accent); }
+.spend-loading    { font-size: 13px; color: var(--text3); text-align: center; padding: 12px 0; }
+.spend-total-row  { display: flex; flex-direction: column; gap: 6px; }
+.spend-total-nums { display: flex; align-items: baseline; gap: 4px; flex-wrap: wrap; }
+.spend-big-num    { font-size: 22px; font-weight: 900; color: var(--text); }
+.spend-big-label  { font-size: 12px; color: var(--text3); }
+.spend-cost-num   { font-size: 18px; font-weight: 800; color: var(--accent); margin-left: auto; }
+.spend-of         { font-size: 13px; color: var(--text3); }
+.spend-budget-num { font-size: 15px; font-weight: 700; color: var(--text2); }
+.spend-bar-wrap   { height: 8px; background: var(--bg4); border-radius: 4px; overflow: hidden; }
+.spend-bar-fill   { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), #7c3aed); transition: width .6s ease; }
+.spend-bar-fill.warn { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.spend-remain-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3); }
+.spend-remain-val { font-weight: 700; color: #22c55e; }
+.spend-remain-val.low { color: #f59e0b; }
+.spend-remain-val.empty { color: #ef4444; }
+.spend-breakdown  { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.spend-prov-row   { display: grid; grid-template-columns: 28px 100px 1fr 70px 70px; align-items: center; gap: 8px; }
+.spend-prov-ico   { font-size: 16px; text-align: center; }
+.spend-prov-name  { font-size: 12px; font-weight: 600; color: var(--text); }
+.spend-prov-bar-wrap { height: 5px; background: var(--bg4); border-radius: 3px; overflow: hidden; }
+.spend-prov-bar   { height: 100%; border-radius: 3px; background: var(--accent); opacity: .75; }
+.spend-prov-reqs  { font-size: 11px; color: var(--text3); text-align: right; }
+.spend-prov-cost  { font-size: 12px; font-weight: 700; color: var(--text2); text-align: right; }
+.spend-note       { font-size: 11px; color: var(--text3); padding-top: 8px; border-top: 1px solid var(--border); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -230,6 +413,9 @@
   <div class="nav-btn" data-page="api"><span class="ico">🔑</span>API Ключі</div>
   <div class="nav-btn" data-page="settings"><span class="ico">⚙</span>Налаштування</div>
   <div class="nav-btn" data-page="logs"><span class="ico">📋</span>Логи</div>
+  <div class="nav-btn" data-page="profile"><span class="ico">👤</span>Профіль</div>
+  <div class="nav-btn" data-page="license"><span class="ico">💳</span>Підписки</div>
+  <div class="nav-btn" data-page="help"><span class="ico">❓</span>Довідка</div>
   <div class="nav-spacer"></div>
   <div class="sidebar-bottom">
     <div class="sphere-status-row">
@@ -766,15 +952,26 @@
     </div>
 
     <!-- CHAT -->
-    <div class="page page-flex" id="page-chat">
-      <div class="chat-wrap" style="flex:1;">
+    <div class="page page-flex" id="page-chat" style="flex-direction:row;overflow:hidden;">
+      <!-- Sessions sidebar -->
+      <div class="chat-sessions-panel" id="chatSidebar" style="display:none;">
+        <div class="cs-header">
+          <span>💬 Чати</span>
+          <button class="cs-new-btn" onclick="newChatSession()">+ Новий</button>
+        </div>
+        <div class="cs-list" id="chatSessionList"></div>
+      </div>
+
+      <div class="chat-wrap" style="flex:1;min-width:0;">
         <div class="chat-header">
+          <button class="voice-btn" id="sidebarToggleBtn" onclick="toggleChatSidebar()" title="Список чатів" style="margin-right:4px;font-size:14px;">☰</button>
           <div style="display:flex;gap:6px;flex-wrap:wrap;flex:1;" id="modelChips"></div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             <div class="live-trigger" onclick="startLiveMode()" title="AXIS Live — постійний голосовий режим">
               <span class="lt-dot"></span> Live
             </div>
             <button class="voice-btn" id="ttsBtn" onclick="toggleTts()" title="Голос AI вимкнено">🔈</button>
+            <button class="btn btn-sm" onclick="newChatSession()">+ Новий</button>
             <button class="btn btn-sm" onclick="clearChat()">Очистити</button>
           </div>
         </div>
@@ -798,8 +995,28 @@
             <div class="cq-btn" onclick="quickMsg('Перекладіть текст: ')">Переклад</div>
             <div class="cq-btn" onclick="quickMsg('Підсумуй: ')">Підсумок</div>
           </div>
+          <!-- Response style bar -->
+          <div class="style-bar" id="styleBar">
+            <span class="style-bar-lbl">Стиль:</span>
+            <div id="styleChips" class="style-chips"></div>
+            <span id="styleCustomTrigger" class="style-custom-btn" onclick="openStyleCustom()" title="Свій стиль">✏️ Свій</span>
+            <span id="styleActiveBadge" class="style-active-badge" style="display:none;"></span>
+          </div>
+          <!-- Style custom input (hidden by default) -->
+          <div id="styleCustomBar" style="display:none;padding:4px 14px 0;">
+            <input id="styleCustomInput" placeholder="Введіть свій стиль: напр. «відповідай як Шерлок Холмс»"
+                   style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:12px;padding:5px 12px;outline:none;"
+                   onkeydown="if(event.key==='Enter')applyCustomStyle();if(event.key==='Escape')closeStyleCustom()">
+          </div>
+          <!-- File attachment preview strip -->
+          <div id="attachPreview" class="attach-preview" style="display:none;"></div>
           <div class="chat-input-wrap">
             <input id="chatInput" placeholder="Повідомлення або 🎤 для голосу..." onkeydown="chatKey(event)">
+            <!-- hidden file input -->
+            <input type="file" id="fileAttachInput" multiple accept="*/*"
+                   style="display:none" onchange="handleFileAttach(this.files)">
+            <button class="voice-btn" id="attachBtn" onclick="R('fileAttachInput').click()"
+                    title="Прикріпити файл" style="margin-right:2px;">📎</button>
             <button class="voice-btn" id="micBtn" onclick="toggleRecording()" title="Голосовий ввід" style="margin-right:2px;">🎤</button>
             <div class="chat-send" onclick="sendChat()">➤</div>
           </div>
@@ -997,8 +1214,11 @@
             </div>
             <div class="cmd-step-box s1">
               <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Слово-тригер</div>
-              <input id="cmdTrigger" placeholder="відкрий chrome" class="cmd-trigger-main">
-              <div class="cmd-trigger-hint">👆 Це слово/фраза запускає команду. Ви пишете або вимовляєте його в чаті.</div>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <input id="cmdTrigger" placeholder="відкрий chrome" class="cmd-trigger-main" style="flex:1;">
+                <button id="listenTriggerBtn" class="btn btn-sm" onclick="listenForTrigger()" title="Говоріть — фраза запишеться автоматично" style="white-space:nowrap;background:rgba(0,212,255,.1);color:var(--accent);border-color:rgba(0,212,255,.25);font-size:11px;">🎤 Слухати</button>
+              </div>
+              <div class="cmd-trigger-hint">👆 Це слово/фраза запускає команду. Натисніть 🎤 щоб продиктувати.</div>
               <div style="margin-top:10px;">
                 <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Інші варіанти фрази <span style="opacity:.6;">(через кому, необов'язково)</span></div>
                 <textarea id="cmdTriggerAlts" rows="2" placeholder="відкрий браузер, запусти chrome, хром" style="resize:vertical;font-size:11px;"></textarea>
@@ -1041,6 +1261,16 @@
               <div class="cmd-step-title">Додатково <span style="font-size:10px;color:var(--text3);font-weight:400;">(необов'язково)</span></div>
             </div>
             <div class="cmd-step-box s3">
+              <!-- Sphere listen toggle -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.12);border-radius:10px;margin-bottom:12px;">
+                <div>
+                  <div style="font-size:12px;font-weight:700;color:var(--text);">🎤 Слухати сферою</div>
+                  <div style="font-size:10px;color:var(--text3);margin-top:2px;">Сфера реагуватиме на голосовий тригер цієї команди</div>
+                </div>
+                <div id="cmdListenToggle" onclick="toggleCmdListen()" style="width:44px;height:24px;border-radius:12px;background:var(--accent);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+                  <div id="cmdListenThumb" style="position:absolute;top:3px;left:22px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>
+                </div>
+              </div>
               <div style="display:grid;grid-template-columns:80px 1fr;gap:10px;margin-bottom:10px;">
                 <div>
                   <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Іконка</div>
@@ -1048,7 +1278,12 @@
                 </div>
                 <div>
                   <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">Гаряча клавіша</div>
-                  <input id="cmdHotkey" placeholder="Ctrl+Shift+R">
+                  <div style="display:flex;gap:5px;align-items:center;">
+                    <input id="cmdHotkey" placeholder="Клік сюди → натисніть клавіші..." style="flex:1;cursor:pointer;" title="Клікніть та натисніть потрібну комбінацію"
+                      onfocus="startCmdHotkeyCapture()"
+                      onblur="_cmdHotkeyCapturing=false;if(!this.value){this.style.borderColor='';}">
+                    <button class="btn btn-sm btn-d" onclick="var i=R('cmdHotkey');i.value='';i.placeholder='Клік сюди → натисніть клавіші...';i.style.borderColor='';_cmdHotkeyCapturing=false;" title="Очистити" style="padding:5px 7px;font-size:10px;">✕</button>
+                  </div>
                 </div>
               </div>
               <div>
@@ -1792,7 +2027,8 @@
                   </div>
                   <div style="font-size:11px;opacity:.45;line-height:1.5;">
                     💡 <b>Назва кнопки</b> — текст на кнопці в Telegram (emoji + назва)<br>
-                    💡 <b>Дія</b> — що виконати (як голосова команда або /status, /start)
+                    💡 <b>Команда</b> — що виконати (голосова команда або /status, /start)<br>
+                    💡 <b>Тема</b> — смарт-меню: нотатки, музика, задачі, новини тощо
                   </div>
                 </div>
               </div>
@@ -2287,21 +2523,540 @@
     </div>
 
     <!-- ── LOGS PAGE ─────────────────────────────────────────────── -->
-    <div class="page" id="page-logs" style="display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;">
+    <div class="page-flex" id="page-logs" style="flex-direction:column;gap:0;padding:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:10px;padding:16px 20px 10px;flex-shrink:0;">
         <span style="font-size:18px;font-weight:700;color:var(--text)">📋 Системні логи</span>
         <span style="flex:1"></span>
         <button onclick="clearLogs()" style="padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;">Очистити</button>
         <button onclick="copyAllLogs()" style="padding:5px 14px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer;">Копіювати</button>
       </div>
-      <div style="display:flex;gap:8px;padding:0 20px 10px;flex-shrink:0;">
+      <div style="display:flex;gap:8px;padding:0 20px 10px;flex-shrink:0;flex-wrap:wrap;">
         <button class="log-filter-btn active" data-filter="all"    onclick="filterLogs(this,'all')">Всі</button>
         <button class="log-filter-btn"        data-filter="info"   onclick="filterLogs(this,'info')">Info</button>
         <button class="log-filter-btn"        data-filter="error"  onclick="filterLogs(this,'error')">Error</button>
+        <button class="log-filter-btn"        data-filter="sphere" onclick="filterLogsSphere(this)">🔮 Sphere</button>
+        <button class="log-filter-btn"        data-filter="panel"  onclick="filterLogsPanel(this)">🖥 Panel</button>
       </div>
       <div id="log-output" style="flex:1;overflow-y:auto;padding:4px 16px 16px;font-family:'Cascadia Code','Consolas',monospace;font-size:12px;line-height:1.7;"></div>
     </div>
 
+    <!-- ── PROFILE PAGE ──────────────────────────────────────────────── -->
+    <div class="page" id="page-profile">
+
+      <div class="profile-layout">
+
+        <!-- Left: Avatar + Identity -->
+        <div class="profile-card" style="width:200px;flex-shrink:0;">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar" id="profileAvatar">👤</div>
+            <div id="profileLicBadge" class="lic-tier-badge lic-tier-trial" style="margin-top:8px;">⏳ Пробний</div>
+          </div>
+          <div id="profileFullName" style="font-size:13px;font-weight:600;color:var(--text);text-align:center;margin-bottom:4px;">—</div>
+          <div class="profile-since">Учасник з <span id="profileSince">—</span></div>
+
+          <!-- Avatar picker -->
+          <div class="profile-section-label">Аватар</div>
+          <div id="avatarPickerGrid" class="av-grid"></div>
+        </div>
+
+        <!-- Right: Form + Stats -->
+        <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+
+          <!-- Identity form -->
+          <div class="profile-card">
+            <div class="profile-section-label">👤 Особисті дані</div>
+            <div class="pf-grid" style="margin-top:8px;">
+              <div class="mfield"><label>Прізвище</label><input id="pf_last_name"   placeholder="Іваненко"></div>
+              <div class="mfield"><label>Ім'я</label>    <input id="pf_first_name"  placeholder="Іван"></div>
+              <div class="mfield"><label>По-батькові</label><input id="pf_middle_name" placeholder="Іванович"></div>
+              <div class="mfield"><label>Дата народження</label><input id="pf_birth_date" type="date"></div>
+              <div class="mfield"><label>Мова</label>
+                <select id="pf_language">
+                  <option value="uk">🇺🇦 Українська</option>
+                  <option value="en">🇬🇧 English</option>
+                  <option value="ru">🇷🇺 Русский</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contacts -->
+          <div class="profile-card">
+            <div class="profile-section-label">📬 Контакти</div>
+            <div class="pf-grid" style="margin-top:8px;">
+              <div class="mfield"><label>Email</label>   <input id="pf_email"    type="email" placeholder="your@email.com"></div>
+              <div class="mfield"><label>Телефон</label> <input id="pf_phone"    placeholder="+380 XX XXX XX XX"></div>
+              <div class="mfield"><label>Telegram</label><input id="pf_telegram" placeholder="@username"></div>
+              <div class="mfield"><label>Сайт</label>    <input id="pf_website"  placeholder="https://"></div>
+            </div>
+          </div>
+
+          <!-- Address -->
+          <div class="profile-card">
+            <div class="profile-section-label">📍 Адреса</div>
+            <div class="pf-grid" style="margin-top:8px;">
+              <div class="mfield"><label>Країна</label>  <input id="pf_country"     placeholder="Україна"></div>
+              <div class="mfield"><label>Місто</label>   <input id="pf_city"        placeholder="Київ"></div>
+              <div class="mfield pf-full"><label>Адреса (вулиця, будинок, квартира)</label><input id="pf_address" placeholder="вул. Хрещатик, 1, кв. 1"></div>
+              <div class="mfield"><label>Поштовий індекс</label><input id="pf_postal_code" placeholder="01001"></div>
+            </div>
+          </div>
+
+          <!-- Work / Business -->
+          <div class="profile-card">
+            <div class="profile-section-label">🏢 Робота / Бізнес</div>
+            <div class="pf-hint">Ці дані AI підставляє автоматично в договори, рахунки, листи</div>
+            <div class="pf-grid" style="margin-top:8px;">
+              <div class="mfield pf-full"><label>Компанія / ФОП / ПП</label><input id="pf_company"  placeholder="ФОП Іваненко Іван Іванович"></div>
+              <div class="mfield"><label>Посада</label>  <input id="pf_position" placeholder="Директор"></div>
+              <div class="mfield"><label>ІПН / РНОКПП</label><input id="pf_inn"     placeholder="1234567890" maxlength="10"></div>
+              <div class="mfield"><label>ЄДРПОУ</label>  <input id="pf_edrpou"   placeholder="12345678" maxlength="8"></div>
+              <div class="mfield pf-full"><label>IBAN (номер рахунку)</label><input id="pf_iban" placeholder="UA12 3456 7890 1234 5678 9012 3456 7"></div>
+              <div class="mfield"><label>Банк</label>    <input id="pf_bank"     placeholder="АТ «ПриватБанк»"></div>
+              <div class="mfield"><label>МФО</label>     <input id="pf_mfo"      placeholder="305299" maxlength="6"></div>
+            </div>
+          </div>
+
+          <!-- Documents -->
+          <div class="profile-card">
+            <div class="profile-section-label">📄 Для документів</div>
+            <div class="pf-grid" style="margin-top:8px;">
+              <div class="mfield pf-full"><label>Підписант (якщо інше ім'я в документах)</label><input id="pf_doc_signatory" placeholder="Іваненко І.І."></div>
+              <div class="mfield pf-full"><label>Діє на підставі</label><input id="pf_doc_basis" placeholder="Статуту / Довіреності №1 від 01.01.2024"></div>
+              <div class="mfield" style="flex-direction:row;align-items:center;gap:10px;">
+                <input type="checkbox" id="pf_doc_stamp" style="width:16px;height:16px;cursor:pointer;">
+                <label for="pf_doc_stamp" style="cursor:pointer;">Є печатка</label>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-p" style="padding:10px 24px;" onclick="saveProfile()">💾 Зберегти профіль</button>
+          </div>
+
+          <!-- Usage stats -->
+          <div class="profile-card">
+            <div class="profile-section-label">📊 Статистика використання</div>
+            <div class="stats-grid">
+              <div class="stat-item"><div class="stat-val" id="statAiReq">0</div><div class="stat-lbl">AI запитів</div></div>
+              <div class="stat-item"><div class="stat-val" id="statSphere">0</div><div class="stat-lbl">Голосових команд</div></div>
+              <div class="stat-item"><div class="stat-val" id="statPomodoro">0</div><div class="stat-lbl">Pomodoro сесій</div></div>
+              <div class="stat-item"><div class="stat-val" id="statNotes">0</div><div class="stat-lbl">Нотаток</div></div>
+              <div class="stat-item"><div class="stat-val" id="statCommands">0</div><div class="stat-lbl">Команд</div></div>
+              <div class="stat-item"><div class="stat-val" id="statLastActive" style="font-size:11px;">—</div><div class="stat-lbl">Остання активність</div></div>
+            </div>
+          </div>
+
+          <!-- Help / Overview -->
+          <div class="profile-card">
+            <div class="profile-section-label">📖 Огляд модулів</div>
+            <div class="help-grid">
+              <div class="help-item"><span class="help-ico">⬡</span><div><b>Головна</b><div class="help-desc">Віджети: CPU, пам'ять, задачі, нотатки, погода</div></div></div>
+              <div class="help-item"><span class="help-ico">💬</span><div><b>AI Чат</b><div class="help-desc">Діалог з GPT, Gemini, Claude, Grok, Perplexity</div></div></div>
+              <div class="help-item"><span class="help-ico">🔮</span><div><b>Сфера</b><div class="help-desc">Голосовий асистент з функціями: пошук, нотатки, керування ПК</div></div></div>
+              <div class="help-item"><span class="help-ico">💻</span><div><b>IDE</b><div class="help-desc">Редактор коду з підсвіткою та AI-допомогою</div></div></div>
+              <div class="help-item"><span class="help-ico">🍅</span><div><b>Помодоро</b><div class="help-desc">Таймер фокусу 25/5 хв, статистика сесій</div></div></div>
+              <div class="help-item"><span class="help-ico">✨</span><div><b>Генератор</b><div class="help-desc">Генерація зображень і відео через AI</div></div></div>
+              <div class="help-item"><span class="help-ico">📋</span><div><b>Команди</b><div class="help-desc">Бібліотека команд і макросів для автоматизації</div></div></div>
+              <div class="help-item"><span class="help-ico">💳</span><div><b>Підписки</b><div class="help-desc">Ліцензія AXIS OS + трекінг витрат на AI</div></div></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- end page-profile -->
+
+    <!-- ── LICENSE & AI SUBSCRIPTIONS PAGE ───────────────────────────── -->
+    <div class="page" id="page-license">
+
+      <!-- AXIS OS License card -->
+      <div class="lic-card">
+        <div class="lic-card-hdr">
+          <span class="lic-logo">⬡</span>
+          <div>
+            <div class="lic-title">AXIS OS — Ліцензія</div>
+            <div id="licTierBadge" class="lic-tier-badge lic-tier-trial">⏳ Пробний</div>
+          </div>
+          <button class="btn btn-sm" onclick="showAxisPlans()" title="Переглянути плани">💎 Плани</button>
+        </div>
+
+        <div id="licStatusMsg" class="lic-status-msg">⏳ Завантаження...</div>
+
+        <!-- Trial progress bar -->
+        <div id="licTrialBar" class="lic-trial-bar" style="display:none">
+          <div id="licTrialBarFill" class="lic-trial-fill" style="width:100%"></div>
+        </div>
+
+        <!-- Active key display -->
+        <div class="lic-key-row">
+          <span class="lic-key-label">Ключ:</span>
+          <code id="licActiveKey" class="lic-key-val">—</code>
+        </div>
+
+        <!-- Activation section -->
+        <div id="licActivateSection" class="lic-activate-section">
+          <div class="lic-activate-row">
+            <input id="licKeyInput" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" maxlength="24">
+            <button class="btn btn-p" onclick="licActivate()">Активувати</button>
+          </div>
+          <div id="licActivateMsg" class="lic-activate-msg"></div>
+        </div>
+      </div>
+
+      <!-- AI Subscriptions section -->
+      <div class="lic-section-hdr">
+        <span>🔑 Підписки на AI-сервіси</span>
+        <button class="btn btn-sm" onclick="licCheckKeys()">🔍 Перевірити ключі</button>
+      </div>
+
+      <!-- ── Proxy spending dashboard ── -->
+      <div class="lic-section-hdr" style="margin-top:20px;">
+        <span>💸 Витрати через проксі-сервер</span>
+        <button class="btn btn-sm" onclick="licRefreshStats()">🔄 Оновити</button>
+      </div>
+      <div class="proxy-spend-card" id="proxySpendCard">
+        <!-- Budget row -->
+        <div class="spend-budget-row">
+          <span class="spend-label">Поповнив на:</span>
+          <div class="spend-budget-input-wrap">
+            <span class="spend-dollar">$</span>
+            <input id="spendBudgetInput" class="spend-budget-input" type="number" min="0" step="1" placeholder="50" value="">
+            <button class="btn btn-sm btn-p" onclick="licSaveBudget()">Зберегти</button>
+          </div>
+        </div>
+
+        <!-- Loading state -->
+        <div id="proxyStatsLoading" class="spend-loading">⏳ Завантаження статистики...</div>
+
+        <!-- Stats content (hidden until loaded) -->
+        <div id="proxyStatsContent" style="display:none">
+          <!-- Total bar -->
+          <div class="spend-total-row">
+            <div class="spend-total-nums">
+              <span id="spendTotalReqs" class="spend-big-num">0</span><span class="spend-big-label"> запитів цього місяця</span>
+              <span style="flex:1"></span>
+              <span id="spendTotalCost" class="spend-cost-num">≈ $0.00</span>
+              <span class="spend-of"> / </span>
+              <span id="spendBudgetDisplay" class="spend-budget-num">$0.00</span>
+            </div>
+            <div class="spend-bar-wrap">
+              <div id="spendTotalBar" class="spend-bar-fill" style="width:0%"></div>
+            </div>
+            <div class="spend-remain-row">
+              <span>Залишок:</span>
+              <span id="spendRemain" class="spend-remain-val">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Per-provider breakdown -->
+          <div id="spendBreakdown" class="spend-breakdown"></div>
+
+          <div class="spend-note">ℹ️ Суми приблизні — розраховані за середньою вартістю токенів. Точні дані на dashboards провайдерів.</div>
+        </div>
+      </div>
+
+      <!-- Cost statistics -->
+      <div id="aiCostStats" class="ai-cost-stats" style="display:none"></div>
+
+      <div id="aiSubsCards" class="ai-subs-grid">
+        <!-- populated by JS -->
+      </div>
+
+    </div><!-- end page-license -->
+
+    <!-- ═══ HELP PAGE ═══════════════════════════════════════════════════════ -->
+    <div class="page" id="page-help">
+      <style>
+        .help-hero{background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(139,92,246,.08));border:1px solid rgba(0,212,255,.15);border-radius:16px;padding:28px 32px;margin-bottom:20px;text-align:center;}
+        .help-hero h1{font-size:26px;font-weight:700;margin:0 0 6px;background:linear-gradient(90deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+        .help-hero p{color:var(--text3);font-size:14px;margin:0;}
+        .help-search{width:100%;padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;margin-bottom:20px;outline:none;}
+        .help-search:focus{border-color:var(--accent);}
+        .help-sections{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+        @media(max-width:700px){.help-sections{grid-template-columns:1fr;}}
+        .help-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+        .help-card-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none;border-bottom:1px solid transparent;transition:background .15s;}
+        .help-card-hdr:hover{background:rgba(255,255,255,.04);}
+        .help-card-hdr.open{border-bottom-color:var(--border);}
+        .help-card-ico{font-size:22px;flex-shrink:0;}
+        .help-card-title{font-size:15px;font-weight:600;flex:1;}
+        .help-card-arrow{font-size:11px;opacity:.5;transition:transform .2s;}
+        .help-card-hdr.open .help-card-arrow{transform:rotate(180deg);}
+        .help-card-body{display:none;padding:16px 18px;font-size:13px;color:var(--text2);line-height:1.7;}
+        .help-card-body.open{display:block;}
+        .help-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}
+        .help-step-num{min-width:24px;height:24px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;}
+        .help-step-text{flex:1;}
+        .help-step-text b{color:var(--text);display:block;margin-bottom:2px;}
+        .help-kbd{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;padding:2px 7px;font-size:11px;font-family:monospace;color:var(--text);}
+        .help-tip{background:rgba(0,212,255,.06);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:8px 12px;margin:10px 0;font-size:12px;}
+        .help-tip b{color:var(--accent);}
+        .help-cmd-type{display:inline-block;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;margin:2px;}
+        .hct-shell{background:rgba(0,212,255,.12);color:var(--accent);}
+        .hct-url{background:rgba(99,179,237,.12);color:#63b3ed;}
+        .hct-python{background:rgba(246,173,85,.12);color:#f6ad55;}
+        .hct-internal{background:rgba(154,205,50,.12);color:#9acd32;}
+        .help-faq-q{font-weight:600;color:var(--text);margin:12px 0 4px;}
+        .help-faq-a{color:var(--text3);margin-bottom:12px;}
+        .help-shortcuts-table{width:100%;border-collapse:collapse;}
+        .help-shortcuts-table tr{border-bottom:1px solid rgba(255,255,255,.05);}
+        .help-shortcuts-table td{padding:6px 8px;font-size:12px;}
+        .help-shortcuts-table td:first-child{width:140px;}
+      </style>
+
+      <div class="help-hero">
+        <h1>⬡ AXIS OS — Довідка</h1>
+        <p>Все що потрібно знати для роботи з голосовим асистентом та панеллю керування</p>
+      </div>
+
+      <input class="help-search" placeholder="🔍 Пошук по довідці..." oninput="helpSearch(this.value)" id="helpSearchInput">
+
+      <div class="help-sections" id="helpSections">
+
+        <!-- 1. Швидкий старт -->
+        <div class="help-card" data-help="швидкий старт перший запуск налаштування">
+          <div class="help-card-hdr open" onclick="toggleHelp(this)">
+            <span class="help-card-ico">🚀</span>
+            <span class="help-card-title">Швидкий старт</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body open">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-text"><b>Встанови API ключі</b>Перейди в <b>API Ключі</b> → введи свій OpenAI або інший ключ → Зберегти</div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-text"><b>Запусти сферу</b>Клікни <b>⬡ Запустити сферу</b> на головній або через трей. Сфера слухає команди голосом.</div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-text"><b>Скажи команду</b>Приклади: <i>«відкрий chrome»</i>, <i>«яка погода»</i>, <i>«включи музику»</i></div></div>
+            <div class="help-step"><div class="help-step-num">4</div><div class="help-step-text"><b>Створи свою команду</b>Команди → <b>+ Нова команда</b> → заповни форму</div></div>
+            <div class="help-tip"><b>💡 Порада:</b> Натисни <span class="help-kbd">Ctrl+K</span> будь-де в панелі — відкриється швидкий пошук команд</div>
+          </div>
+        </div>
+
+        <!-- 2. Створення команд -->
+        <div class="help-card" data-help="створення команди тригер гарячі клавіші hotkey">
+          <div class="help-card-hdr open" onclick="toggleHelp(this)">
+            <span class="help-card-ico">📋</span>
+            <span class="help-card-title">Як створювати команди</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body open">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-text"><b>Тригерна фраза</b>Слово або фраза, яку говориш сфері. Натисни 🎤 щоб продиктувати голосом.</div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-text"><b>Тип команди</b>
+              <span class="help-cmd-type hct-shell">Shell</span> — запустити програму або .exe<br>
+              <span class="help-cmd-type hct-url">URL</span> — відкрити сайт у браузері<br>
+              <span class="help-cmd-type hct-python">Python</span> — виконати Python код<br>
+              <span class="help-cmd-type hct-internal">Система</span> — внутрішня дія AXIS
+            </div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-text"><b>Дія (тіло команди)</b>Що виконати: назва програми, URL, або код. Приклади:<br><code>chrome</code> · <code>https://youtube.com</code> · <code>notepad.exe</code></div></div>
+            <div class="help-step"><div class="help-step-num">4</div><div class="help-step-text"><b>Гаряча клавіша (необов'язково)</b>Клікни поле → натисни потрібну комбінацію. Команда виконається за цим хоткеєм.</div></div>
+            <div class="help-step"><div class="help-step-num">5</div><div class="help-step-text"><b>Додатково</b>Альтернативні фрази (через кому), іконка, опис. Перемикач «🎤 Сфера слухає» — чи реагувати голосом.</div></div>
+            <div class="help-tip"><b>💡 Швидко:</b> Натисни «✨ Шаблони» — готові команди для Chrome, YouTube, системи тощо</div>
+          </div>
+        </div>
+
+        <!-- 3. Голосова сфера -->
+        <div class="help-card" data-help="сфера голос мікрофон команди wake word">
+          <div class="help-card-hdr" onclick="toggleHelp(this)">
+            <span class="help-card-ico">🎙️</span>
+            <span class="help-card-title">Голосова сфера</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-text"><b>Запуск</b>Головна → «⬡ Запустити сферу» або через іконку в треї</div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-text"><b>Wake word</b>За замовчуванням скажи <i>«axis»</i> або <i>«ейксіс»</i> — сфера почне слухати команду</div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-text"><b>Режими сфери</b>
+              <b>Normal</b> — одна команда за раз<br>
+              <b>Live</b> — постійне слухання без wake word<br>
+              <b>Dialog</b> — режим розмови з AI
+            </div></div>
+            <div class="help-step"><div class="help-step-num">4</div><div class="help-step-text"><b>Жести</b>Клік по сфері — активувати · Правий клік — меню · Подвійний клік — сховати/показати</div></div>
+            <div class="help-tip"><b>💡 Telegram:</b> Всі команди також працюють через Telegram бота — надішли текст або голосове повідомлення</div>
+          </div>
+        </div>
+
+        <!-- 4. Гарячі клавіші -->
+        <div class="help-card" data-help="гарячі клавіші shortcuts keyboard">
+          <div class="help-card-hdr" onclick="toggleHelp(this)">
+            <span class="help-card-ico">⌨️</span>
+            <span class="help-card-title">Гарячі клавіші</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body">
+            <table class="help-shortcuts-table">
+              <tr><td><span class="help-kbd">Ctrl+K</span></td><td>Швидкий пошук команд</td></tr>
+              <tr><td><span class="help-kbd">Ctrl+S</span></td><td>Зберегти код в IDE</td></tr>
+              <tr><td><span class="help-kbd">F5</span></td><td>Запустити код в IDE</td></tr>
+              <tr><td><span class="help-kbd">Escape</span></td><td>Закрити модальне вікно</td></tr>
+              <tr><td><span class="help-kbd">Ctrl+Shift+M</span></td><td>Мікрофон (налаштовується)</td></tr>
+              <tr><td><span class="help-kbd">Ctrl+Shift+L</span></td><td>Live-режим (налаштовується)</td></tr>
+              <tr><td><span class="help-kbd">Ctrl+N</span></td><td>Новий чат (налаштовується)</td></tr>
+            </table>
+            <div class="help-tip" style="margin-top:12px;"><b>💡 Свої клавіші:</b> Налаштування → Гарячі клавіші — там можна змінити будь-яку комбінацію</div>
+          </div>
+        </div>
+
+        <!-- 5. API ключі -->
+        <div class="help-card" data-help="api ключі openai anthropic google spotify налаштування">
+          <div class="help-card-hdr" onclick="toggleHelp(this)">
+            <span class="help-card-ico">🔑</span>
+            <span class="help-card-title">Налаштування API ключів</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-text"><b>OpenAI</b> — для AI чату та Whisper STT<br><a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://platform.openai.com/api-keys',type:'shell'}));return false;" style="color:var(--accent)">platform.openai.com/api-keys ↗</a></div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-text"><b>Anthropic (Claude)</b><br><a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://console.anthropic.com/settings/keys',type:'shell'}));return false;" style="color:var(--accent)">console.anthropic.com ↗</a></div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-text"><b>Google (Gemini)</b><br><a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://aistudio.google.com/app/apikey',type:'shell'}));return false;" style="color:var(--accent)">aistudio.google.com ↗</a></div></div>
+            <div class="help-step"><div class="help-step-num">4</div><div class="help-step-text"><b>Spotify</b> — для музичного контролю<br><a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://developer.spotify.com/dashboard',type:'shell'}));return false;" style="color:var(--accent)">developer.spotify.com ↗</a></div></div>
+            <div class="help-tip"><b>🔒 Безпека:</b> Всі ключі зберігаються у Windows Credential Manager — зашифровано, не у файлах</div>
+          </div>
+        </div>
+
+        <!-- 6. Telegram бот -->
+        <div class="help-card" data-help="telegram бот налаштування token підключення">
+          <div class="help-card-hdr" onclick="toggleHelp(this)">
+            <span class="help-card-ico">📱</span>
+            <span class="help-card-title">Telegram бот</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body">
+            <div class="help-step"><div class="help-step-num">1</div><div class="help-step-text"><b>Створи бота</b>Напиши <a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://t.me/BotFather',type:'shell'}));return false;" style="color:var(--accent)">@BotFather</a> → /newbot → скопіюй токен</div></div>
+            <div class="help-step"><div class="help-step-num">2</div><div class="help-step-text"><b>Введи токен</b>API Ключі → поле «Telegram Token» → Зберегти</div></div>
+            <div class="help-step"><div class="help-step-num">3</div><div class="help-step-text"><b>Свій Chat ID</b>Напиши <a href="#" onclick="pyCall('run_macro',JSON.stringify({command:'start https://t.me/userinfobot',type:'shell'}));return false;" style="color:var(--accent)">@userinfobot</a> → скопіюй ID → встав у налаштуваннях</div></div>
+            <div class="help-step"><div class="help-step-num">4</div><div class="help-step-text"><b>Готово</b>Надішли боту будь-яку команду текстом або голосовим повідомленням</div></div>
+            <div class="help-tip"><b>💡 Команди бота:</b> /start · /status · /menu — або просто текстом як і голосом</div>
+          </div>
+        </div>
+
+        <!-- 7. FAQ -->
+        <div class="help-card" style="grid-column:1/-1;" data-help="питання відповіді faq помилка не працює">
+          <div class="help-card-hdr" onclick="toggleHelp(this)">
+            <span class="help-card-ico">❓</span>
+            <span class="help-card-title">Часті питання</span>
+            <span class="help-card-arrow">▼</span>
+          </div>
+          <div class="help-card-body" style="column-count:2;column-gap:24px;">
+            <div class="help-faq-q">Сфера не реагує на голос</div>
+            <div class="help-faq-a">Перевір: 1) Мікрофон обраний у Налаштуваннях → STT 2) Рівень чутливості 3) Сфера запущена (іконка в треї)</div>
+            <div class="help-faq-q">Команда виконується але нічого не відбувається</div>
+            <div class="help-faq-a">Перевір тіло команди — натисни ▶ на карточці команди для тесту. Деталі в Логах.</div>
+            <div class="help-faq-q">AI не відповідає</div>
+            <div class="help-faq-a">Перевір API ключ: API Ключі → 🔍 Перевірити ключі. Переконайся що є баланс на рахунку.</div>
+            <div class="help-faq-q">Spotify не підключається</div>
+            <div class="help-faq-a">API Ключі → введи Client ID і Client Secret → натисни «Підключити Spotify» → авторизуйся у браузері</div>
+            <div class="help-faq-q">Як видалити команду</div>
+            <div class="help-faq-a">Команди → знайди команду → натисни 🗑 або відкрий редагування і видали</div>
+            <div class="help-faq-q">Як зробити резервну копію</div>
+            <div class="help-faq-a">Налаштування → Резервне копіювання → Зробити бекап. Файл збережеться на Робочий стіл.</div>
+          </div>
+        </div>
+
+      </div><!-- help-sections -->
+
+      <script>
+      function toggleHelp(hdr) {
+        var body = hdr.nextElementSibling;
+        var open = body.classList.contains('open');
+        hdr.classList.toggle('open', !open);
+        body.classList.toggle('open', !open);
+      }
+      function helpSearch(q) {
+        q = q.toLowerCase().trim();
+        document.querySelectorAll('#helpSections .help-card').forEach(function(card) {
+          if (!q) { card.style.display = ''; return; }
+          var text = (card.dataset.help || '') + ' ' + card.textContent.toLowerCase();
+          card.style.display = text.includes(q) ? '' : 'none';
+        });
+      }
+      </script>
+    </div><!-- end page-help -->
+
+  </div>
+</div>
+
+<!-- MODAL: AI Subscription Edit -->
+<div class="modal-overlay" id="aiSubModal" style="display:none" onclick="if(event.target===this)aiSubModalClose()">
+  <div class="modal" style="min-width:420px;">
+    <h2 id="aiSubModalTitle">✏️ Підписка</h2>
+    <div class="mfield">
+      <label>Тариф</label>
+      <select id="aiSubPlanInput" style="margin-top:4px;"></select>
+    </div>
+    <div class="mfield">
+      <label>Вартість (наприклад: $20/міс)</label>
+      <input id="aiSubCostInput" placeholder="$20/міс">
+    </div>
+    <div class="mfield">
+      <label>Дата поновлення</label>
+      <input id="aiSubRenewalInput" type="date">
+    </div>
+    <div class="mfield">
+      <label>Нотатки</label>
+      <textarea id="aiSubNotesInput" rows="2" placeholder="Додаткова інформація..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="aiSubModalClose()">Скасувати</button>
+      <button class="btn btn-p" onclick="aiSubModalSave()">💾 Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AXIS Plans -->
+<div class="modal-overlay" id="axisPlansModal" style="display:none" onclick="if(event.target===this)axisPlansClose()">
+  <div class="modal" style="min-width:480px;">
+    <h2>💎 Плани AXIS OS</h2>
+    <div class="plans-grid">
+      <div class="plan-card plan-trial">
+        <div class="plan-icon">⏳</div>
+        <div class="plan-name">Пробний</div>
+        <div class="plan-price">Безкоштовно</div>
+        <div class="plan-dur">7 днів</div>
+        <ul class="plan-features">
+          <li>✅ Всі функції</li>
+          <li>✅ AI Чат</li>
+          <li>✅ Голосовий асистент</li>
+          <li>⚠️ Обмежений час</li>
+        </ul>
+      </div>
+      <div class="plan-card plan-monthly">
+        <div class="plan-icon">📅</div>
+        <div class="plan-name">Місячний</div>
+        <div class="plan-price">$4.99</div>
+        <div class="plan-dur">на місяць</div>
+        <ul class="plan-features">
+          <li>✅ Всі функції</li>
+          <li>✅ Пріоритетна підтримка</li>
+          <li>✅ Оновлення</li>
+          <li>✅ Без обмежень</li>
+        </ul>
+      </div>
+      <div class="plan-card plan-yearly">
+        <div class="plan-icon">🌟</div>
+        <div class="plan-name">Річний</div>
+        <div class="plan-price">$39.99</div>
+        <div class="plan-dur">на рік · економія 33%</div>
+        <ul class="plan-features">
+          <li>✅ Всі функції</li>
+          <li>✅ Пріоритетна підтримка</li>
+          <li>✅ Оновлення</li>
+          <li>✅ Без обмежень</li>
+        </ul>
+      </div>
+      <div class="plan-card plan-lifetime">
+        <div class="plan-icon">♾️</div>
+        <div class="plan-name">Назавжди</div>
+        <div class="plan-price">$89.99</div>
+        <div class="plan-dur">одноразово</div>
+        <ul class="plan-features">
+          <li>✅ Всі функції назавжди</li>
+          <li>✅ VIP підтримка</li>
+          <li>✅ Всі оновлення</li>
+          <li>✅ Пріоритет нових функцій</li>
+        </ul>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text3);margin-top:12px;text-align:center;">
+      🔒 В розробці · Скоро буде доступно на <strong>axis-os.app</strong>
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-p" onclick="axisPlansClose()">Закрити</button>
+    </div>
   </div>
 </div>
 
@@ -2385,6 +3140,82 @@
   </div>
 </div>
 
+<!-- ── ONBOARDING WIZARD ──────────────────────────────────────────────── -->
+<div id="obOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:99990;align-items:center;justify-content:center;">
+  <div class="ob-card">
+
+    <!-- Progress dots -->
+    <div id="obDots" class="ob-dots"></div>
+
+    <!-- Step 1: Welcome -->
+    <div id="obStep1">
+      <div class="ob-logo">⬡</div>
+      <h2 class="ob-title">Ласкаво просимо до<br><span style="color:var(--accent)">AXIS OS</span></h2>
+      <p class="ob-desc">Ваш персональний AI-асистент для ПК.<br>Голос, автоматизація, чат, IDE — все в одному.</p>
+      <div class="ob-features">
+        <div class="ob-feat"><span>🤖</span> AI Чат з GPT, Gemini, Claude</div>
+        <div class="ob-feat"><span>🔮</span> Голосовий асистент зі Сферою</div>
+        <div class="ob-feat"><span>⚡</span> Автоматизація і макроси</div>
+        <div class="ob-feat"><span>🍅</span> Pomodoro з голосовим керуванням</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Name & Avatar -->
+    <div id="obStep2" style="display:none">
+      <h2 class="ob-title">Як вас звати?</h2>
+      <p class="ob-desc">Aivon буде звертатись до вас на ім'я</p>
+      <div style="display:flex;align-items:center;gap:16px;margin:16px 0;">
+        <div class="ob-avatar-preview" id="obAvatarPreview">👤</div>
+        <div style="flex:1">
+          <input id="obNameInput" class="lic-key-input" placeholder="Ваше ім'я" style="width:100%;margin-bottom:8px;">
+          <input id="obEmailInput" class="lic-key-input" placeholder="Email (необов'язково)" style="width:100%;">
+        </div>
+      </div>
+      <div class="ob-section-label">Оберіть аватар</div>
+      <div id="obAvatarGrid" class="ob-av-grid"></div>
+    </div>
+
+    <!-- Step 3: License -->
+    <div id="obStep3" style="display:none">
+      <h2 class="ob-title">Ваша ліцензія</h2>
+      <div id="obLicStatus" class="lic-status-msg" style="text-align:center;font-size:14px;margin:12px 0;">⏳ Завантаження...</div>
+      <div class="ob-lic-options">
+        <div class="ob-lic-opt">
+          <div style="font-weight:700;margin-bottom:4px;">🔑 Є ключ активації?</div>
+          <div style="display:flex;gap:8px;">
+            <input id="obLicKeyInput" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" style="flex:1;">
+            <button class="btn btn-p" onclick="obActivateLicense()">Активувати</button>
+          </div>
+        </div>
+        <div class="ob-lic-sep">або</div>
+        <div class="ob-lic-opt" style="text-align:center;">
+          <button class="btn btn-p" style="width:100%;" onclick="obStartTrial()">⏳ Продовжити з пробним</button>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">7 днів безкоштовно, всі функції</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Ready -->
+    <div id="obStep4" style="display:none">
+      <div class="ob-logo" style="font-size:56px;">🚀</div>
+      <h2 class="ob-title">Готово!</h2>
+      <p class="ob-desc">AXIS OS налаштовано і готовий до роботи.<br>Після закриття покажемо короткий тур по інтерфейсу.</p>
+      <div class="ob-tips">
+        <div class="ob-tip">💡 Додайте API ключ у <b>🔑 API Ключі</b> для AI Чату</div>
+        <div class="ob-tip">🔮 Запустіть Сферу для голосового асистента</div>
+        <div class="ob-tip">⌨️ Натисніть <kbd>Ctrl+Space</kbd> для Quick Search</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="ob-nav">
+      <button id="obBackBtn" class="btn" onclick="obBack()" style="visibility:hidden;">← Назад</button>
+      <button id="obNextBtn" class="btn btn-p" onclick="_obStep===4?obFinish():obNext()">Далі →</button>
+    </div>
+
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- CLIPBOARD HISTORY PANEL -->
@@ -2419,6 +3250,9 @@
 <script src="js/generator.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/spotify_player.js"></script>
+<script src="js/license.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/onboarding.js"></script>
 <script src="js/app.js"></script>
 <script>
 // ── Settings Backup / Restore ───────────────────────────────────────────────
