@@ -602,8 +602,9 @@ class AIManager(QObject):
 
             raise RuntimeError(
                 f"⚠ Gemini не зміг згенерувати зображення.\n{last_err}\n\n"
-                "Генерація зображень потребує Gemini 2.0 Flash Experimental.\n"
-                "Перевірте що ваш Google API ключ має доступ до цієї моделі в AI Studio."
+                "Перевірте що ваш Google API ключ дійсний та має доступ\n"
+                "до генерації зображень. Створіть новий ключ на:\n"
+                "aistudio.google.com/apikey"
             )
 
     # ── Video generation (Luma AI Dream Machine) ─────────────────────────────
