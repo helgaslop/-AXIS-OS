@@ -138,7 +138,7 @@ class AxisWindow(QMainWindow):
         # Redirect stdout/stderr → JS log panel
         try:
             from core.log_bridge import install as _log_install
-            _log_install(lambda lvl, msg: self._push_to_js(
+            _log_install(lambda lvl, msg: self.bridge.push_to_js.emit(
                 "log_line", __import__('json').dumps({"level": lvl, "msg": msg})
             ))
         except Exception:
@@ -200,6 +200,12 @@ class AxisWindow(QMainWindow):
 
     # ── Generic Python → JS push ──────────────────────────────────────────────
     def _push_to_js(self, msg_type: str, json_payload: str):
+        # Guard: runJavaScript must run on the main thread.
+        # If called from a background thread, re-route through the signal queue.
+        from PyQt6.QtCore import QThread
+        if QThread.currentThread() is not self.thread():
+            self.bridge.push_to_js.emit(msg_type, json_payload)
+            return
         # Escape for JS template literal:
         # 1. Backslashes first (must be first to avoid double-escaping)
         # 2. Backticks  — close the template literal

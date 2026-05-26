@@ -66,10 +66,8 @@ function initApp(){
   _safeCall(fetchWeather,       'fetchWeather');
   setInterval(fetchWeather, 1800000);
   _safeCall(renderTodos,        'renderTodos');
-  _safeCall(initAgents,         'initAgents');
   _safeCall(initMacros,         'initMacros');
   _safeCall(initApi,            'initApi');
-  _safeCall(initIde,            'initIde');
   _safeCall(initChat,           'initChat');
   _safeCall(initCommands,       'initCommands');
   _safeCall(initVoice,          'initVoice');

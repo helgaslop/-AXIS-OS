@@ -330,15 +330,10 @@ class AIManager(QObject):
                                                    **self._openai_params(model))
             msg = resp.choices[0].message
 
-        # Now stream the final text answer
+        # Stream the final text answer
         if msg.content:
-            stream = client.chat.completions.create(
-                model=model,
-                messages=msgs + [{"role": "assistant", "content": ""}],
-                stream=True, **self._openai_params(model),
-            )
-            # Actually just emit the already-fetched content token by token
-            for word in (msg.content or "").split(" "):
+            # Emit already-fetched content word by word (no extra network call needed)
+            for word in msg.content.split(" "):
                 self.response_token.emit(req_id, word + " ")
         self.response_done.emit(req_id)
 
@@ -460,8 +455,7 @@ class AIManager(QObject):
         client = OpenAI(api_key=key)
 
         if ref_b64:
-            # DALL-E 2 supports images.edit; DALL-E 3 does NOT.
-            # Input must be square RGBA PNG ≤ 4 MB, size max 1024x1024.
+            # gpt-image-1 supports image editing (inpainting)
             try:
                 from PIL import Image as PILImage
                 import io
@@ -472,73 +466,142 @@ class AIManager(QObject):
                 buf = io.BytesIO()
                 img.save(buf, format="PNG")
                 buf.seek(0)
-                edit_size = f"{side}x{side}" if side in (256, 512, 1024) else "1024x1024"
-                resp = client.images.edit(
-                    model="dall-e-2",
-                    image=buf,
+                try:
+                    resp = client.images.edit(
+                        model="gpt-image-1",
+                        image=buf,
+                        prompt=prompt,
+                        n=1,
+                    )
+                except Exception:
+                    buf.seek(0)
+                    edit_size = f"{side}x{side}" if side in (256, 512, 1024) else "1024x1024"
+                    resp = client.images.edit(
+                        model="dall-e-2",
+                        image=buf,
+                        prompt=prompt,
+                        size=edit_size,
+                        n=1,
+                        response_format="b64_json",
+                    )
+            except ImportError:
+                raise RuntimeError("Встановіть Pillow для редагування зображень: pip install Pillow")
+        else:
+            # Try gpt-image-1 first (newer, better quality), fall back to dall-e-3
+            try:
+                allowed_new = {"1024x1024", "1024x1536", "1536x1024", "auto"}
+                gen_size = size if size in allowed_new else "1024x1024"
+                resp = client.images.generate(
+                    model="gpt-image-1",
                     prompt=prompt,
-                    size=edit_size,
+                    size=gen_size,
+                    quality="high",
+                    n=1,
+                )
+            except Exception:
+                allowed_old = {"1024x1024", "1024x1792", "1792x1024"}
+                gen_size = size if size in allowed_old else "1024x1024"
+                resp = client.images.generate(
+                    model="dall-e-3",
+                    prompt=prompt,
+                    size=gen_size,
+                    quality="standard",
+                    style=style if style in ("vivid", "natural") else "vivid",
                     n=1,
                     response_format="b64_json",
                 )
-            except ImportError:
-                raise RuntimeError("Встановіть Pillow для редагування зображень: pip install Pillow")
-            return resp.data[0].b64_json
-        else:
-            # DALL-E 3 for fresh generation — validate size
-            allowed = {"1024x1024", "1024x1792", "1792x1024"}
-            gen_size = size if size in allowed else "1024x1024"
-            resp = client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size=gen_size,
-                quality="standard",
-                style=style if style in ("vivid", "natural") else "vivid",
-                n=1,
-                response_format="b64_json",
-            )
-            return resp.data[0].b64_json
+
+        b64 = resp.data[0].b64_json
+        if not b64:
+            # Some models return URL instead of b64
+            import urllib.request as _ur
+            with _ur.urlopen(resp.data[0].url) as r:
+                b64 = base64.b64encode(r.read()).decode()
+        return b64
 
     def _gemini_imagen(self, prompt: str, size: str, ref_b64: str) -> str:
         key = self.api_keys.get("google", "")
         if not key:
             raise RuntimeError("⚠ API ключ Google не налаштовано.")
-        try:
-            import google.genai as genai
-            from google.genai import types as gtypes
-            client = genai.Client(api_key=key)
 
-            if ref_b64:
-                # Gemini multimodal edit — send image + prompt to gemini-2.0-flash-exp
-                img_bytes = base64.b64decode(ref_b64)
-                contents = [
-                    gtypes.Content(parts=[
-                        gtypes.Part(inline_data=gtypes.Blob(mime_type="image/png", data=img_bytes)),
-                        gtypes.Part(text=prompt),
-                    ])
-                ]
-                resp = client.models.generate_content(
-                    model="gemini-2.0-flash-preview-image-generation",
-                    contents=contents,
-                    config=gtypes.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"]
-                    ),
-                )
-            else:
-                resp = client.models.generate_content(
-                    model="gemini-2.0-flash-preview-image-generation",
-                    contents=prompt,
-                    config=gtypes.GenerateContentConfig(
-                        response_modalities=["IMAGE", "TEXT"]
-                    ),
-                )
+        import json as _j
+        import urllib.request as _ur
+        import urllib.error as _ue
 
-            for part in resp.candidates[0].content.parts:
-                if hasattr(part, "inline_data") and part.inline_data:
-                    return base64.b64encode(part.inline_data.data).decode()
-            raise RuntimeError("Gemini не повернув зображення")
-        except ImportError:
-            raise RuntimeError("Встановіть: pip install google-genai")
+        BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+
+        if ref_b64:
+            # Multimodal image edit via Gemini REST API
+            img_bytes = base64.b64decode(ref_b64)
+            img_b64str = base64.b64encode(img_bytes).decode()
+            payload = _j.dumps({
+                "contents": [{"parts": [
+                    {"inline_data": {"mime_type": "image/png", "data": img_b64str}},
+                    {"text": prompt},
+                ]}],
+                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
+            }).encode()
+            last_err = ""
+            for model in ("gemini-2.0-flash-exp", "gemini-2.0-flash-preview-image-generation"):
+                try:
+                    req = _ur.Request(
+                        f"{BASE}/{model}:generateContent?key={key}",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with _ur.urlopen(req, timeout=60) as r:
+                        data = _j.loads(r.read())
+                    for cand in data.get("candidates", []):
+                        for part in cand.get("content", {}).get("parts", []):
+                            if "inlineData" in part:
+                                return part["inlineData"]["data"]
+                except _ue.HTTPError as e:
+                    last_err = f"HTTP {e.code}: {e.read().decode()[:120]}"
+                except Exception as e:
+                    last_err = str(e)
+            raise RuntimeError(f"⚠ Gemini редагування не вдалось: {last_err}")
+        else:
+            # Text-to-image via REST API — try each model with full error capture
+            payload = _j.dumps({
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
+            }).encode()
+            last_err = ""
+            for model in (
+                "gemini-2.5-flash-image",
+                "gemini-3.1-flash-image-preview",
+                "gemini-2.0-flash-exp",
+                "gemini-2.0-flash-preview-image-generation",
+                "gemini-2.0-flash",
+            ):
+                try:
+                    req = _ur.Request(
+                        f"{BASE}/{model}:generateContent?key={key}",
+                        data=payload,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    with _ur.urlopen(req, timeout=60) as r:
+                        data = _j.loads(r.read())
+                    for cand in data.get("candidates", []):
+                        for part in cand.get("content", {}).get("parts", []):
+                            if "inlineData" in part:
+                                return part["inlineData"]["data"]
+                    last_err = "модель не повернула зображення"
+                except _ue.HTTPError as e:
+                    body = e.read().decode()[:200]
+                    last_err = f"{model} → HTTP {e.code}: {body}"
+                    continue
+                except Exception as e:
+                    last_err = str(e)
+                    continue
+
+            raise RuntimeError(
+                f"⚠ Gemini не зміг згенерувати зображення.\n{last_err}\n\n"
+                "Генерація зображень потребує Gemini 2.0 Flash Experimental.\n"
+                "Перевірте що ваш Google API ключ має доступ до цієї моделі в AI Studio."
+            )
 
     # ── Video generation (Luma AI Dream Machine) ─────────────────────────────
     def generate_video(self, request_id: str, prompt: str,
@@ -586,9 +649,24 @@ class AIManager(QObject):
                 }
             }
 
+        # Luma API endpoints (try both v1 and v2 in case of changes)
+        _LUMA_BASE = "https://api.lumalabs.ai/dream-machine/v1"
+
         # Submit generation
-        r = req.post("https://api.lumalabs.ai/dream-machine/v1/generations",
-                     headers=headers, json=body, timeout=30)
+        try:
+            r = req.post(f"{_LUMA_BASE}/generations",
+                         headers=headers, json=body, timeout=30)
+        except Exception as e:
+            err = str(e)
+            if "getaddrinfo" in err or "NameResolution" in err or "ConnectionError" in err:
+                raise RuntimeError(
+                    "⚠ Не вдалось з'єднатись з Luma AI.\n"
+                    "Можливі причини:\n"
+                    "• Немає доступу до api.lumalabs.ai (заблокований DNS/файрвол)\n"
+                    "• Спробуйте підключити VPN"
+                )
+            raise RuntimeError(f"⚠ Luma мережева помилка: {err[:150]}")
+
         if r.status_code not in (200, 201):
             raise RuntimeError(f"Luma HTTP {r.status_code}: {r.text[:200]}")
         gen_id = r.json().get("id") or r.json().get("generation_id")
@@ -598,9 +676,12 @@ class AIManager(QObject):
         # Poll until done (max 3 min)
         for _ in range(36):   # 36 × 5s = 180s
             _time.sleep(5)
-            poll = req.get(
-                f"https://api.lumalabs.ai/dream-machine/v1/generations/{gen_id}",
-                headers=headers, timeout=15)
+            try:
+                poll = req.get(
+                    f"{_LUMA_BASE}/generations/{gen_id}",
+                    headers=headers, timeout=15)
+            except Exception:
+                continue
             if poll.status_code != 200:
                 continue
             data = poll.json()

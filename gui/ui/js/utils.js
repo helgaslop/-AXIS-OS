@@ -16,9 +16,9 @@ window.axisPush = function(type, jsonStr) {
       ai_response: handleAiResponse,
       ai_error:    handleAiError,
       toast:       function(x) { showToast(x.msg); },
-      code_output:   handleCodeOutput,
-      file_content:  handleFileContent,
-      file_selected: handleFileSelected,
+      code_output:   function(x) { /* IDE removed */ },
+      file_content:  function(x) { /* IDE removed */ },
+      file_selected: function(x) { /* IDE removed */ },
       tts_audio:   handleTtsAudio,
       tts_error:   function(x) { showToast('⚠ TTS: ' + x.error); if(liveSpeaking){ liveSpeaking=false; liveOnSpeakEnd(); } },
       stt_result:  handleSttResult,
@@ -76,8 +76,8 @@ window.axisPush = function(type, jsonStr) {
       image_ready:   function(x) { handleImageReady(x); },
       video_ready:   function(x) { handleVideoReady(x); },
       sphere_status: function(x) { updateSphereStatus(!!x.running); },
-      ide_status:    function(x) { handleIdeStatus(x); },
-      ide_config:    function(x) { if(x) ideApplyConfig(x); },
+      ide_status:    function(x) { /* IDE removed */ },
+      ide_config:    function(x) { /* IDE removed */ },
       autostart_status: function(x) {
         // Sync hidden checkboxes (for saveSphereSettings)
         var sa = R('sp_autostart'); if (sa) sa.checked = !!x.sphere;
@@ -89,7 +89,7 @@ window.axisPush = function(type, jsonStr) {
       },
       user_commands: function(x) { if(Array.isArray(x)){ commands=_normalizeCmds(x); sortAndRenderLib(); renderRecentCmds(); } },
       macros_data:   function(x) { if(Array.isArray(x)){ macros=x; initMacros(); } },
-      file_saved:    function(x) { if(x.path) ideCurrentPath=x.path; },
+      file_saved:    function(x) { /* IDE removed */ },
       ollama_models: function(x) { if(Array.isArray(x)) loadOllamaChips(x); },
       navigate:    function(x) { if(x.page) showPage(x.page); },
       internal_cmd:function(x) {
@@ -268,7 +268,49 @@ function filterLogs(btn, filter) {
   });
 }
 
+// Show only lines that contain "[Sphere]" prefix
+function filterLogsSphere(btn) {
+  document.querySelectorAll('.log-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('#log-output .log-line').forEach(function(el){
+    var msg = (el.querySelector('.log-msg') || el).textContent || '';
+    el.classList.toggle('hidden', msg.indexOf('[Sphere]') === -1);
+  });
+}
+
+// Show only lines that do NOT contain "[Sphere]" prefix (Panel own logs)
+function filterLogsPanel(btn) {
+  document.querySelectorAll('.log-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('#log-output .log-line').forEach(function(el){
+    var msg = (el.querySelector('.log-msg') || el).textContent || '';
+    el.classList.toggle('hidden', msg.indexOf('[Sphere]') !== -1);
+  });
+}
+
+// ── Universal clipboard helper (works in QWebEngine without HTTPS) ───────────
+function _copyText(text, toastMsg) {
+  toastMsg = toastMsg || 'Скопійовано';
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) { showToast(toastMsg); return; }
+  } catch(e) {}
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(function(){ showToast(toastMsg); })
+      .catch(function(){ showToast('⚠ Буфер обміну недоступний'); });
+  } else {
+    showToast('⚠ Буфер обміну недоступний');
+  }
+}
+
 function copyAllLogs() {
   var text = _logLines.map(function(l){ return '['+l.ts+'] ['+l.level+'] '+l.msg; }).join('\n');
-  navigator.clipboard.writeText(text).then(function(){ showToast('Логи скопійовано'); });
+  _copyText(text, 'Логи скопійовано (' + _logLines.length + ' рядків)');
 }

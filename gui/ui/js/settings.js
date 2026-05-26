@@ -132,7 +132,8 @@ function initApi(){
     + section('AI Провайдери',  '🤖', apiProviders.ai)
     + section('Медіа генерація','🎨', apiProviders.media)
     + section('Пошук та погода','🌐', apiProviders.search)
-    + section('Сервіси',        '⚙',  apiProviders.services, spotifyConnect);
+    + section('Сервіси',        '⚙',  apiProviders.services, spotifyConnect)
+    + _buildTestPanel();
 
   // Автоматично перевіряємо при відкритті
   setTimeout(checkApiStatus, 400);
@@ -378,6 +379,12 @@ function saveApiKey(provider, name){
   pyCall('save_api_key', JSON.stringify({provider: provider, key: key.value.trim()}));
   showToast('✓ ' + name + ' ключ збережено');
   key.value = '';
+  // Refresh status panel — show "checking" immediately
+  var items = document.querySelectorAll('.asp-item');
+  items.forEach(function(el) {
+    var badge = el.querySelector('.asp-badge');
+    if (badge) { badge.textContent = '⟳'; badge.style.background='rgba(255,255,255,.06)'; badge.style.color='var(--text3)'; }
+  });
 }
 
 // ═══ ACCENT ═══
@@ -737,3 +744,106 @@ function toggleSphereAutostart() {
   var cur = R('sphere_autostart_card') && R('sphere_autostart_card').classList.contains('on');
   pyCall('toggle_sphere_autostart', JSON.stringify({enabled: !cur}));
 }
+
+// ═══ LIVE API KEY TESTS ═══════════════════════════════════════════════════════
+var _apiTestRunning = false;
+
+function runApiTests() {
+  if (_apiTestRunning) return;
+  _apiTestRunning = true;
+  var btn = R('runApiTestsBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Перевіряю...'; }
+  // Reset all rows to "waiting"
+  document.querySelectorAll('.api-test-row').forEach(function(row) {
+    row.querySelector('.atr-status').innerHTML = '<span class="atr-dot atr-wait"></span>';
+    row.querySelector('.atr-msg').textContent = '—';
+  });
+  pyCall('run_api_tests', '{}');
+}
+
+function handleApiTestResult(d) {
+  var row = R('atr_' + d.id);
+  if (!row) {
+    // Row might not exist if API was added later — insert it
+    _ensureTestRow(d.id, d.name, d.ico);
+    row = R('atr_' + d.id);
+  }
+  if (!row) return;
+
+  var statusEl = row.querySelector('.atr-status');
+  var msgEl    = row.querySelector('.atr-msg');
+
+  var dotClass, icon;
+  if      (d.status === 'ok')      { dotClass = 'atr-ok';      icon = '✅'; }
+  else if (d.status === 'error')   { dotClass = 'atr-err';     icon = '❌'; }
+  else if (d.status === 'no_key')  { dotClass = 'atr-nokey';   icon = '⚪'; }
+  else if (d.status === 'testing') { dotClass = 'atr-testing'; icon = '⏳'; }
+  else                             { dotClass = 'atr-wait';    icon = '—'; }
+
+  statusEl.innerHTML = '<span class="atr-dot ' + dotClass + '"></span>' + icon;
+  msgEl.textContent  = d.msg || '';
+}
+
+function handleApiTestsDone() {
+  _apiTestRunning = false;
+  var btn = R('runApiTestsBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '🔬 Запустити тести'; }
+  showToast('✅ Тести завершено');
+}
+
+function _ensureTestRow(id, name, ico) {
+  var tbody = R('apiTestsTbody');
+  if (!tbody || R('atr_' + id)) return;
+  var tr = document.createElement('tr');
+  tr.id = 'atr_' + id;
+  tr.className = 'api-test-row';
+  tr.innerHTML = '<td class="atr-ico">' + (ico||'🔑') + '</td>'
+    + '<td class="atr-name">' + _escHtml(name||id) + '</td>'
+    + '<td class="atr-status"><span class="atr-dot atr-wait"></span>—</td>'
+    + '<td class="atr-msg">—</td>';
+  tbody.appendChild(tr);
+}
+
+// Build the test panel HTML
+function _buildTestPanel() {
+  var rows = [
+    {id:'openai',      name:'OpenAI GPT',        ico:'🤖'},
+    {id:'anthropic',   name:'Anthropic Claude',  ico:'🔵'},
+    {id:'google',      name:'Google Gemini',     ico:'✨'},
+    {id:'xai',         name:'xAI Grok',          ico:'⚡'},
+    {id:'perplexity',  name:'Perplexity',        ico:'🌐'},
+    {id:'tavily',      name:'Tavily Search',     ico:'🔍'},
+    {id:'serper',      name:'Google Serper',     ico:'🔎'},
+    {id:'openweather', name:'OpenWeather',       ico:'🌤'},
+    {id:'ollama',      name:'Ollama (local)',    ico:'🖥'},
+  ].map(function(r) {
+    return '<tr id="atr_' + r.id + '" class="api-test-row">'
+      + '<td class="atr-ico">' + r.ico + '</td>'
+      + '<td class="atr-name">' + r.name + '</td>'
+      + '<td class="atr-status"><span class="atr-dot atr-wait"></span>—</td>'
+      + '<td class="atr-msg">Не перевірено</td>'
+      + '</tr>';
+  }).join('');
+
+  return '<div class="api-tests-panel" style="margin-top:24px;">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+    + '<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;">🧪 Тестування ключів</span>'
+    + '<button id="runApiTestsBtn" class="btn btn-sm btn-p" onclick="runApiTests()">🔬 Запустити тести</button>'
+    + '</div>'
+    + '<table class="api-tests-table"><tbody id="apiTestsTbody">' + rows + '</tbody></table>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:8px;">Кожен ключ перевіряється реальним запитом до API</div>'
+    + '</div>';
+}
+
+// Inject axisPush handler for test results
+(function() {
+  var _orig = window.axisPush;
+  window.axisPush = function(type, jsonStr) {
+    try {
+      var d = JSON.parse(jsonStr);
+      if (type === 'api_test_result') { handleApiTestResult(d); return; }
+      if (type === 'api_tests_done')  { handleApiTestsDone();   return; }
+    } catch(e) {}
+    _orig && _orig(type, jsonStr);
+  };
+})();

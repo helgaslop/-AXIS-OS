@@ -400,7 +400,6 @@
   <div class="nav-btn" data-page="monitor"><span class="ico">📊</span>Монітор</div>
   <div class="nav-btn" data-page="agents"><span class="ico">🤖</span>Агенти <span class="nav-badge" id="agentNavBadge">7</span></div>
   <div class="nav-btn" data-page="chat"><span class="ico">💬</span>AI Чат</div>
-  <div class="nav-btn" data-page="ide"><span class="ico">💻</span>IDE</div>
   <div class="nav-sect">Інструменти</div>
   <div class="nav-btn" data-page="generator"><span class="ico">✨</span>Генератор</div>
   <div class="nav-btn" data-page="music"><span class="ico">🎵</span>Музика</div>
@@ -460,7 +459,6 @@
       <!-- Quick access bar -->
       <div class="quick-grid" style="margin-bottom:16px;">
         <div class="quick-card" onclick="showPage('chat')"><span class="qico">💬</span><span class="qlbl">AI Чат</span></div>
-        <div class="quick-card" onclick="showPage('ide')"><span class="qico">💻</span><span class="qlbl">IDE</span></div>
         <div class="quick-card" onclick="showPage('agents')"><span class="qico">🤖</span><span class="qlbl">Агенти</span></div>
         <div class="quick-card" onclick="showPage('macros')"><span class="qico">⚡</span><span class="qlbl">Макроси</span></div>
         <div class="quick-card" onclick="showPage('pomodoro')"><span class="qico">🍅</span><span class="qlbl">Помодоро</span></div>
@@ -1021,119 +1019,6 @@
             <div class="chat-send" onclick="sendChat()">➤</div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- IDE -->
-    <div class="page page-flex" id="page-ide" style="height:calc(100vh - 108px);">
-      <div class="ide-wrap">
-
-        <!-- SIDEBAR -->
-        <div class="ide-sidebar">
-          <div class="ide-sb-hdr"><span>ФАЙЛИ</span></div>
-          <button class="btn btn-sm" style="width:100%;margin:0 0 4px;font-size:10px;" onclick="pyCall('open_ide_file')">📂 Відкрити файл</button>
-          <button class="btn btn-sm" style="width:100%;margin:0 0 6px;font-size:10px;background:rgba(99,102,241,.1);color:var(--indigo);border-color:rgba(99,102,241,.25);" onclick="ideAiNewFile()">✨ AI: Новий файл</button>
-          <div style="padding:2px 0;" id="fileTree"></div>
-          <!-- Open files history -->
-          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;">
-            <div style="font-size:9px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Недавні</div>
-            <div id="ideRecentFiles" style="display:flex;flex-direction:column;gap:2px;"></div>
-          </div>
-        </div>
-
-        <!-- CENTER — editor + inline bar + terminal -->
-        <div class="ide-center">
-          <div class="ide-tabs" id="ideTabs"></div>
-          <div class="ide-toolbar">
-            <span class="ide-lang" id="ideLang">Python</span>
-            <div style="display:flex;gap:5px;align-items:center;">
-              <span id="ideAiStatus" style="font-size:10px;color:var(--text3);"></span>
-              <button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:var(--indigo);border-color:rgba(99,102,241,.2);font-size:10px;" onclick="toggleIdeAiBar()" title="Ctrl+K">✦ Edit</button>
-              <button class="btn btn-sm" style="background:rgba(34,197,94,.1);color:var(--accent);border-color:rgba(34,197,94,.2);" onclick="runCode()">▶ Run</button>
-              <button class="btn btn-sm" onclick="ideSave()">💾 Save</button>
-              <button class="btn btn-sm" onclick="ideSaveAs()">⬆ Як</button>
-            </div>
-          </div>
-
-          <!-- INLINE AI EDIT BAR (Ctrl+K) -->
-          <div id="ideAiBar" style="display:none;padding:8px 10px;background:var(--bg2);border-bottom:1px solid rgba(99,102,241,.3);gap:6px;align-items:center;flex-wrap:wrap;">
-            <span style="font-size:11px;color:var(--indigo);font-weight:700;flex-shrink:0;">✦ AI Edit</span>
-            <input id="ideAiBarInput" placeholder="Що змінити? напр.: додай валідацію email, виправ баг у функції parse(), додай логування..." style="flex:1;min-width:200px;font-size:11px;background:var(--bg3);border:1px solid rgba(99,102,241,.4);border-radius:8px;padding:5px 10px;color:var(--text);outline:none;" onkeydown="ideAiBarKey(event)">
-            <button class="btn btn-sm" style="background:rgba(99,102,241,.15);color:var(--indigo);border-color:rgba(99,102,241,.3);flex-shrink:0;" onclick="ideAiEditRequest()" id="ideAiBarBtn">✦ Аналіз і правка</button>
-            <button class="btn btn-sm" style="flex-shrink:0;" onclick="toggleIdeAiBar()">✕</button>
-          </div>
-
-          <!-- DIFF PANEL (shows before apply) -->
-          <div id="ideAiDiffPanel" style="display:none;background:#06070d;border-bottom:2px solid rgba(99,102,241,.4);overflow-y:auto;max-height:220px;font-family:var(--mono);font-size:11px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--border);">
-              <span style="color:var(--indigo);font-weight:700;font-size:11px;">✦ Запропоновані зміни</span>
-              <div style="display:flex;gap:6px;">
-                <span id="ideAiDiffSummary" style="font-size:10px;color:var(--text3);"></span>
-                <button class="btn btn-sm" style="background:rgba(34,197,94,.15);color:var(--accent);border-color:rgba(34,197,94,.3);" onclick="ideApplyEdits()">✓ Застосувати</button>
-                <button class="btn btn-sm btn-d" onclick="ideRejectEdits()">✕ Скасувати</button>
-              </div>
-            </div>
-            <div id="ideAiDiffBody" style="padding:8px 12px;"></div>
-          </div>
-
-          <div class="ide-editor-wrap" id="ideEditorWrap"></div>
-          <div class="ide-statusbar">
-            <span id="idePos">Ln 1, Col 1</span>
-            <span id="ideLangFull">Python · UTF-8</span>
-            <span id="ideAiStatusBar" style="color:var(--indigo);"></span>
-            <span style="color:var(--accent);">AXIS IDE</span>
-          </div>
-          <div class="ide-term">
-            <div class="ide-term-hdr">
-              <span style="font-size:10px;color:var(--text3);font-weight:700;">ТЕРМІНАЛ</span>
-              <div style="display:flex;gap:4px;">
-                <button class="btn btn-sm" style="font-size:9px;padding:2px 6px;" onclick="ideRunInTerm()">▶ Run</button>
-                <button class="btn btn-sm" style="font-size:9px;padding:2px 6px;" onclick="clearTerm()">Очистити</button>
-              </div>
-            </div>
-            <div class="ide-term-out" id="ideTermOut">axis@os:~$ _</div>
-          </div>
-        </div>
-
-        <!-- RIGHT — AI chat panel -->
-        <div class="ide-right">
-          <div class="ide-right-tabs">
-            <div class="ide-right-tab active" onclick="switchIdeRight(this,'ai')">✦ AI</div>
-            <div class="ide-right-tab" onclick="switchIdeRight(this,'preview')">Preview</div>
-            <div class="ide-right-tab" onclick="switchIdeRight(this,'output')">Output</div>
-          </div>
-          <div class="ide-right-body">
-
-            <!-- AI CHAT PANE — now primary -->
-            <div id="ide-pane-ai" style="display:flex;flex:1;flex-direction:column;">
-              <!-- AI thinking steps display -->
-              <div id="ideAiSteps" style="padding:6px 10px;font-size:10px;color:var(--text3);border-bottom:1px solid var(--border);min-height:24px;display:none;">
-                <span id="ideAiStepText"></span>
-              </div>
-              <div style="flex:1;overflow-y:auto;padding:10px;" id="ideAiChat"></div>
-              <div style="padding:8px;border-top:1px solid var(--border);flex-shrink:0;">
-                <!-- Quick actions -->
-                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">
-                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Поясни цей код')">Поясни</div>
-                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Знайди баги та виправ')">Баги</div>
-                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Оптимізуй код')">Оптимізуй</div>
-                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Додай коментарі')">Коментарі</div>
-                  <div class="cq-btn" style="font-size:9px;" onclick="ideQuick('Напиши тести')">Тести</div>
-                </div>
-                <div style="display:flex;gap:6px;">
-                  <input id="ideAiInput" placeholder="Запит до AI (Enter = відповідь, Ctrl+K = правка)..." style="flex:1;font-size:11px;" onkeydown="ideAiKey(event)">
-                  <button class="btn btn-p btn-sm" onclick="sendIdeAi()" style="flex-shrink:0;">➤</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="ide-pane-preview" style="display:none;flex:1;flex-direction:column;">
-              <div class="ide-preview-empty"><div class="ipe-icon">🖥</div><div>Запустіть HTML для перегляду</div></div>
-            </div>
-            <div id="ide-pane-output" style="display:none;flex:1;flex-direction:column;overflow-y:auto;padding:12px;font-family:var(--mono);font-size:12px;color:var(--text);background:#06070d;white-space:pre-wrap;"></div>
-          </div>
-        </div>
-
       </div>
     </div>
 
@@ -2654,7 +2539,7 @@
               <div class="help-item"><span class="help-ico">⬡</span><div><b>Головна</b><div class="help-desc">Віджети: CPU, пам'ять, задачі, нотатки, погода</div></div></div>
               <div class="help-item"><span class="help-ico">💬</span><div><b>AI Чат</b><div class="help-desc">Діалог з GPT, Gemini, Claude, Grok, Perplexity</div></div></div>
               <div class="help-item"><span class="help-ico">🔮</span><div><b>Сфера</b><div class="help-desc">Голосовий асистент з функціями: пошук, нотатки, керування ПК</div></div></div>
-              <div class="help-item"><span class="help-ico">💻</span><div><b>IDE</b><div class="help-desc">Редактор коду з підсвіткою та AI-допомогою</div></div></div>
+
               <div class="help-item"><span class="help-ico">🍅</span><div><b>Помодоро</b><div class="help-desc">Таймер фокусу 25/5 хв, статистика сесій</div></div></div>
               <div class="help-item"><span class="help-ico">✨</span><div><b>Генератор</b><div class="help-desc">Генерація зображень і відео через AI</div></div></div>
               <div class="help-item"><span class="help-ico">📋</span><div><b>Команди</b><div class="help-desc">Бібліотека команд і макросів для автоматизації</div></div></div>
@@ -3243,7 +3128,6 @@
 <script src="js/processes.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/chat.js"></script>
-<script src="js/ide.js"></script>
 <script src="js/commands.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/sphere.js"></script>

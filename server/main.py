@@ -381,32 +381,66 @@ async def _stream_response(body: ChatRequest, key: str) -> AsyncGenerator[str, N
         yield "data: [DONE]\n\n"
 
 
+_OPENAI_FALLBACK = "gpt-4o"
+# Models that don't accept temperature / use max_completion_tokens
+_NO_TEMP_MODELS = ("o1", "o3", "o4", "gpt-5", "gpt-4.5")
+
+
+def _openai_payload(model: str, msgs: list, temperature: float, max_tokens: int) -> dict:
+    payload: dict = {"model": model, "messages": msgs, "stream": True}
+    if not model.startswith(_NO_TEMP_MODELS):
+        payload["temperature"] = temperature
+    if model.startswith(("o1", "o3", "o4", "gpt-5", "gpt-4.5", "gpt-4.1")):
+        payload["max_completion_tokens"] = max_tokens
+    else:
+        payload["max_tokens"] = max_tokens
+    return payload
+
+
 async def _openai_stream(body: ChatRequest, key: str) -> AsyncGenerator[str, None]:
     base = COMPAT_BASES.get(body.provider, "https://api.openai.com/v1")
     msgs = []
     if body.system_prompt:
         msgs.append({"role": "system", "content": body.system_prompt})
     msgs.extend(body.messages)
-    async with httpx.AsyncClient(timeout=120) as c:
-        async with c.stream("POST", f"{base}/chat/completions",
-            headers={"Authorization": f"Bearer {key}"},
-            json={"model": body.model, "messages": msgs, "stream": True,
-                  "temperature": body.temperature, "max_tokens": body.max_tokens}
-        ) as resp:
-            resp.raise_for_status()
-            async for line in resp.aiter_lines():
-                if not line.startswith("data: "):
-                    continue
-                chunk = line[6:]
-                if chunk == "[DONE]":
-                    break
-                try:
-                    data = json.loads(chunk)
-                    delta = data["choices"][0]["delta"].get("content", "")
-                    if delta:
-                        yield delta
-                except Exception:
-                    pass
+
+    models_to_try = [body.model]
+    if body.provider == "openai" and body.model != _OPENAI_FALLBACK:
+        models_to_try.append(_OPENAI_FALLBACK)
+
+    last_err = ""
+    for model in models_to_try:
+        try:
+            async with httpx.AsyncClient(timeout=120) as c:
+                async with c.stream("POST", f"{base}/chat/completions",
+                    headers={"Authorization": f"Bearer {key}"},
+                    json=_openai_payload(model, msgs, body.temperature, body.max_tokens)
+                ) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        if not line.startswith("data: "):
+                            continue
+                        chunk = line[6:]
+                        if chunk == "[DONE]":
+                            return
+                        try:
+                            data = json.loads(chunk)
+                            delta = data["choices"][0]["delta"].get("content", "")
+                            if delta:
+                                yield delta
+                        except Exception:
+                            pass
+            return  # success
+        except httpx.HTTPStatusError as e:
+            last_err = str(e)
+            if e.response.status_code == 404 and model != _OPENAI_FALLBACK:
+                continue  # try fallback model
+            raise
+        except Exception as e:
+            last_err = str(e)
+            raise
+
+    raise RuntimeError(f"All models failed. Last error: {last_err}")
 
 
 async def _anthropic_stream(body: ChatRequest, key: str) -> AsyncGenerator[str, None]:

@@ -29,6 +29,11 @@ class LicenseHandlerMixin:
         if result.get("ok"):
             # Refresh status after activation
             self.push_to_js.emit("license_status", json.dumps(mgr.get_status()))
+            # Reload license in AI manager so proxy_active updates immediately
+            try:
+                self._ai.reload_license()
+            except Exception:
+                pass
 
     # ── AI Subscriptions ──────────────────────────────────────────────────────
     _AI_SUBS_FILE = None
