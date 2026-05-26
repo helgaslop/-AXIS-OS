@@ -524,88 +524,46 @@ class AIManager(QObject):
         if not key:
             raise RuntimeError("⚠ API ключ Google не налаштовано.")
 
-        import json as _j
-        import urllib.request as _ur
-        import urllib.error as _ue
+        from google import genai as _genai
+        from google.genai import types as _gtypes
 
-        BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+        client = _genai.Client(api_key=key)
+        _MODELS = (
+            "gemini-2.5-flash-image",
+            "gemini-3.1-flash-image-preview",
+            "gemini-3-pro-image-preview",
+        )
+        cfg = _gtypes.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"])
 
-        if ref_b64:
-            # Multimodal image edit via Gemini REST API
-            img_bytes = base64.b64decode(ref_b64)
-            img_b64str = base64.b64encode(img_bytes).decode()
-            payload = _j.dumps({
-                "contents": [{"parts": [
-                    {"inline_data": {"mime_type": "image/png", "data": img_b64str}},
-                    {"text": prompt},
-                ]}],
-                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
-            }).encode()
-            last_err = ""
-            for model in (
-                "gemini-2.5-flash-image",
-                "gemini-3.1-flash-image-preview",
-                "gemini-3-pro-image-preview",
-            ):
-                try:
-                    req = _ur.Request(
-                        f"{BASE}/{model}:generateContent?key={key}",
-                        data=payload,
-                        headers={"Content-Type": "application/json"},
-                        method="POST",
-                    )
-                    with _ur.urlopen(req, timeout=60) as r:
-                        data = _j.loads(r.read())
-                    for cand in data.get("candidates", []):
-                        for part in cand.get("content", {}).get("parts", []):
-                            if "inlineData" in part:
-                                return part["inlineData"]["data"]
-                except _ue.HTTPError as e:
-                    last_err = f"HTTP {e.code}: {e.read().decode()[:120]}"
-                    continue
-                except Exception as e:
-                    last_err = str(e)
-            raise RuntimeError(f"⚠ Gemini редагування не вдалось: {last_err}")
-        else:
-            # Text-to-image via REST API — try each model with full error capture
-            payload = _j.dumps({
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
-            }).encode()
-            last_err = ""
-            for model in (
-                "gemini-2.5-flash-image",
-                "gemini-3.1-flash-image-preview",
-                "gemini-3-pro-image-preview",
-            ):
-                try:
-                    req = _ur.Request(
-                        f"{BASE}/{model}:generateContent?key={key}",
-                        data=payload,
-                        headers={"Content-Type": "application/json"},
-                        method="POST",
-                    )
-                    with _ur.urlopen(req, timeout=60) as r:
-                        data = _j.loads(r.read())
-                    for cand in data.get("candidates", []):
-                        for part in cand.get("content", {}).get("parts", []):
-                            if "inlineData" in part:
-                                return part["inlineData"]["data"]
-                    last_err = "модель не повернула зображення"
-                except _ue.HTTPError as e:
-                    body = e.read().decode()[:200]
-                    last_err = f"{model} → HTTP {e.code}: {body}"
-                    continue
-                except Exception as e:
-                    last_err = str(e)
-                    continue
+        last_err = ""
+        for model in _MODELS:
+            try:
+                if ref_b64:
+                    img_bytes = base64.b64decode(ref_b64)
+                    contents = [
+                        _gtypes.Part.from_bytes(data=img_bytes, mime_type="image/png"),
+                        _gtypes.Part.from_text(text=prompt),
+                    ]
+                else:
+                    contents = prompt
 
-            raise RuntimeError(
-                f"⚠ Gemini не зміг згенерувати зображення.\n{last_err}\n\n"
-                "Перевірте що ваш Google API ключ дійсний та має доступ\n"
-                "до генерації зображень. Створіть новий ключ на:\n"
-                "aistudio.google.com/apikey"
-            )
+                resp = client.models.generate_content(
+                    model=model, contents=contents, config=cfg
+                )
+                for cand in resp.candidates or []:
+                    for part in cand.content.parts or []:
+                        if part.inline_data:
+                            return base64.b64encode(part.inline_data.data).decode()
+                last_err = f"{model} → не повернув зображення"
+            except Exception as e:
+                last_err = f"{model} → {e}"
+                continue
+
+        raise RuntimeError(
+            f"⚠ Gemini не зміг згенерувати зображення.\n{last_err}\n\n"
+            "Перевірте що ваш Google API ключ дійсний та billing увімкнено\n"
+            "на aistudio.google.com"
+        )
 
     # ── Video generation (Luma AI Dream Machine) ─────────────────────────────
     def generate_video(self, request_id: str, prompt: str,
