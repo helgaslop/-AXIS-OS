@@ -49,6 +49,9 @@ class AxisWindow(QMainWindow):
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.ScrollAnimatorEnabled, True)
 
+        # ── Local media HTTP server (for video playback) ──────────────────────
+        self._media_port = self._start_media_server()
+
         # ── Bridge & channel ──────────────────────────────────────────────────
         self.ai_manager = AIManager(config)
         self.bridge     = AxisBridge(self, self.ai_manager, config)
@@ -58,6 +61,9 @@ class AxisWindow(QMainWindow):
 
         # Bridge → JS
         self.bridge.push_to_js.connect(self._push_to_js)
+
+        # JS console → Python stdout for debugging
+        self.view.page().javaScriptConsoleMessage.connect(self._on_js_console)
 
         # ── Inject qwebchannel.js ─────────────────────────────────────────────
         self._inject_qwebchannel()
@@ -76,6 +82,36 @@ class AxisWindow(QMainWindow):
 
         # ── Drag support (frameless) ──────────────────────────────────────────
         self._drag_pos = None
+
+    # ── Local media HTTP server ───────────────────────────────────────────────
+    def _start_media_server(self) -> int:
+        """Start a tiny HTTP server that serves ~/Pictures/AXIS OS/ on a free port."""
+        import http.server, threading, pathlib, socket
+
+        media_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
+        media_dir.mkdir(parents=True, exist_ok=True)
+
+        # Find a free port
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+
+        class _Handler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *a, **kw):
+                super().__init__(*a, directory=str(media_dir), **kw)
+            def log_message(self, *_):
+                pass  # silence access logs
+
+        server = http.server.HTTPServer(("127.0.0.1", port), _Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        return port
+
+    def get_media_url(self, filename: str) -> str:
+        return f"http://127.0.0.1:{self._media_port}/{filename}"
+
+    # ── JS console messages → stdout ──────────────────────────────────────────
+    def _on_js_console(self, level, msg, line, src):
+        print(f"[JS:{line}] {msg}")
 
     # ── qwebchannel.js injection ──────────────────────────────────────────────
     def _inject_qwebchannel(self):

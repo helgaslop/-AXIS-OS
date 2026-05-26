@@ -665,7 +665,7 @@ class AIManager(QObject):
         fpath = save_dir / fname
         fpath.write_bytes(video_bytes)
 
-        return str(fpath.resolve())
+        return fname  # just the filename; handler converts to http:// URL
 
     def _luma_video(self, prompt: str, duration: int, aspect_ratio: str,
                     ref_b64: str) -> str:

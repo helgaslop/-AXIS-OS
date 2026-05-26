@@ -435,23 +435,7 @@ function handleVideoReady(d) {
   showToast('🎬 Відео згенеровано!');
   if (_notifSettings.ai !== false) playNotifSound();
 
-  if (d.local && url.startsWith('file://')) {
-    // Load local file via fetch → Blob URL (avoids WebEngine file:// restrictions)
-    fetch(url)
-      .then(function(r) { return r.blob(); })
-      .then(function(blob) {
-        var blobUrl = URL.createObjectURL(blob);
-        vid.src = blobUrl;
-        _vidUrl = blobUrl;
-      })
-      .catch(function(e) {
-        // Fallback: try direct src
-        vid.src = url;
-        console.warn('fetch fallback:', e);
-      });
-  } else {
-    vid.src = url;
-  }
+  vid.src = url;
 }
 
 function downloadVideo() {

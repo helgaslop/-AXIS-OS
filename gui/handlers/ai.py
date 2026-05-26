@@ -112,14 +112,14 @@ class AiHandlerMixin:
             print(f"[AXIS] auto-save image failed: {e}")
 
     def _on_video_ready(self, req_id: str, url: str):
-        import pathlib, os
-        # If it's a local file path (not http/data), convert to file:// URI
-        p = pathlib.Path(url)
-        if p.exists():
-            file_uri = p.as_uri()
-            self.push_to_js.emit("video_ready", json.dumps({"id": req_id, "url": file_uri, "local": True}))
-        else:
-            self.push_to_js.emit("video_ready", json.dumps({"id": req_id, "url": url, "local": False}))
+        # If it's just a filename (from Gemini Veo), convert to local HTTP URL
+        if not url.startswith(("http", "data:", "file:")):
+            try:
+                http_url = self._win.get_media_url(url)
+                url = http_url
+            except Exception:
+                pass
+        self.push_to_js.emit("video_ready", json.dumps({"id": req_id, "url": url}))
 
     # ── Ollama model discovery ────────────────────────────────────────────────
     def _fetch_ollama(self, _):
