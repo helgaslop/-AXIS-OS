@@ -100,6 +100,16 @@ class AiHandlerMixin:
 
     def _on_image_ready(self, req_id: str, b64: str):
         self.push_to_js.emit("image_ready", json.dumps({"id": req_id, "b64": b64}))
+        # Auto-save to Pictures/AXIS OS/
+        try:
+            import base64 as _b64, pathlib, time as _t
+            save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
+            save_dir.mkdir(parents=True, exist_ok=True)
+            fpath = save_dir / f"axis_image_{int(_t.time())}.png"
+            fpath.write_bytes(_b64.b64decode(b64))
+            self.push_to_js.emit("toast", json.dumps({"msg": f"💾 Збережено: {fpath.name}"}))
+        except Exception as e:
+            print(f"[AXIS] auto-save image failed: {e}")
 
     def _on_video_ready(self, req_id: str, url: str):
         self.push_to_js.emit("video_ready", json.dumps({"id": req_id, "url": url}))

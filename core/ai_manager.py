@@ -568,7 +568,7 @@ class AIManager(QObject):
             "на aistudio.google.com"
         )
 
-    # ── Video generation (Luma AI Dream Machine) ─────────────────────────────
+    # ── Video generation ──────────────────────────────────────────────────────
     def generate_video(self, request_id: str, prompt: str,
                        duration: int = 9, aspect_ratio: str = "16:9",
                        ref_image_b64: str = ""):
@@ -581,10 +581,91 @@ class AIManager(QObject):
 
     def _video_worker(self, req_id, prompt, duration, aspect_ratio, ref_image_b64):
         try:
+            # Try Gemini Veo first (free with billing), fall back to Luma
+            google_key = self.api_keys.get("google", "")
+            if google_key:
+                try:
+                    path = self._gemini_video(prompt, duration, aspect_ratio, ref_image_b64)
+                    self.video_ready.emit(req_id, path)
+                    return
+                except Exception as e:
+                    print(f"[AXIS] Gemini Veo failed, trying Luma: {e}")
             url = self._luma_video(prompt, duration, aspect_ratio, ref_image_b64)
             self.video_ready.emit(req_id, url)
         except Exception as e:
             self.response_error.emit(req_id, str(e))
+
+    def _gemini_video(self, prompt: str, duration: int, aspect_ratio: str,
+                      ref_b64: str) -> str:
+        """Generate video via Gemini Veo. Returns file:// path to saved mp4."""
+        import time as _time
+        import urllib.request as _ur
+        import pathlib
+        from google import genai as _genai
+        from google.genai import types as _gtypes
+
+        key = self.api_keys.get("google", "")
+        client = _genai.Client(api_key=key)
+
+        # Duration: Veo supports 5–8 s on free tier
+        veo_dur = max(5, min(int(duration), 8))
+
+        cfg = _gtypes.GenerateVideosConfig(
+            aspect_ratio=aspect_ratio,
+            duration_seconds=veo_dur,
+            number_of_videos=1,
+        )
+
+        if ref_b64:
+            img_bytes = base64.b64decode(ref_b64)
+            image = _gtypes.Image(image_bytes=img_bytes, mime_type="image/png")
+            op = client.models.generate_videos(
+                model="veo-2.0-generate-001",
+                prompt=prompt,
+                image=image,
+                config=cfg,
+            )
+        else:
+            op = client.models.generate_videos(
+                model="veo-2.0-generate-001",
+                prompt=prompt,
+                config=cfg,
+            )
+
+        # Poll up to 3 minutes
+        for _ in range(36):
+            _time.sleep(5)
+            op = client.operations.get(op)
+            if op.done:
+                break
+        else:
+            raise RuntimeError("⚠ Gemini Veo: timeout після 3 хвилин")
+
+        if op.error:
+            raise RuntimeError(f"⚠ Gemini Veo: {op.error.message}")
+
+        videos = (op.result.generated_videos or []) if op.result else []
+        if not videos:
+            raise RuntimeError("⚠ Gemini Veo: відео не згенеровано")
+
+        uri = videos[0].video.uri
+        if not uri:
+            raise RuntimeError("⚠ Gemini Veo: немає URI відео")
+
+        # Download video bytes
+        dl_url = uri if "key=" in uri else f"{uri}{'&' if '?' in uri else '?'}key={key}"
+        req = _ur.Request(dl_url)
+        with _ur.urlopen(req, timeout=60) as r:
+            video_bytes = r.read()
+
+        # Save to Pictures/AXIS OS/
+        save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        fname = f"axis_video_{int(_time.time())}.mp4"
+        fpath = save_dir / fname
+        fpath.write_bytes(video_bytes)
+
+        return fpath.as_uri()  # file:// path for WebEngine
 
     def _luma_video(self, prompt: str, duration: int, aspect_ratio: str,
                     ref_b64: str) -> str:

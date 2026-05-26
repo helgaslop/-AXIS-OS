@@ -210,7 +210,7 @@ function handleGenResult(data) {
 
 function copyGenCode() {
   if (!_genCode) { showToast('⚠ Немає коду'); return; }
-  navigator.clipboard.writeText(_genCode).then(function(){ showToast('✓ Код скопійовано'); });
+  _copyText(_genCode, '✓ Код скопійовано');
 }
 
 function saveGenToIde() {
@@ -407,7 +407,7 @@ function generateVideo() {
 
   // Update status messages while waiting
   var msgs = [
-    [3000,  'Запит прийнято, Luma обробляє...'],
+    [3000,  'Запит прийнято, генерую відео...'],
     [15000, 'Генерую перші кадри...'],
     [40000, 'Рендеринг відео...'],
     [80000, 'Завершальна обробка...'],
@@ -440,6 +440,6 @@ function handleVideoReady(d) {
 function downloadVideo() {
   if (!_vidUrl) return;
   var a = document.createElement('a');
-  a.href = _vidUrl; a.download = 'luma_video.mp4'; a.target = '_blank';
+  a.href = _vidUrl; a.download = 'axis_video.mp4'; a.target = '_blank';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
