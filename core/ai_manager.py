@@ -665,7 +665,9 @@ class AIManager(QObject):
         fpath = save_dir / fname
         fpath.write_bytes(video_bytes)
 
-        return fpath.as_uri()  # file:// path for WebEngine
+        # Return base64 data URI so WebEngine can play it directly
+        b64 = base64.b64encode(video_bytes).decode()
+        return f"data:video/mp4;base64,{b64}"
 
     def _luma_video(self, prompt: str, duration: int, aspect_ratio: str,
                     ref_b64: str) -> str:

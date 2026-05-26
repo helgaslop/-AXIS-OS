@@ -429,17 +429,36 @@ function handleVideoReady(d) {
   _vidUrl = url;
 
   var vid = R('vidResult');
-  vid.src = url;
+  // For data URIs create a blob so the video element can seek
+  if (url.startsWith('data:video')) {
+    var b64 = url.split(',')[1];
+    var bytes = Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); });
+    var blob = new Blob([bytes], {type: 'video/mp4'});
+    vid.src = URL.createObjectURL(blob);
+  } else {
+    vid.src = url;
+  }
   vid.style.display = 'block';
   if (R('vidDownloadBtn')) R('vidDownloadBtn').style.display = 'inline-flex';
-  R('vidStatus').textContent = '✅ Відео готове!';
+  R('vidStatus').textContent = '✅ Відео готове! Збережено в Зображення/AXIS OS';
   showToast('🎬 Відео згенеровано!');
   if (_notifSettings.ai !== false) playNotifSound();
 }
 
 function downloadVideo() {
   if (!_vidUrl) return;
-  var a = document.createElement('a');
-  a.href = _vidUrl; a.download = 'axis_video.mp4'; a.target = '_blank';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  // data URI — convert to blob for download
+  if (_vidUrl.startsWith('data:video')) {
+    var b64 = _vidUrl.split(',')[1];
+    var bytes = Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); });
+    var blob = new Blob([bytes], {type: 'video/mp4'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'axis_video_' + Date.now() + '.mp4';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } else {
+    var a = document.createElement('a');
+    a.href = _vidUrl; a.download = 'axis_video.mp4'; a.target = '_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
 }
