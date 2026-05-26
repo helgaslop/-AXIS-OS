@@ -62,8 +62,6 @@ class AxisWindow(QMainWindow):
         # Bridge → JS
         self.bridge.push_to_js.connect(self._push_to_js)
 
-        # JS console → Python stdout for debugging
-        self.view.page().javaScriptConsoleMessage.connect(self._on_js_console)
 
         # ── Inject qwebchannel.js ─────────────────────────────────────────────
         self._inject_qwebchannel()
