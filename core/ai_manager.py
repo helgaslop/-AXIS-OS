@@ -59,8 +59,10 @@ class AIManager(QObject):
     def __init__(self, config: dict):
         super().__init__()
         self.config = config
-        self.api_keys: dict = dict(config.get("api_keys", {}))
-        # Also accept flat keys like "luma_key", "openweather_key", etc.
+        # Merge config keys with Windows Credential Manager (keyring takes priority)
+        from core.secrets import get_all_keys as _gak
+        _base: dict = dict(config.get("api_keys", {}))
+        # Also pull flat keys like "luma_key", "openweather_key", etc.
         _flat_map = {
             "openai":      "openai_key",
             "anthropic":   "anthropic_key",
@@ -74,8 +76,9 @@ class AIManager(QObject):
             "openweather": "openweather_key",
         }
         for prov, flat in _flat_map.items():
-            if not self.api_keys.get(prov) and config.get(flat):
-                self.api_keys[prov] = config[flat]
+            if not _base.get(prov) and config.get(flat):
+                _base[prov] = config[flat]
+        self.api_keys: dict = _gak(_base)
         self.temperature: float = config.get("ai", {}).get("temperature", 0.7)
         self.max_tokens: int = config.get("ai", {}).get("max_tokens", 4096)
         self.ollama_url: str = config.get("ollama_url", OLLAMA_BASE)
