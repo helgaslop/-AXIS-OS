@@ -542,7 +542,11 @@ class AIManager(QObject):
                 "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
             }).encode()
             last_err = ""
-            for model in ("gemini-2.0-flash-exp", "gemini-2.0-flash-preview-image-generation"):
+            for model in (
+                "gemini-2.5-flash-image",
+                "gemini-3.1-flash-image-preview",
+                "gemini-3-pro-image-preview",
+            ):
                 try:
                     req = _ur.Request(
                         f"{BASE}/{model}:generateContent?key={key}",
@@ -558,6 +562,7 @@ class AIManager(QObject):
                                 return part["inlineData"]["data"]
                 except _ue.HTTPError as e:
                     last_err = f"HTTP {e.code}: {e.read().decode()[:120]}"
+                    continue
                 except Exception as e:
                     last_err = str(e)
             raise RuntimeError(f"⚠ Gemini редагування не вдалось: {last_err}")
@@ -571,9 +576,7 @@ class AIManager(QObject):
             for model in (
                 "gemini-2.5-flash-image",
                 "gemini-3.1-flash-image-preview",
-                "gemini-2.0-flash-exp",
-                "gemini-2.0-flash-preview-image-generation",
-                "gemini-2.0-flash",
+                "gemini-3-pro-image-preview",
             ):
                 try:
                     req = _ur.Request(
