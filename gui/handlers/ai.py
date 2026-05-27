@@ -165,6 +165,13 @@ class AiHandlerMixin:
                 self._cfg.setdefault("api_keys", {})[provider] = key
             self._ai.update_key(provider, key)
             self._save_config_file()
+            # Clear cached Spotify instance if Spotify credentials changed
+            if provider in ("spotify_client_id", "spotify_client_secret", "spotify"):
+                try:
+                    from gui.handlers.spotify import SpotifyHandlerMixin
+                    SpotifyHandlerMixin._sp_instance = None
+                except Exception:
+                    pass
             self.push_to_js.emit("toast",
                 json.dumps({"msg": f"✓ API ключ «{provider}» збережено"}))
             # Refresh status panel automatically after saving

@@ -425,11 +425,8 @@ function copyGenCode() {
 
 function saveGenToIde() {
   if (!_genCode) { showToast('⚠ Немає коду'); return; }
-  showPage('agents');
-  setTimeout(function(){
-    var ed = R('ideEditor'); if (ed) { ed.value = _genCode; ideSetMode('html'); }
-    showToast('✓ Код відкрито в IDE');
-  }, 150);
+  // Copy to clipboard so user can paste into any IDE/editor
+  _copyText(_genCode, '✓ Код скопійовано — вставте в IDE (Ctrl+V)');
 }
 
 // ═══ IMAGE GENERATOR ═══

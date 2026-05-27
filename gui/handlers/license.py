@@ -116,16 +116,17 @@ class LicenseHandlerMixin:
 
     def _check_all_keys(self, _=None):
         """Validate all configured API keys and push results."""
+        # Use _get_api_keys() which reads from Credential Manager (keyring) + config
+        all_keys = self._get_api_keys() if hasattr(self, '_get_api_keys') else {}
         providers = {
-            "OpenAI":     ("openai_key",     self._check_openai),
-            "Gemini":     ("google_key",     self._check_gemini),
-            "Claude":     ("anthropic_key",  self._check_anthropic),
-            "xAI":        ("xai_key",        self._check_xai),
-            "Perplexity": ("perplexity_key", self._check_perplexity),
+            "OpenAI":     (all_keys.get("openai", ""),     self._check_openai),
+            "Gemini":     (all_keys.get("google", ""),     self._check_gemini),
+            "Claude":     (all_keys.get("anthropic", ""),  self._check_anthropic),
+            "xAI":        (all_keys.get("xai", ""),        self._check_xai),
+            "Perplexity": (all_keys.get("perplexity", ""), self._check_perplexity),
         }
         results = {}
-        for name, (cfg_key, check_fn) in providers.items():
-            key = self._cfg.get(cfg_key, "")
+        for name, (key, check_fn) in providers.items():
             if not key:
                 results[name] = {"status": "no_key", "label": "Ключ не задано"}
             else:

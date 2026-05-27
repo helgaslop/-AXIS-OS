@@ -2,6 +2,7 @@
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -12,6 +13,15 @@ _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
 class SystemHandlerMixin:
+    @staticmethod
+    def _to_spotify_uri(body: str) -> str | None:
+        """Convert a Spotify URL or URI to a spotify: URI. Returns None if not Spotify."""
+        b = body.strip()
+        if b.startswith("spotify:"):
+            return b
+        m = re.match(r"https?://open\.spotify\.com/([a-z]+)/([A-Za-z0-9]+)", b)
+        return f"spotify:{m.group(1)}:{m.group(2)}" if m else None
+
     # ── Window controls ───────────────────────────────────────────────────────
     def _minimize(self, _): self._win.showMinimized()
 
@@ -35,9 +45,14 @@ class SystemHandlerMixin:
                 subprocess.Popen(body, shell=True, creationflags=_NO_WINDOW)
                 self.push_to_js.emit("toast", json.dumps({"msg": f"▶ {name}"}))
             elif cmd_type == "url":
-                import webbrowser
-                webbrowser.open(body)
-                self.push_to_js.emit("toast", json.dumps({"msg": f"🌐 {name}"}))
+                # Spotify URI / open.spotify.com → route through Spotify player
+                spotify_uri = self._to_spotify_uri(body)
+                if spotify_uri:
+                    self._spotify_action({"action": "play_uri", "uri": spotify_uri})
+                else:
+                    import webbrowser
+                    webbrowser.open(body)
+                    self.push_to_js.emit("toast", json.dumps({"msg": f"🌐 {name}"}))
             elif cmd_type == "python":
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix=".py", delete=False,
@@ -92,6 +107,29 @@ class SystemHandlerMixin:
             except Exception as e:
                 self.push_to_js.emit("toast",
                     json.dumps({"msg": f"URL помилка: {e}"}))
+
+        elif mtype == "keystroke":
+            try:
+                import ctypes
+                # Parse key combo like "ctrl+shift+s", "win+d", "alt+f4"
+                parts = [k.strip().lower() for k in cmd.replace('+', ' ').split()]
+                VK = {
+                    'ctrl':0x11,'control':0x11,'shift':0x10,'alt':0x12,'win':0x5B,
+                    'enter':0x0D,'esc':0x1B,'tab':0x09,'space':0x20,'backspace':0x08,
+                    'delete':0x2E,'home':0x24,'end':0x23,'up':0x26,'down':0x28,
+                    'left':0x25,'right':0x27,'f1':0x70,'f2':0x71,'f3':0x72,'f4':0x73,
+                    'f5':0x74,'f6':0x75,'f7':0x76,'f8':0x77,'f9':0x78,'f10':0x79,
+                    'f11':0x7A,'f12':0x7B,
+                }
+                keys = [VK.get(p, ord(p.upper())) for p in parts if p]
+                KEYEVENTF_KEYUP = 0x0002
+                for k in keys:
+                    ctypes.windll.user32.keybd_event(k, 0, 0, 0)
+                for k in reversed(keys):
+                    ctypes.windll.user32.keybd_event(k, 0, KEYEVENTF_KEYUP, 0)
+                self.push_to_js.emit("toast", json.dumps({"msg": f"⌨ Клавіші: {cmd}"}))
+            except Exception as e:
+                self.push_to_js.emit("toast", json.dumps({"msg": f"Keystroke помилка: {e}"}))
 
         elif mtype == "internal":
             self.push_to_js.emit("internal_cmd", json.dumps({"cmd": cmd}))

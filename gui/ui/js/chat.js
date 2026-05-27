@@ -6,20 +6,203 @@ var currentModel = 'gpt-4.1';
 var pendingReqId = null;
 var thinkingEl = null;
 
-// ─── Chat history persistence ────────────────────────────────────────────────
-var _CHAT_HIST_KEY  = 'axis_chat_history';
-var _MAX_STORED_MSGS = 80;  // keep last 80 messages in storage
+// ─── Chat sessions ────────────────────────────────────────────────────────────
+var _SESSIONS_KEY    = 'axis_chat_sessions';
+var _CHAT_HIST_KEY   = 'axis_chat_history';   // legacy key
+var _MAX_STORED_MSGS = 80;
+var _currentSessId   = null;
+var _sidebarOpen     = false;
 
+function _genSessId() { return 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+function _loadSessions() {
+  try { return JSON.parse(localStorage.getItem(_SESSIONS_KEY) || '[]'); } catch(e) { return []; }
+}
+function _saveSessions(arr) {
+  try { localStorage.setItem(_SESSIONS_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+function _sessTitle() {
+  var first = chatMessages.find(function(m){ return m.role === 'user'; });
+  return first ? first.content.replace(/<[^>]+>/g,'').slice(0, 45) : 'Новий чат';
+}
+
+function _saveCurrentSession() {
+  if (!_currentSessId || !chatMessages.length) return;
+  var sessions = _loadSessions();
+  var idx = sessions.findIndex(function(s){ return s.id === _currentSessId; });
+  var obj = { id: _currentSessId, title: _sessTitle(), ts: Date.now(),
+               messages: chatMessages.slice(-_MAX_STORED_MSGS),
+               model: currentModel, provider: currentProvider };
+  if (idx >= 0) sessions[idx] = obj; else sessions.unshift(obj);
+  if (sessions.length > 60) sessions = sessions.slice(0, 60);
+  _saveSessions(sessions);
+}
+
+function newChatSession() {
+  _saveCurrentSession();
+  _currentSessId = _genSessId();
+  chatMessages = [];
+  _streamBubble = null; _streamBubbleRaw = '';
+  var body = R('chatBody'); if (body) body.innerHTML = '';
+  thinkingEl = null; pendingReqId = null;
+  _renderSessionList();
+  var inp = R('chatInput'); if (inp) { inp.value = ''; inp.focus(); }
+  showToast('💬 Новий чат');
+}
+
+function loadChatSession(id) {
+  _saveCurrentSession();
+  var sessions = _loadSessions();
+  var sess = sessions.find(function(s){ return s.id === id; });
+  if (!sess) return;
+  _currentSessId = id;
+  chatMessages = (sess.messages || []).slice();
+  currentModel    = sess.model    || currentModel;
+  currentProvider = sess.provider || currentProvider;
+  var body = R('chatBody'); if (body) body.innerHTML = '';
+  chatMessages.forEach(function(m) {
+    addChatMsg(m.role === 'user' ? 'user' : 'ai', m.content,
+               m.role === 'user' ? 'Ви' : 'AXIS AI · ' + (sess.model || 'AI'));
+  });
+  _renderSessionList();
+  scrollChat();
+}
+
+function deleteChatSession(id, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  var sessions = _loadSessions().filter(function(s){ return s.id !== id; });
+  _saveSessions(sessions);
+  if (_currentSessId === id) newChatSession();
+  else _renderSessionList();
+}
+
+function _renderSessionList() {
+  var list = R('chatSessionList'); if (!list) return;
+  var sessions = _loadSessions();
+  if (!sessions.length) {
+    list.innerHTML = '<div style="padding:14px 10px;font-size:11px;color:var(--text3);text-align:center;">Немає збережених чатів</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(function(s) {
+    var active = s.id === _currentSessId;
+    var ago = typeof _timeDiff === 'function' ? _timeDiff(s.ts) : '';
+    return '<div class="chat-sess-item' + (active ? ' active' : '') +
+           '" onclick="loadChatSession(\'' + s.id + '\')">' +
+      '<div class="chat-sess-title">' + _escHtml(s.title || 'Чат') + '</div>' +
+      '<div class="chat-sess-meta">' + ago + (s.model ? ' · ' + s.model : '') + '</div>' +
+      '<span class="chat-sess-del" onclick="deleteChatSession(\'' + s.id + '\',event)" title="Видалити">✕</span>' +
+    '</div>';
+  }).join('');
+}
+
+function _escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Response style ────────────────────────────────────────────────────────────
+var _AI_STYLE_PRESETS = [
+  {key:'',          label:'🔄 Стандарт'},
+  {key:'short',     label:'🎯 Коротко'},
+  {key:'detailed',  label:'📖 Детально'},
+  {key:'friendly',  label:'😊 По-дружньому'},
+  {key:'formal',    label:'🎩 Офіційно'},
+  {key:'teacher',   label:'🍎 Як вчитель'},
+  {key:'technical', label:'⚙️ Технічно'},
+  {key:'humorous',  label:'😄 З гумором'},
+  {key:'simple',    label:'🌱 Просто'},
+  {key:'bullet',    label:'📋 Списком'},
+  {key:'creative',  label:'✨ Творчо'},
+];
+var _currentStyle = '';   // preset key or custom text
+
+function initStyleBar() {
+  var chips = R('styleChips'); if (!chips) return;
+  chips.innerHTML = _AI_STYLE_PRESETS.map(function(s) {
+    return '<span class="style-chip' + (s.key === _currentStyle ? ' active' : '') +
+           '" data-key="' + s.key + '" onclick="applyStyle(\'' + s.key + '\')">' +
+           s.label + '</span>';
+  }).join('');
+}
+
+function applyStyle(key) {
+  _currentStyle = key;
+  initStyleBar();
+  // Update badge
+  var badge = R('styleActiveBadge');
+  var preset = _AI_STYLE_PRESETS.find(function(s){ return s.key === key; });
+  if (badge) {
+    if (key) { badge.textContent = preset ? preset.label : '✏️ ' + key.slice(0,20); badge.style.display = ''; }
+    else      { badge.style.display = 'none'; }
+  }
+  // Save via Python
+  pyCall('set_ai_style', JSON.stringify({style: key}));
+  if (key) showToast('Стиль: ' + (preset ? preset.label : key));
+  else     showToast('Стиль скинуто');
+}
+
+function openStyleCustom() {
+  var bar = R('styleCustomBar'); if (!bar) return;
+  bar.style.display = bar.style.display === 'none' ? '' : 'none';
+  var inp = R('styleCustomInput'); if (inp && bar.style.display !== 'none') { inp.value = ''; inp.focus(); }
+}
+
+function closeStyleCustom() {
+  var bar = R('styleCustomBar'); if (bar) bar.style.display = 'none';
+}
+
+function applyCustomStyle() {
+  var inp = R('styleCustomInput'); if (!inp) return;
+  var val = inp.value.trim(); if (!val) return;
+  _currentStyle = val;
+  // Clear preset chips active state
+  document.querySelectorAll('.style-chip').forEach(function(c){ c.classList.remove('active'); });
+  var badge = R('styleActiveBadge');
+  if (badge) { badge.textContent = '✏️ ' + val.slice(0,25); badge.style.display = ''; }
+  pyCall('set_ai_style', JSON.stringify({style: val}));
+  showToast('Стиль: «' + val.slice(0,30) + '»');
+  closeStyleCustom();
+}
+
+// ── Long-term conversation memory ─────────────────────────────────────────────
+function _saveChatMemory(topic) {
+  if (!chatMessages.length) {
+    showToast('Немає розмови для збереження'); return;
+  }
+  pyCall('save_chat_memory', JSON.stringify({
+    messages: chatMessages.slice(-30),
+    topic:    topic || ''
+  }));
+  showToast('🧠 Розмову запам\'ятано' + (topic ? ': «' + topic.slice(0,30) + '»' : ''));
+}
+
+// Auto-inject recalled memory into next message when user asks "пам'ятаєш"
+var _pendingMemoryCtx = '';
+function _checkRecallInMessage(msg) {
+  var low = msg.toLowerCase();
+  var recallHints = ["пам'ятаєш ми", "пам'ятаєш як", "ми говорили про",
+                     "ми обговорювали", "remember when we", "we talked about"];
+  for (var i = 0; i < recallHints.length; i++) {
+    if (low.indexOf(recallHints[i]) !== -1) {
+      // Request recall context from Python (async, injected via axisPush)
+      pyCall('recall_chat_memory', JSON.stringify({query: msg}));
+      return true;
+    }
+  }
+  return false;
+}
+
+function toggleChatSidebar() {
+  _sidebarOpen = !_sidebarOpen;
+  var sb = R('chatSidebar');
+  if (sb) sb.style.display = _sidebarOpen ? 'flex' : 'none';
+  if (_sidebarOpen) _renderSessionList();
+}
+
+// ── Legacy single-session save/load (kept for backward compat) ────────────────
 function _saveChatHistory() {
   if (_chatSettings && _chatSettings.clearOnStart) return;
-  try {
-    localStorage.setItem(_CHAT_HIST_KEY, JSON.stringify({
-      messages: chatMessages.slice(-_MAX_STORED_MSGS),
-      ts:       Date.now(),
-      model:    currentModel,
-      provider: currentProvider
-    }));
-  } catch(e) {}
+  _saveCurrentSession();
 }
 
 function _loadChatHistory() {
@@ -28,7 +211,6 @@ function _loadChatHistory() {
     if (!raw) return null;
     var data = JSON.parse(raw);
     if (!data || !Array.isArray(data.messages) || !data.messages.length) return null;
-    // Discard if older than 72 hours
     if (Date.now() - (data.ts || 0) > 72 * 3600 * 1000) { localStorage.removeItem(_CHAT_HIST_KEY); return null; }
     return data;
   } catch(e) { return null; }
@@ -46,41 +228,65 @@ var models = [
 ];
 
 function initChat(){
+  _loadChatProfileCtx(); // pre-load owner profile for personal assistant role
+  initStyleBar();
+  pyCall('get_ai_style', '{}'); // load saved style from Python
+
   var chips = R('modelChips');
-  chips.innerHTML = models.map(function(m,i){
+  if (chips) chips.innerHTML = models.map(function(m,i){
     return '<div class="model-chip'+(i===0?' active':'')+'" onclick="selectModel(this,\''+m.provider+'\',\''+m.model+'\')" data-p="'+m.provider+'" data-m="'+m.model+'"><span class="model-dot" style="background:'+m.dot+'"></span>'+m.label+'</div>';
   }).join('');
 
   refreshRoleChips();
 
   var body = R('chatBody');
-  body.innerHTML='';
-  chatMessages=[];
+  if (body) body.innerHTML = '';
+  chatMessages = [];
 
-  // Restore previous session history
-  var hist = (!_chatSettings || !_chatSettings.clearOnStart) && _loadChatHistory();
-  if (hist && hist.messages.length >= 2) {
-    chatMessages = hist.messages.slice();
-    // Session divider
-    var d1 = document.createElement('div');
-    d1.className = 'chat-session-divider';
-    var ago = _timeDiff(hist.ts);
-    d1.innerHTML = '<span>── Попередня сесія · ' + ago + ' ──</span>';
-    body.appendChild(d1);
-    // Render last 30 stored messages
-    var toShow = hist.messages.slice(-30);
-    toShow.forEach(function(m) {
-      addChatMsg(m.role === 'user' ? 'user' : 'ai', m.content,
-        m.role === 'user' ? 'Ви' : 'AXIS AI · ' + (hist.model || 'AI'));
-    });
-    // New session divider
-    var d2 = document.createElement('div');
-    d2.className = 'chat-session-divider new';
-    d2.innerHTML = '<span>── Нова сесія ──</span>';
-    body.appendChild(d2);
-    scrollChat();
-  } else {
-    addChatMsg('ai','Привіт! Я AXIS AI. Оберіть модель і роль вгорі, додайте API ключ у «API Ключі» і починаємо! 🎤 — голосовий ввід, 🔈 — озвучення відповідей.','AXIS AI');
+  // ── Restore most-recent session or migrate from legacy ────────────────────
+  if (!(_chatSettings && _chatSettings.clearOnStart)) {
+    var sessions = _loadSessions();
+    if (!sessions.length) {
+      // Migrate from legacy single-key storage
+      var hist = _loadChatHistory();
+      if (hist && hist.messages && hist.messages.length >= 2) {
+        _currentSessId = _genSessId();
+        chatMessages = hist.messages.slice();
+        currentModel    = hist.model    || currentModel;
+        currentProvider = hist.provider || currentProvider;
+        _saveCurrentSession();
+        localStorage.removeItem(_CHAT_HIST_KEY);
+        sessions = _loadSessions();
+      }
+    }
+    if (sessions.length) {
+      // Load most-recent session
+      var latest = sessions[0];
+      _currentSessId = latest.id;
+      chatMessages   = (latest.messages || []).slice();
+      currentModel    = latest.model    || currentModel;
+      currentProvider = latest.provider || currentProvider;
+      // Show last 30 messages with a divider
+      var d1 = document.createElement('div');
+      d1.className = 'chat-session-divider';
+      d1.innerHTML = '<span>── ' + _escHtml(latest.title || 'Попередня сесія') + ' · ' + _timeDiff(latest.ts) + ' ──</span>';
+      if (body) body.appendChild(d1);
+      chatMessages.slice(-30).forEach(function(m) {
+        addChatMsg(m.role === 'user' ? 'user' : 'ai', m.content,
+          m.role === 'user' ? 'Ви' : 'AXIS AI · ' + (latest.model || 'AI'));
+      });
+      var d2 = document.createElement('div');
+      d2.className = 'chat-session-divider new';
+      d2.innerHTML = '<span>── Нова сесія ──</span>';
+      if (body) body.appendChild(d2);
+      scrollChat();
+    }
+  }
+
+  if (!_currentSessId) _currentSessId = _genSessId();
+
+  if (!chatMessages.length) {
+    addChatMsg('ai','Привіт! Я AXIS AI 👋 Оберіть модель і роль вгорі, додайте API ключ у «API Ключі» і починаємо! 🎤 — голосовий ввід, 🔈 — озвучення відповідей.','AXIS AI');
   }
 }
 
@@ -169,14 +375,192 @@ function matchCommand(text) {
   return null;
 }
 
+// ── Attached files state ─────────────────────────────────────────────────────
+var _attachedFiles = []; // [{name, icon, text, role}]
+
+var _FILE_ROLE_MAP = [
+  // keywords in filename OR content → role id
+  {keys:['комунал','рахун','оплат','тариф','водопостач','газ','електро','лічиль','квитанці','invoice','utility'],
+   role:'finance',  label:'💹 Фінансист'},
+  {keys:['.py','.js','.ts','.cpp','.java','.go','.rs','.cs','function ','def ','class ','import ','const ','var ','let '],
+   role:'coder',    label:'🐍 Програміст'},
+  {keys:['договір','угод','контракт','акт ','протокол','наказ','розпорядж','юридич','закон','стаття ','пункт '],
+   role:'lawyer',   label:'⚖️ Юрист'},
+  {keys:['аналіз','звіт','таблиц','дані','статистик','показник','revenue','profit','balance','p&l'],
+   role:'analyst',  label:'📊 Аналітик'},
+  {keys:['переклад','translate','translation','перекласти'],
+   role:'translate',label:'🌐 Перекладач'},
+  {keys:['рецепт','лікуван','симптом','діагноз','препарат','доза','таблетк','медикам'],
+   role:'doctor',   label:'🩺 Лікар'},
+];
+
+function _detectFileRole(name, text) {
+  var combined = (name + ' ' + text.slice(0, 800)).toLowerCase();
+  for (var i = 0; i < _FILE_ROLE_MAP.length; i++) {
+    var r = _FILE_ROLE_MAP[i];
+    for (var j = 0; j < r.keys.length; j++) {
+      if (combined.indexOf(r.keys[j].toLowerCase()) !== -1) return r;
+    }
+  }
+  return null;
+}
+
+function _fileIcon(name) {
+  var ext = (name.split('.').pop() || '').toLowerCase();
+  var map = {pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',csv:'📊',
+             jpg:'🖼',jpeg:'🖼',png:'🖼',gif:'🖼',webp:'🖼',
+             mp3:'🎵',mp4:'🎬',zip:'🗜',json:'{}',py:'🐍',
+             js:'⚙',ts:'⚙',txt:'📃',md:'📃'};
+  return map[ext] || '📎';
+}
+
+function _renderAttachPreview() {
+  var wrap = R('attachPreview');
+  if (!wrap) return;
+  if (!_attachedFiles.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = _attachedFiles.map(function(f, i) {
+    return '<div class="attach-chip">' +
+      '<span class="ic">' + _fileIcon(f.name) + '</span>' +
+      '<span title="' + f.name + '">' + f.name + '</span>' +
+      (f.role ? '<span class="attach-role-badge">' + f.roleLabel + '</span>' : '') +
+      '<span class="rm" onclick="_removeAttach(' + i + ')">✕</span>' +
+    '</div>';
+  }).join('');
+}
+
+function _removeAttach(i) {
+  _attachedFiles.splice(i, 1);
+  _renderAttachPreview();
+  if (!_attachedFiles.length) {
+    var fi = R('fileAttachInput');
+    if (fi) fi.value = '';
+  }
+}
+
+function handleFileAttach(files) {
+  if (!files || !files.length) return;
+  var arr = Array.from(files);
+  var pending = arr.length;
+  arr.forEach(function(file) {
+    var reader = new FileReader();
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    var isImage = ['jpg','jpeg','png','gif','webp','bmp'].indexOf(ext) !== -1;
+    var isBinary = ['pdf','docx','doc','xls','xlsx','zip','mp3','mp4'].indexOf(ext) !== -1;
+
+    reader.onload = function(e) {
+      var text = '';
+      if (!isImage && !isBinary) {
+        text = e.target.result || '';
+      } else if (isImage) {
+        text = '[Image: ' + file.name + ']';
+      } else {
+        // For binary files, store base64 but show placeholder text
+        text = '[Файл: ' + file.name + ' (' + Math.round(file.size/1024) + ' KB)]';
+      }
+      var roleInfo = _detectFileRole(file.name, text);
+      _attachedFiles.push({
+        name:      file.name,
+        text:      text.slice(0, 8000),
+        role:      roleInfo ? roleInfo.role : null,
+        roleLabel: roleInfo ? roleInfo.label : null,
+        isImage:   isImage,
+        dataUrl:   isImage ? e.target.result : null,
+      });
+      pending--;
+      if (pending === 0) {
+        _renderAttachPreview();
+        // Auto-switch role if single file with clear role
+        if (_attachedFiles.length === 1 && _attachedFiles[0].role) {
+          var rid = _attachedFiles[0].role;
+          var chip = document.querySelector('.role-chip[data-id="' + rid + '"]');
+          if (chip) { selectRole(chip, rid); }
+        }
+      }
+    };
+    if (isImage) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file, 'utf-8');
+    }
+  });
+}
+
+// Drag-and-drop onto chat input
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var wrap = document.querySelector('.chat-input-wrap');
+    if (!wrap) return;
+    wrap.addEventListener('dragover', function(e) { e.preventDefault(); wrap.classList.add('drag-over'); });
+    wrap.addEventListener('dragleave', function() { wrap.classList.remove('drag-over'); });
+    wrap.addEventListener('drop', function(e) {
+      e.preventDefault(); wrap.classList.remove('drag-over');
+      if (e.dataTransfer && e.dataTransfer.files.length) handleFileAttach(e.dataTransfer.files);
+    });
+  });
+})();
+
 function sendChat(){
   var inp = R('chatInput');
   var msg = inp.value.trim();
-  if(!msg) return;
+
+  // ── Style shortcut: "стиль коротко" / "відповідай детально" ─────────────
+  var _stylePrefixes = ["стиль ", "відповідай ", "говори "];
+  var _styleLow = msg.toLowerCase();
+  for (var _si = 0; _si < _stylePrefixes.length; _si++) {
+    if (_styleLow.startsWith(_stylePrefixes[_si])) {
+      var _styleVal = msg.slice(_stylePrefixes[_si].length).trim();
+      if (_styleVal) {
+        // Check if it matches a preset label or key
+        var _matchedPreset = _AI_STYLE_PRESETS.find(function(p){
+          return p.key && (_styleVal.toLowerCase() === p.key ||
+                           p.label.toLowerCase().indexOf(_styleVal.toLowerCase()) !== -1);
+        });
+        inp.value = '';
+        applyStyle(_matchedPreset ? _matchedPreset.key : _styleVal);
+        return;
+      }
+    }
+  }
+
+  // ── "запам'ятай" — save current conversation to long-term memory ─────────
+  var _rememberPfx = ["запам'ятай", "запомни", "remember this", "save this conversation"];
+  var _remLow = msg.toLowerCase();
+  for (var _ri = 0; _ri < _rememberPfx.length; _ri++) {
+    if (_remLow === _rememberPfx[_ri] || _remLow.startsWith(_rememberPfx[_ri] + ' ')) {
+      var _topic = msg.slice(_rememberPfx[_ri].length).trim();
+      inp.value = '';
+      _saveChatMemory(_topic);
+      return;
+    }
+  }
+
+  // Build message with attachments
+  var attachCtx = '';
+  if (_attachedFiles.length) {
+    attachCtx = _attachedFiles.map(function(f) {
+      if (f.isImage) return '[Зображення: ' + f.name + ']';
+      return '--- Файл: ' + f.name + ' ---\n' + f.text;
+    }).join('\n\n');
+  }
+
+  if (!msg && !attachCtx) return;
+
+  // If only file, add auto prompt
+  var fullMsg = msg;
+  if (attachCtx && !msg) fullMsg = 'Проаналізуй цей файл і надай допомогу.';
+  var sendContent = attachCtx ? fullMsg + '\n\n' + attachCtx : fullMsg;
   inp.value = '';
 
+  // Clear attachments
+  var hadAttach = _attachedFiles.length > 0;
+  _attachedFiles = [];
+  _renderAttachPreview();
+  var fi = R('fileAttachInput');
+  if (fi) fi.value = '';
+
   // Check commands first
-  var matched = matchCommand(msg);
+  var matched = !attachCtx && matchCommand(msg);
   if (matched) {
     addChatMsg('user', msg, 'Ви');
     addChatMsg('ai', (matched.ico || '▶') + ' Виконую команду: <b>' + (matched.name || matched.trigger) + '</b>', 'AXIS OS');
@@ -190,11 +574,14 @@ function sendChat(){
     return;
   }
 
-  chatMessages.push({role:'user', content: msg});
+  chatMessages.push({role:'user', content: sendContent});
   _saveChatHistory();
-  addChatMsg('user', msg, 'Ви');
-  R('dashLast').textContent = 'Остання дія: ' + msg.slice(0,50);
-  addActivity('AI: ' + msg.slice(0,40), 'var(--indigo)');
+  // Show user bubble with original message (+ file chips if any)
+  var displayMsg = msg || '📎 ' + (hadAttach ? _attachedFiles.length || 'файл' : '');
+  if (!displayMsg) displayMsg = sendContent.slice(0, 80) + '…';
+  addChatMsg('user', hadAttach ? (msg || '') + (msg ? '\n' : '') + '<span style="opacity:.6;font-size:11px;">📎 ' + (hadAttach ? 'файл доданий' : '') + '</span>' : msg, 'Ви');
+  var dl = R('dashLast'); if (dl) dl.textContent = 'Остання дія: ' + (msg || 'файл').slice(0,50);
+  addActivity('AI: ' + (msg || 'файл').slice(0,40), 'var(--indigo)');
 
   // Show thinking
   var td = document.createElement('div');
@@ -292,7 +679,7 @@ function handleChatDone(x) {
 function handleAiResponse(d){
   if ((d.id || '').startsWith('gen_'))   { handleGenResult(d); return; }
   if ((d.id || '').startsWith('cmdai_')) { handleCmdAiResult(d); return; }
-  if ((d.id || '').startsWith('acp_'))   { acpHandleResponse(d); return; }
+  if ((d.id || '').startsWith('acp_'))   { if (typeof acpHandleResponse === 'function') acpHandleResponse(d); return; }
   // For streaming mode: ai_response fires as fallback when stream fails
   // Remove partial stream bubble from DOM before adding full response
   if (_streamBubble) {
@@ -332,8 +719,8 @@ function handleAiResponse(d){
 function handleAiError(d){
   var id = d.id || '';
   if (id.startsWith('acp_')) {
-    if(acpThinkingEl){ acpThinkingEl.remove(); acpThinkingEl=null; }
-    acpAddMsg('ai','❌ Помилка: '+(d.error||'Невідома помилка. Перевірте API ключ.'),'Помилка');
+    if(typeof acpThinkingEl !== 'undefined' && acpThinkingEl){ acpThinkingEl.remove(); acpThinkingEl=null; }
+    if(typeof acpAddMsg === 'function') acpAddMsg('ai','❌ Помилка: '+(d.error||'Невідома помилка. Перевірте API ключ.'),'Помилка');
     return;
   }
   if (id.startsWith('gen_')) {
@@ -372,9 +759,8 @@ function handleAiError(d){
 }
 
 function copyToClipboard(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    return navigator.clipboard.writeText(text);
-  }
+  // Use unified _copyText helper (works in QWebEngine)
+  if (typeof _copyText === 'function') { _copyText(text); return Promise.resolve(); }
   var ta = document.createElement('textarea');
   ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
   document.body.appendChild(ta); ta.select();
@@ -427,7 +813,20 @@ function addChatMsg(type, text, sender){
 function scrollChat(){ var b=R('chatBody'); if(b) b.scrollTop=b.scrollHeight; }
 function chatKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendChat(); } }
 function quickMsg(t){ R('chatInput').value=t; R('chatInput').focus(); }
-function clearChat(){ localStorage.removeItem(_CHAT_HIST_KEY); initChat(); showToast('Чат очищено'); }
+function clearChat(){
+  // Delete current session from saved list then start fresh
+  if (_currentSessId) {
+    var sessions = _loadSessions().filter(function(s){ return s.id !== _currentSessId; });
+    _saveSessions(sessions);
+  }
+  localStorage.removeItem(_CHAT_HIST_KEY);
+  _currentSessId = _genSessId();
+  chatMessages = [];
+  var body = R('chatBody'); if (body) body.innerHTML = '';
+  addChatMsg('ai','Чат очищено. Починаємо спочатку! 🔄','AXIS AI');
+  _renderSessionList();
+  showToast('Чат очищено');
+}
 
 // ═══ AXIS LIVE VOICE MODE ═══
 var liveMode      = false;
@@ -448,10 +847,12 @@ function startLiveMode() {
   var modelTag = R('liveModelTag');
   if (modelTag) modelTag.textContent = currentModel;
 
-  R('liveOverlay').classList.add('show');
-  R('liveAiText').classList.remove('vis');
-  R('liveAiText').textContent    = '';
-  R('liveUserText').textContent  = '';
+  var lo = R('liveOverlay');     if (!lo) return;
+  var lat = R('liveAiText');
+  var lut = R('liveUserText');
+  lo.classList.add('show');
+  if (lat) { lat.classList.remove('vis'); lat.textContent = ''; }
+  if (lut) lut.textContent = '';
   setLiveState('idle');
 
   liveMode = true;
@@ -494,8 +895,8 @@ function liveStartListening() {
 function liveSendMessage(text) {
   if (!text || !liveMode) return;
   setLiveState('thinking');
-  R('liveUserText').textContent = '«' + text + '»';
-  R('liveAiText').classList.remove('vis');
+  var _lut2 = R('liveUserText'); if (_lut2) _lut2.textContent = '«' + text + '»';
+  var _lat2 = R('liveAiText');   if (_lat2) _lat2.classList.remove('vis');
 
   chatMessages.push({role:'user', content: text});
   var reqId = 'live_' + Date.now();
@@ -516,8 +917,8 @@ function liveHandleResponse(text) {
   pendingLiveId = null;
 
   var preview = text.replace(/[*_`#]/g,'').trim();
-  R('liveAiText').textContent = preview.length > 220 ? preview.slice(0, 220) + '…' : preview;
-  R('liveAiText').classList.add('vis');
+  var _lat3 = R('liveAiText');
+  if (_lat3) { _lat3.textContent = preview.length > 220 ? preview.slice(0, 220) + '…' : preview; _lat3.classList.add('vis'); }
   setLiveState('speaking');
   liveSpeaking = true;
 
@@ -553,7 +954,11 @@ function setLiveState(state) {
 }
 
 // ═══ ROLES ═══
+var _chatProfileCtx = ''; // loaded from Python on init
+
 var BUILTIN_ROLES = [
+  {id:'personal',     label:'⭐ Мій асистент', dynamicProfile: true,
+   prompt:'Ти AIVON — особистий AI-асистент власника. Знаєш всі дані профілю і використовуєш їх без зайвих запитань. При роботі з документами одразу підставляєш реквізити. Відповідай по-українськи природно і по суті.'},
   {id:'general',      label:'🧠 Загальний',   prompt:'Ти AIVON — персональний AI-асистент і друг. Розумний, з гумором, трохи саркастичний. Звертаєшся на "ти". Підтримуєш будь-яку тему. Відповідай по-українськи.'},
   {id:'coder',        label:'🐍 Програміст',  prompt:'Ти — сеньйор-розробник і ментор. Python, JS, архітектура, дебаг. Пояснюєш ЧОМУ, питаєш контекст. Код оформлюй у блоки з поясненнями. Відповідай по-українськи.'},
   {id:'translate',    label:'🌐 Перекладач',  prompt:'Ти professional перекладач. Перекладай точно та природно між мовами, зберігай стиль і тон оригіналу.'},
@@ -587,7 +992,38 @@ function selectRole(el, roleId) {
 function getSystemPrompt() {
   var custom = R('customSystemPrompt');
   if (custom && custom.value.trim()) return custom.value.trim();
-  return currentRole.prompt;
+  var base = currentRole.prompt;
+  // Inject owner profile for roles that request it
+  if (currentRole.dynamicProfile && _chatProfileCtx) {
+    base += '\n\n[Профіль власника]\n' + _chatProfileCtx;
+  }
+  // Inject one-shot recalled memory context (cleared after use)
+  if (_pendingMemoryCtx) {
+    base += '\n\n' + _pendingMemoryCtx;
+    _pendingMemoryCtx = '';
+  }
+  return base;
+}
+
+// Load profile context for the personal assistant role
+function _loadChatProfileCtx() {
+  pyCall('get_profile', '{}');
+}
+// Called via axisPush when profile data arrives
+function _handleChatProfilePush(d) {
+  var parts = [];
+  if (d.last_name || d.first_name) {
+    var name = [d.last_name, d.first_name, d.middle_name].filter(Boolean).join(' ');
+    if (name) parts.push('Ім\'я: ' + name);
+  }
+  if (d.phone)    parts.push('Телефон: '  + d.phone);
+  if (d.email)    parts.push('Email: '    + d.email);
+  if (d.company)  parts.push('Компанія: ' + d.company);
+  if (d.position) parts.push('Посада: '   + d.position);
+  if (d.inn)      parts.push('ІПН: '      + d.inn);
+  if (d.iban)     parts.push('IBAN: '     + d.iban);
+  if (d.address)  parts.push('Адреса: '   + d.address);
+  _chatProfileCtx = parts.join('\n');
 }
 
 function saveAiSettings() {
@@ -771,3 +1207,41 @@ function updateGenKeyStatus() {
     return '<span class="gen-key-dot" style="background:'+bg+';color:'+col+';">'+(has?'✓':'✗')+' '+p.label+'</span>';
   }).join('');
 }
+
+// ── axisPush: chat memory + profile ──────────────────────────────────────────
+(function() {
+  var _orig = window.axisPush;
+  window.axisPush = function(type, jsonStr) {
+    try {
+      var d = JSON.parse(jsonStr);
+      if (type === 'profile_data') {
+        _handleChatProfilePush(d); return;
+      }
+      if (type === 'ai_style_data' || type === 'ai_style_updated') {
+        _currentStyle = d.style || '';
+        initStyleBar();
+        var badge = R('styleActiveBadge');
+        if (badge) {
+          if (_currentStyle) { badge.textContent = d.label || _currentStyle; badge.style.display = ''; }
+          else badge.style.display = 'none';
+        }
+        return;
+      }
+      if (type === 'chat_memory_recall') {
+        if (d.context) {
+          _pendingMemoryCtx = d.context;
+          // Show a system note in chat
+          if (d.results && d.results.length) {
+            var note = '🧠 <b>Знайшов у пам\'яті:</b> ';
+            note += d.results.map(function(r){ return '«' + _escHtml(r.topic) + '» (' + r.dt + ')'; }).join(', ');
+            addChatMsg('ai', note, 'AXIS Memory');
+          }
+        } else {
+          addChatMsg('ai', '🤔 Не знайшов збережених розмов по цій темі. Скажи <b>«запам\'ятай»</b> під час розмови — і я запам\'ятаю!', 'AXIS Memory');
+        }
+        return;
+      }
+    } catch(e) {}
+    _orig && _orig(type, jsonStr);
+  };
+})();

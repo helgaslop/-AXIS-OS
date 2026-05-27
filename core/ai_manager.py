@@ -333,11 +333,13 @@ class AIManager(QObject):
                                                    **self._openai_params(model))
             msg = resp.choices[0].message
 
-        # Stream the final text answer
-        if msg.content:
-            # Emit already-fetched content word by word (no extra network call needed)
-            for word in msg.content.split(" "):
-                self.response_token.emit(req_id, word + " ")
+        # Stream the final text answer — real streaming call
+        stream_resp = client.chat.completions.create(
+            model=model, messages=msgs, stream=True, **self._openai_params(model))
+        for chunk in stream_resp:
+            delta = chunk.choices[0].delta.content if chunk.choices else None
+            if delta:
+                self.response_token.emit(req_id, delta)
         self.response_done.emit(req_id)
 
     def _anthropic_stream(self, req_id, key, model, messages, system_prompt):
