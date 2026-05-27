@@ -315,10 +315,13 @@ function generateImage() {
   }));
 }
 
+var _imgSavedPath = '';
+
 function handleImageReady(d) {
   if ((d.id||'') !== _imgReqId) return;
-  _imgRunning  = false;
+  _imgRunning   = false;
   _imgResultB64 = d.b64 || '';
+  _imgSavedPath = d.saved_path || '';
 
   var anim = R('imgGenAnim'); if (anim) anim.style.display='none';
   var img = R('imgResult');
@@ -330,10 +333,33 @@ function handleImageReady(d) {
   var btn = R('imgGenBtn'); if (btn) { btn.disabled=false; btn.innerHTML='<span>🖼</span><span>Згенерувати зображення</span>'; }
   var dl = R('imgDownBtn'); if (dl) dl.style.display='inline-flex';
   var ur = R('imgUseAsRefBtn'); if (ur) ur.style.display='inline-flex';
-  showToast('✓ Зображення згенеровано!');
+
+  // Show where saved + source indicator
+  var src = d.via_proxy ? '🇺🇸 через проксі (безкоштовно)' : '🔑 прямий запит';
+  var fileName = _imgSavedPath ? _imgSavedPath.split('\\').pop() : '';
+  var msg = fileName
+    ? '💾 Збережено: Зображення/AXIS OS/' + fileName + ' · ' + src
+    : '✓ Зображення згенеровано · ' + src;
+  showToast(msg);
+
+  // Update download button label if saved
+  if (dl && _imgSavedPath) {
+    dl.title = 'Збережено: ' + _imgSavedPath;
+  }
+
+  // Show source label under image
+  var lbl = R('imgSourceLbl');
+  if (lbl) { lbl.textContent = src; lbl.style.display='block'; }
 }
 
 function downloadGenImage() {
+  // Open the saved file folder in Explorer
+  if (_imgSavedPath) {
+    pyCall('run_macro', JSON.stringify({command: 'explorer /select,"' + _imgSavedPath + '"', type: 'shell'}));
+    showToast('📂 Відкриваю папку...');
+    return;
+  }
+  // Fallback: download via browser
   if (!_imgResultB64) return;
   var a = document.createElement('a');
   a.href = 'data:image/png;base64,' + _imgResultB64;
