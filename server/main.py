@@ -255,57 +255,43 @@ class ImageRequest(BaseModel):
 
 @app.post("/api/v1/image")
 async def generate_image(body: ImageRequest, authorization: str = Header(None)):
-    """Generate image via HuggingFace FLUX from US (bypasses EU DNS + free, no billing)."""
+    """Generate image via Pollinations AI (FLUX) — free, no keys, works from any server."""
     key = _extract_key(authorization)
     lic = validate_license(key)
     if not lic["ok"]:
         raise HTTPException(status_code=403, detail=lic["error"])
 
     import base64 as _b64
-    import asyncio
+    from urllib.parse import quote as _quote
 
-    HF_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
-    hf_headers = {"Content-Type": "application/json", "Accept": "image/png"}
-    if HF_KEY:
-        hf_headers["Authorization"] = f"Bearer {HF_KEY}"
-
-    # FLUX.1-schnell — best free model, MIT license, very fast
-    _MODELS = [
-        "black-forest-labs/FLUX.1-schnell",
-        "stabilityai/stable-diffusion-xl-base-1.0",
-        "Lykon/dreamshaper-8",
+    # Pollinations AI — free FLUX image generation, no API key needed
+    # GET https://image.pollinations.ai/prompt/{prompt}?model=flux&width=1024&height=1024
+    prompt_enc = _quote(body.prompt)
+    _URLS = [
+        f"https://image.pollinations.ai/prompt/{prompt_enc}?model=flux&width=1024&height=1024&nologo=true&enhance=false",
+        f"https://image.pollinations.ai/prompt/{prompt_enc}?model=flux-schnell&width=1024&height=1024&nologo=true",
+        f"https://image.pollinations.ai/prompt/{prompt_enc}?width=1024&height=1024&nologo=true",
     ]
 
     all_errors: list[str] = []
-    async with httpx.AsyncClient(timeout=120) as client:
-        for model in _MODELS:
-            url = f"https://api-inference.huggingface.co/models/{model}"
-            for attempt in range(12):   # retry up to 2 min for model warm-up
-                try:
-                    r = await client.post(
-                        url, headers=hf_headers,
-                        json={"inputs": body.prompt,
-                              "parameters": {"num_inference_steps": 4, "guidance_scale": 0}
-                              if "FLUX" in model else
-                              {"num_inference_steps": 20}},
-                    )
-                    if r.status_code == 503:
-                        if attempt < 11:
-                            await asyncio.sleep(10)
-                            continue
-                        all_errors.append(f"{model} HTTP 503: model still loading")
-                        break
-                    if r.status_code != 200:
-                        all_errors.append(f"{model} HTTP {r.status_code}: {r.text[:200]}")
-                        break
-                    img_bytes = r.content
-                    if len(img_bytes) < 1000:
-                        all_errors.append(f"{model}: response too small ({len(img_bytes)} bytes)")
-                        break
-                    return JSONResponse({"b64": _b64.b64encode(img_bytes).decode()})
-                except Exception as e:
-                    all_errors.append(f"{model}: {e}")
-                    break
+    async with httpx.AsyncClient(timeout=120, follow_redirects=True) as client:
+        for url in _URLS:
+            try:
+                r = await client.get(url, headers={"User-Agent": "AXIS-OS/1.0"})
+                if r.status_code != 200:
+                    all_errors.append(f"Pollinations HTTP {r.status_code}: {r.text[:100]}")
+                    continue
+                img_bytes = r.content
+                if len(img_bytes) < 1000:
+                    all_errors.append(f"Pollinations: response too small ({len(img_bytes)} bytes)")
+                    continue
+                # Detect content type and return
+                mime = r.headers.get("content-type", "image/jpeg").split(";")[0]
+                b64 = _b64.b64encode(img_bytes).decode()
+                return JSONResponse({"b64": b64, "mime": mime})
+            except Exception as e:
+                all_errors.append(f"Pollinations: {e}")
+                continue
 
     raise HTTPException(status_code=500,
         detail="Image generation failed:\n" + "\n".join(all_errors))

@@ -106,8 +106,11 @@ class AiHandlerMixin:
             import base64 as _b64, pathlib, time as _t
             save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
             save_dir.mkdir(parents=True, exist_ok=True)
-            fpath = save_dir / f"axis_image_{int(_t.time())}.png"
-            fpath.write_bytes(_b64.b64decode(b64))
+            img_bytes = _b64.b64decode(b64)
+            # Detect format: JPEG starts with FF D8 FF, PNG starts with 89 50 4E 47
+            ext = ".jpg" if img_bytes[:2] == b'\xff\xd8' else ".png"
+            fpath = save_dir / f"axis_image_{int(_t.time())}{ext}"
+            fpath.write_bytes(img_bytes)
             saved_path = str(fpath)
         except Exception as e:
             print(f"[AXIS] auto-save image failed: {e}")

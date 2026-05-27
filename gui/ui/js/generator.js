@@ -326,7 +326,9 @@ function handleImageReady(d) {
   var anim = R('imgGenAnim'); if (anim) anim.style.display='none';
   var img = R('imgResult');
   if (img && _imgResultB64) {
-    img.src = 'data:image/png;base64,' + _imgResultB64;
+    // Detect JPEG vs PNG from base64 magic bytes (/9j/ = JPEG, iVBOR = PNG)
+    var mime = _imgResultB64.startsWith('/9j/') ? 'image/jpeg' : 'image/png';
+    img.src = 'data:' + mime + ';base64,' + _imgResultB64;
     img.style.display = 'block';
   }
 
