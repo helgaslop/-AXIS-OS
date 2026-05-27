@@ -277,7 +277,7 @@ async def generate_image(body: ImageRequest, authorization: str = Header(None)):
     ]
 
     all_errors: list[str] = []
-    async with _hx.AsyncClient(timeout=120) as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         for model in _MODELS:
             url = f"https://api-inference.huggingface.co/models/{model}"
             for attempt in range(12):   # retry up to 2 min for model warm-up
@@ -345,7 +345,7 @@ async def generate_video(body: VideoRequest, authorization: str = Header(None)):
     }
 
     last_err = ""
-    async with _hx.AsyncClient(timeout=200) as client:
+    async with httpx.AsyncClient(timeout=200) as client:
         for model in _MODELS:
             url = f"https://api-inference.huggingface.co/models/{model}"
             for attempt in range(18):   # retry up to 3 min for model warm-up
