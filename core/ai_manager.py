@@ -442,17 +442,16 @@ class AIManager(QObject):
             if provider == "openai":
                 b64 = self._dalle(prompt, size, style, ref_image_b64)
             elif provider == "google":
-                # Route through proxy (US) if license active — bypasses EU free-tier block
                 if self.proxy_active and PROXY_URL and self._license_key:
-                    try:
-                        b64 = self._proxy_image(prompt, ref_image_b64)
-                    except Exception as e:
-                        print(f"[AXIS] proxy image failed, trying direct: {e}")
-                        b64 = self._gemini_imagen(prompt, size, ref_image_b64)
+                    # Proxy mode — NO fallback to direct call (avoids billing user's key)
+                    b64 = self._proxy_image(prompt, ref_image_b64)
                 else:
+                    # Direct mode (trial / no license)
                     b64 = self._gemini_imagen(prompt, size, ref_image_b64)
             else:
-                self.response_error.emit(req_id, f"Генерація зображень не підтримується для «{provider}».\nВикористайте OpenAI (DALL-E 3) або Google (Imagen).")
+                self.response_error.emit(req_id,
+                    f"Генерація зображень не підтримується для «{provider}».\n"
+                    "Використайте OpenAI (DALL-E 3) або Google (Imagen).")
                 return
             self.image_ready.emit(req_id, b64)
         except Exception as e:
