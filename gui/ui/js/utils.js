@@ -195,12 +195,14 @@ setInterval(updateClock, 1000); updateClock();
 })();
 
 // ═══ NAVIGATION ═══
-var pageTitles={dashboard:'Головна',monitor:'Системний монітор',agents:'AI Агенти',chat:'AI Чат',ide:'IDE',generator:'AI Генератор',music:'Музика',commands:'Команди',macros:'Автоматизація',network:'Нотатки',api:'API Ключі',settings:'Налаштування',logs:'Системні логи',pomodoro:'Помодоро',processes:'Менеджер процесів'};
-var pageSubs={dashboard:'/ Огляд системи',monitor:'/ Продуктивність',agents:'/ Платформа для програмування',chat:'/ Діалог з AI',ide:'/ Розробка',generator:'/ Генерація проектів',music:'/ Spotify плеєр',commands:'/ Управління командами',macros:'/ Задачі та макроси',network:'/ Записи та ідеї',api:'/ Ключі доступу',settings:'/ Конфігурація',logs:'/ Python stdout & stderr',pomodoro:'/ Фокус та продуктивність',processes:'/ Запущені процеси'};
+var pageTitles={dashboard:'Головна',monitor:'Системний монітор',agents:'AI Агенти / IDE',chat:'AI Чат',generator:'AI Генератор',music:'Музика',commands:'Команди',macros:'Автоматизація',network:'Нотатки',api:'API Ключі',settings:'Налаштування',logs:'Системні логи',pomodoro:'Помодоро',processes:'Менеджер процесів'};
+var pageSubs={dashboard:'/ Огляд системи',monitor:'/ Продуктивність',agents:'/ IDE та AI агенти',chat:'/ Діалог з AI',generator:'/ Генерація проектів',music:'/ Spotify плеєр',commands:'/ Управління командами',macros:'/ Задачі та макроси',network:'/ Записи та ідеї',api:'/ Ключі доступу',settings:'/ Конфігурація',logs:'/ Python stdout & stderr',pomodoro:'/ Фокус та продуктивність',processes:'/ Запущені процеси'};
 
 function showPage(id){
+  var el=R('page-'+id);
+  if(!el){ showToast('⚠ Сторінка «'+id+'» не знайдена'); return; }
   document.querySelectorAll('.page,.page-flex').forEach(function(p){ p.classList.remove('active'); });
-  var el=R('page-'+id); if(el) el.classList.add('active');
+  el.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   var nb=document.querySelector('[data-page="'+id+'"]'); if(nb) nb.classList.add('active');
   R('hTitle').textContent=pageTitles[id]||id;

@@ -283,10 +283,14 @@ function initChat(){
     }
   }
 
+  // Only generate a new session ID if we didn't restore an existing one
+  // (prevents creating a duplicate session on every app startup)
   if (!_currentSessId) _currentSessId = _genSessId();
 
   if (!chatMessages.length) {
     addChatMsg('ai','Привіт! Я AXIS AI 👋 Оберіть модель і роль вгорі, додайте API ключ у «API Ключі» і починаємо! 🎤 — голосовий ввід, 🔈 — озвучення відповідей.','AXIS AI');
+    // Save the welcome message so this session appears in the list
+    _saveCurrentSession();
   }
 }
 

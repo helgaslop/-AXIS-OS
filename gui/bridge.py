@@ -17,6 +17,8 @@ from .handlers import (
     IdeHandlerMixin,
     SpotifyHandlerMixin,
     DashboardHandlerMixin,
+    LicenseHandlerMixin,
+    ProfileHandlerMixin,
 )
 
 
@@ -29,6 +31,8 @@ class AxisBridge(
     IdeHandlerMixin,
     SpotifyHandlerMixin,
     DashboardHandlerMixin,
+    LicenseHandlerMixin,
+    ProfileHandlerMixin,
     QObject,
 ):
     """All JS calls come through pyCall(cmd, data).
@@ -53,7 +57,6 @@ class AxisBridge(
         self._ai.response_token.connect(self._on_ai_token)
         self._ai.response_done.connect(self._on_ai_done)
         self._ai.image_ready.connect(self._on_image_ready)
-        self._ai.video_ready.connect(self._on_video_ready)
 
     # ── Slot called from JavaScript ──────────────────────────────────────────
     @pyqtSlot(str, str)
@@ -77,6 +80,7 @@ class AxisBridge(
             "save_config":              self._save_config,
             "fetch_ollama":             self._fetch_ollama,
             "check_api_status":         self._check_api_status,
+            "run_api_tests":            self._run_api_tests,
             "connect_spotify":          self._connect_spotify,
             "spotify_action":           self._spotify_action,
             # Commands
@@ -138,6 +142,24 @@ class AxisBridge(
             # Settings Backup/Restore
             "export_backup":            self._export_backup,
             "import_backup":            self._import_backup,
+            # License & AI Subscriptions
+            "get_license_status":       self._get_license_status,
+            "activate_license":         self._activate_license,
+            "get_ai_subscriptions":     self._get_ai_subscriptions,
+            "save_ai_subscription":     self._save_ai_subscription,
+            "check_ai_keys":            self._check_all_keys,
+            "get_proxy_stats":          self._get_proxy_stats,
+            "set_budget":               self._set_budget,
+            # Profile & Onboarding
+            "get_profile":              self._get_profile,
+            "save_profile":             self._save_profile,
+            "complete_onboarding":      self._complete_onboarding,
+            "get_onboarding_status":    self._get_onboarding_status,
+            "increment_stat":           self._increment_stat,
+            "save_chat_memory":         self._save_chat_memory,
+            "recall_chat_memory":       self._recall_chat_memory,
+            "set_ai_style":             self._set_ai_style,
+            "get_ai_style":             self._get_ai_style,
         }
 
         fn = handlers.get(cmd)

@@ -96,6 +96,8 @@ function initApp(){
   pyCall('get_autostart_status');
   // Check if sphere is already running
   pyCall('sphere_status');
+  // Check license status on startup so header badge is correct
+  pyCall('get_license_status', '{}');
   if (window.speechSynthesis) {
     populateBrowserVoices();
     window.speechSynthesis.onvoiceschanged = function(){

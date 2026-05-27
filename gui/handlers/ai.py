@@ -75,16 +75,9 @@ class AiHandlerMixin:
         )
 
     def _generate_video(self, p: dict):
-        result = _get_license().check("image_gen")
-        if not result["ok"]:
-            self.push_to_js.emit("ai_error",
-                json.dumps({"id": p.get("id", "vid_req"), "error": result["msg"]}))
-            return
-        self._ai.generate_video(
-            p.get("id", "vid_req"), p.get("prompt", ""),
-            int(p.get("duration", 9)), p.get("aspect_ratio", "16:9"),
-            p.get("ref_image", ""),
-        )
+        # Video generation removed — feature disabled
+        self.push_to_js.emit("toast",
+            json.dumps({"msg": "⚠ Генерація відео тимчасово недоступна"}))
 
     # ── AI signal callbacks ───────────────────────────────────────────────────
     def _on_ai_ready(self, req_id: str, text: str):

@@ -5,6 +5,8 @@ import threading
 
 
 class SttTtsHandlerMixin:
+    _stt_starting = False  # guard against rapid double-click race condition
+
     # ── STT ───────────────────────────────────────────────────────────────────
     def _start_stt(self, p: dict):
         mode         = p.get("mode", "single")
@@ -14,6 +16,10 @@ class SttTtsHandlerMixin:
         device_index = None if device_index == -1 else int(device_index)
         energy = int(600 - (sensitivity / 90) * 500)
         if mode == "live":
+            # Prevent race: if already starting, ignore duplicate call
+            if self._stt_starting:
+                return
+            self._stt_starting = True
             threading.Thread(target=self._stt_live_start,
                              args=(lang, device_index, energy), daemon=True).start()
         else:
@@ -40,7 +46,7 @@ class SttTtsHandlerMixin:
 
     def _stt_recognize(self, recognizer, audio, lang: str) -> str:
         import speech_recognition as sr
-        openai_key = self._cfg.get("api_keys", {}).get("openai", "")
+        openai_key = self._get_api_keys().get("openai", "")
         if openai_key:
             try:
                 prev = os.environ.get("OPENAI_API_KEY", "")
@@ -99,6 +105,7 @@ class SttTtsHandlerMixin:
                 r.adjust_for_ambient_noise(source, duration=0.5)
 
             self._stt_active = True
+            self._stt_starting = False  # done starting, reset guard
             self.push_to_js.emit("stt_status", json.dumps({"status": "live_ready"}))
 
             def on_phrase(recognizer, audio):
@@ -114,6 +121,7 @@ class SttTtsHandlerMixin:
 
             self._stt_bg_stop = r.listen_in_background(mic, on_phrase, phrase_time_limit=15)
         except Exception as e:
+            self._stt_starting = False
             err = str(e)
             if "pyaudio" in err.lower() or "portaudio" in err.lower():
                 err = "Мікрофон недоступний. Встановіть pyaudio: pip install pyaudio"
@@ -131,7 +139,7 @@ class SttTtsHandlerMixin:
     def _tts_worker(self, text: str, provider: str, voice: str):
         import base64, json as _json
         try:
-            key = self._cfg.get("api_keys", {}).get(provider, "")
+            key = self._get_api_keys().get(provider, "")
             if not key:
                 self.push_to_js.emit("tts_error",
                     _json.dumps({"error": f"API ключ «{provider}» не налаштовано"}))
