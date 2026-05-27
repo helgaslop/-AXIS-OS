@@ -312,69 +312,82 @@ async def generate_video(body: VideoRequest, authorization: str = Header(None)):
     if not lic["ok"]:
         raise HTTPException(status_code=403, detail=lic["error"])
 
+    """Generate video by assembling frames from Pollinations AI — completely free."""
     import asyncio
     import base64 as _b64
+    import io
+    import tempfile
+    import os as _os
+    from urllib.parse import quote as _quote
 
-    REPLICATE_KEY = os.environ.get("REPLICATE_API_KEY", "")
-    if not REPLICATE_KEY:
-        raise HTTPException(status_code=503,
-            detail="NO_REPLICATE_KEY: Додай REPLICATE_API_KEY в Railway Variables. "
-                   "Безкоштовно: replicate.com → Sign in → Account → API tokens")
+    num_frames = min(24, max(8, body.duration * 4))   # 4 fps × duration
+    fps = 4
 
-    # Zeroscope v2 XL on Replicate — free credits, good quality
-    _VERSION = "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351"
-    num_frames = min(36, max(12, body.duration * 8))
+    # Generate frames concurrently from Pollinations
+    prompts = []
+    for i in range(num_frames):
+        # Subtle variation per frame for a sense of motion
+        prompts.append(f"{body.prompt}, frame {i+1} of {num_frames}, cinematic")
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        # Submit prediction
-        r = await client.post(
-            "https://api.replicate.com/v1/predictions",
-            headers={"Authorization": f"Token {REPLICATE_KEY}",
-                     "Content-Type": "application/json"},
-            json={"version": _VERSION,
-                  "input": {"prompt": body.prompt,
-                             "num_frames": num_frames,
-                             "num_inference_steps": 25,
-                             "fps": 8}},
-        )
-        if r.status_code not in (200, 201):
-            raise HTTPException(status_code=500,
-                detail=f"Replicate submit failed: {r.status_code} {r.text[:200]}")
-        pred = r.json()
-        pred_id = pred.get("id")
-        if not pred_id:
-            raise HTTPException(status_code=500, detail="Replicate: no prediction ID")
+    async def fetch_frame(session: httpx.AsyncClient, idx: int) -> bytes | None:
+        p = _quote(f"{body.prompt}, cinematic, high quality, frame variation {idx}")
+        seed = 42 + idx
+        url = (f"https://image.pollinations.ai/prompt/{p}"
+               f"?model=flux-schnell&width=512&height=288&nologo=true&seed={seed}")
+        try:
+            r = await session.get(url, headers={"User-Agent": "AXIS-OS/1.0"})
+            if r.status_code == 200 and len(r.content) > 1000:
+                return r.content
+        except Exception:
+            pass
+        return None
 
-    # Poll until complete (max 5 min)
-    async with httpx.AsyncClient(timeout=30) as client:
-        for _ in range(60):
-            await asyncio.sleep(5)
-            poll = await client.get(
-                f"https://api.replicate.com/v1/predictions/{pred_id}",
-                headers={"Authorization": f"Token {REPLICATE_KEY}"},
-            )
-            if poll.status_code != 200:
-                continue
-            data = poll.json()
-            status = data.get("status", "")
-            if status == "succeeded":
-                output = data.get("output")
-                video_url = (output[0] if isinstance(output, list) else output) or ""
-                if not video_url:
-                    raise HTTPException(status_code=500,
-                        detail="Replicate: succeeded but no output URL")
-                # Download the video
-                async with httpx.AsyncClient(timeout=60) as dl:
-                    vr = await dl.get(video_url)
-                    video_bytes = vr.content
-                b64 = _b64.b64encode(video_bytes).decode()
-                return JSONResponse({"b64": b64, "mime": "video/mp4"})
-            elif status in ("failed", "canceled"):
-                err = data.get("error") or "unknown error"
-                raise HTTPException(status_code=500,
-                    detail=f"Replicate generation failed: {err}")
+    # Fetch all frames (with concurrency limit of 4)
+    sem = asyncio.Semaphore(4)
+    async def fetch_limited(session, idx):
+        async with sem:
+            return await fetch_frame(session, idx)
 
-    raise HTTPException(status_code=500, detail="Video generation timeout after 5 minutes")
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as client:
+        tasks = [fetch_limited(client, i) for i in range(num_frames)]
+        frame_bytes_list = await asyncio.gather(*tasks)
+
+    # Filter out failed frames
+    valid_frames = [fb for fb in frame_bytes_list if fb]
+    if len(valid_frames) < 2:
+        raise HTTPException(status_code=500,
+            detail="Video generation failed: could not fetch enough frames from Pollinations")
+
+    # Assemble frames into mp4 using imageio + ffmpeg
+    try:
+        import imageio
+        import numpy as np
+        from PIL import Image
+
+        frames_np = []
+        for fb in valid_frames:
+            img = Image.open(io.BytesIO(fb)).convert("RGB").resize((512, 288))
+            frames_np.append(np.array(img))
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        writer = imageio.get_writer(tmp_path, fps=fps, codec="libx264",
+                                    pixelformat="yuv420p", quality=7)
+        for frame in frames_np:
+            writer.append_data(frame)
+        writer.close()
+
+        with open(tmp_path, "rb") as f:
+            video_bytes = f.read()
+        _os.unlink(tmp_path)
+
+        b64 = _b64.b64encode(video_bytes).decode()
+        return JSONResponse({"b64": b64, "mime": "video/mp4"})
+
+    except Exception as e:
+        raise HTTPException(status_code=500,
+            detail=f"Video assembly failed: {e}")
 
 
 # ── Admin stats endpoint ──────────────────────────────────────────────────────

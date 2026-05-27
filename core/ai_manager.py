@@ -657,16 +657,10 @@ class AIManager(QObject):
                     self.video_ready.emit(req_id, fname)
                     return
                 except Exception as e:
-                    err = str(e)
-                    if "NO_REPLICATE_KEY" in err:
-                        self.response_error.emit(req_id,
-                            "⚠ Відео потребує Replicate API ключ на сервері.\n\n"
-                            "Безкоштовне налаштування (2 хвилини):\n"
-                            "1. replicate.com → Sign in with GitHub\n"
-                            "2. Account → API tokens → Copy token\n"
-                            "3. Railway → Variables → REPLICATE_API_KEY = токен")
-                        return
                     print(f"[AXIS] proxy video failed: {e}")
+                    self.response_error.emit(req_id,
+                        f"⚠ Генерація відео через проксі не вдалась:\n{str(e)[:200]}")
+                    return
 
             # Fallback: direct HuggingFace (only works outside Germany)
             try:
@@ -674,11 +668,7 @@ class AIManager(QObject):
                 self.video_ready.emit(req_id, fname)
             except Exception as e:
                 self.response_error.emit(req_id,
-                    "⚠ Генерація відео недоступна з Німеччини через блокування DNS.\n\n"
-                    "Рішення:\n"
-                    "1. replicate.com → Sign in → API tokens → Copy\n"
-                    "2. Railway → Variables → додай REPLICATE_API_KEY\n"
-                    "3. Після цього відео працюватиме безкоштовно ✅")
+                    "⚠ Генерація відео недоступна без активної ліцензії AXIS OS.")
         except Exception as e:
             self.response_error.emit(req_id, str(e))
 
