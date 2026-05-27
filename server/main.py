@@ -315,48 +315,66 @@ async def generate_video(body: VideoRequest, authorization: str = Header(None)):
     import asyncio
     import base64 as _b64
 
-    HF_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
-    hf_headers = {"Content-Type": "application/json"}
-    if HF_KEY:
-        hf_headers["Authorization"] = f"Bearer {HF_KEY}"
+    REPLICATE_KEY = os.environ.get("REPLICATE_API_KEY", "")
+    if not REPLICATE_KEY:
+        raise HTTPException(status_code=503,
+            detail="NO_REPLICATE_KEY: Додай REPLICATE_API_KEY в Railway Variables. "
+                   "Безкоштовно: replicate.com → Sign in → Account → API tokens")
 
-    _MODELS = [
-        "cerspense/zeroscope_v2_576w",
-        "damo-vilab/text-to-video-ms-1.7b",
-    ]
-    num_frames = min(24, max(8, body.duration * 8))
-    payload = {
-        "inputs": body.prompt,
-        "parameters": {"num_frames": num_frames, "num_inference_steps": 25},
-    }
+    # Zeroscope v2 XL on Replicate — free credits, good quality
+    _VERSION = "9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351"
+    num_frames = min(36, max(12, body.duration * 8))
 
-    last_err = ""
-    async with httpx.AsyncClient(timeout=200) as client:
-        for model in _MODELS:
-            url = f"https://api-inference.huggingface.co/models/{model}"
-            for attempt in range(18):   # retry up to 3 min for model warm-up
-                try:
-                    r = await client.post(url, headers=hf_headers, json=payload)
-                    if r.status_code == 503:
-                        if attempt < 17:
-                            await asyncio.sleep(10)
-                            continue
-                        last_err = f"{model} HTTP 503: model still loading"
-                        break
-                    if r.status_code != 200:
-                        last_err = f"{model} HTTP {r.status_code}: {r.text[:150]}"
-                        break
-                    video_bytes = r.content
-                    if len(video_bytes) < 1000:
-                        last_err = f"{model}: response too small ({len(video_bytes)} bytes)"
-                        break
-                    b64 = _b64.b64encode(video_bytes).decode()
-                    return JSONResponse({"b64": b64, "mime": "video/mp4"})
-                except Exception as e:
-                    last_err = f"{model}: {e}"
-                    break   # try next model
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Submit prediction
+        r = await client.post(
+            "https://api.replicate.com/v1/predictions",
+            headers={"Authorization": f"Token {REPLICATE_KEY}",
+                     "Content-Type": "application/json"},
+            json={"version": _VERSION,
+                  "input": {"prompt": body.prompt,
+                             "num_frames": num_frames,
+                             "num_inference_steps": 25,
+                             "fps": 8}},
+        )
+        if r.status_code not in (200, 201):
+            raise HTTPException(status_code=500,
+                detail=f"Replicate submit failed: {r.status_code} {r.text[:200]}")
+        pred = r.json()
+        pred_id = pred.get("id")
+        if not pred_id:
+            raise HTTPException(status_code=500, detail="Replicate: no prediction ID")
 
-    raise HTTPException(status_code=500, detail=f"Video generation failed: {last_err}")
+    # Poll until complete (max 5 min)
+    async with httpx.AsyncClient(timeout=30) as client:
+        for _ in range(60):
+            await asyncio.sleep(5)
+            poll = await client.get(
+                f"https://api.replicate.com/v1/predictions/{pred_id}",
+                headers={"Authorization": f"Token {REPLICATE_KEY}"},
+            )
+            if poll.status_code != 200:
+                continue
+            data = poll.json()
+            status = data.get("status", "")
+            if status == "succeeded":
+                output = data.get("output")
+                video_url = (output[0] if isinstance(output, list) else output) or ""
+                if not video_url:
+                    raise HTTPException(status_code=500,
+                        detail="Replicate: succeeded but no output URL")
+                # Download the video
+                async with httpx.AsyncClient(timeout=60) as dl:
+                    vr = await dl.get(video_url)
+                    video_bytes = vr.content
+                b64 = _b64.b64encode(video_bytes).decode()
+                return JSONResponse({"b64": b64, "mime": "video/mp4"})
+            elif status in ("failed", "canceled"):
+                err = data.get("error") or "unknown error"
+                raise HTTPException(status_code=500,
+                    detail=f"Replicate generation failed: {err}")
+
+    raise HTTPException(status_code=500, detail="Video generation timeout after 5 minutes")
 
 
 # ── Admin stats endpoint ──────────────────────────────────────────────────────

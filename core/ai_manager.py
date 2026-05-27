@@ -650,27 +650,35 @@ class AIManager(QObject):
 
     def _video_worker(self, req_id, prompt, duration, aspect_ratio, ref_image_b64):
         try:
-            # 1. Try proxy (US) when license active — bypasses EU/Germany DNS block
+            # Route through proxy (US + Replicate) — only working option from Germany
             if self.proxy_active and PROXY_URL and self._license_key:
                 try:
                     fname = self._proxy_video(prompt, duration)
                     self.video_ready.emit(req_id, fname)
                     return
                 except Exception as e:
-                    print(f"[AXIS] proxy video failed, trying local HF: {e}")
+                    err = str(e)
+                    if "NO_REPLICATE_KEY" in err:
+                        self.response_error.emit(req_id,
+                            "⚠ Відео потребує Replicate API ключ на сервері.\n\n"
+                            "Безкоштовне налаштування (2 хвилини):\n"
+                            "1. replicate.com → Sign in with GitHub\n"
+                            "2. Account → API tokens → Copy token\n"
+                            "3. Railway → Variables → REPLICATE_API_KEY = токен")
+                        return
+                    print(f"[AXIS] proxy video failed: {e}")
 
-            # 2. Try HuggingFace directly (works outside Germany / if proxy fails)
+            # Fallback: direct HuggingFace (only works outside Germany)
             try:
                 fname = self._hf_video(prompt, duration, aspect_ratio)
                 self.video_ready.emit(req_id, fname)
-                return
             except Exception as e:
-                print(f"[AXIS] HF video failed: {e}")
                 self.response_error.emit(req_id,
-                    f"⚠ Не вдалось згенерувати відео: {e}\n\n"
-                    "Можливі рішення:\n"
-                    "• Активуйте ліцензію AXIS OS (відео через проксі США)\n"
-                    "• Або додайте HuggingFace токен у Налаштуваннях")
+                    "⚠ Генерація відео недоступна з Німеччини через блокування DNS.\n\n"
+                    "Рішення:\n"
+                    "1. replicate.com → Sign in → API tokens → Copy\n"
+                    "2. Railway → Variables → додай REPLICATE_API_KEY\n"
+                    "3. Після цього відео працюватиме безкоштовно ✅")
         except Exception as e:
             self.response_error.emit(req_id, str(e))
 
