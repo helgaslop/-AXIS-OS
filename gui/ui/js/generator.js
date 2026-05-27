@@ -62,6 +62,170 @@ function switchGenTab(el, paneId) {
   var pane = R(paneId); if (pane) pane.classList.add('active');
 }
 
+// ═══ SMART DESCRIPTION ENHANCER ═══
+// Detects what the user wants and injects detailed technical requirements
+function _enhanceDescription(desc, type) {
+  var d = desc.toLowerCase();
+
+  // ── CHESS / board games ──
+  if (/шахмат|chess|шахи/.test(d)) {
+    return desc + '\n\n[CHESS REQUIREMENTS — MANDATORY]\n' +
+      'Draw board: 8x8 grid, alternating light/dark squares, coordinate labels a-h / 1-8.\n' +
+      'Pieces rendered as Unicode symbols OR drawn with Canvas paths — large, clearly visible:\n' +
+      '  King ♔♚, Queen ♕♛, Rook ♖♜, Bishop ♗♝, Knight ♘♞, Pawn ♙♟\n' +
+      'Full move validation for EVERY piece type:\n' +
+      '  Pawn: forward 1 (or 2 from start), diagonal capture, en passant, promotion to queen\n' +
+      '  Knight: L-shape, can jump over pieces\n' +
+      '  Bishop: diagonal unlimited\n' +
+      '  Rook: horizontal/vertical unlimited\n' +
+      '  Queen: rook + bishop combined\n' +
+      '  King: 1 square any direction + castling (king-side and queen-side)\n' +
+      'Check detection: highlight king in red when in check\n' +
+      'Checkmate and stalemate detection with game-over popup\n' +
+      'Highlight legal moves when piece is clicked (green dots or highlighted squares)\n' +
+      'Turn indicator: "White to move" / "Black to move"\n' +
+      'Simple AI for black pieces (pick random legal move, or minimax depth 2)\n' +
+      'Captured pieces display\n' +
+      'New game button';
+  }
+
+  // ── CHECKERS ──
+  if (/шашки|checkers|draughts/.test(d)) {
+    return desc + '\n\n[CHECKERS REQUIREMENTS — MANDATORY]\n' +
+      'Draw 8x8 board. Pieces as filled circles with gradient.\n' +
+      'Forced captures (jump over opponent). Multiple jumps in one turn.\n' +
+      'King promotion when reaching last row (crown symbol on piece).\n' +
+      'Highlight valid moves on click. AI opponent. Win detection.';
+  }
+
+  // ── TETRIS ──
+  if (/тетріс|tetris|тетрис/.test(d)) {
+    return desc + '\n\n[TETRIS REQUIREMENTS — MANDATORY]\n' +
+      'All 7 tetrominoes: I, O, T, S, Z, J, L — each different color.\n' +
+      'Rotation (clockwise and counter-clockwise). Wall kicks.\n' +
+      'Line clear with animation. Score: 100/300/500/800 for 1/2/3/4 lines.\n' +
+      'Speed increases every 10 lines (levels). Next piece preview box.\n' +
+      'Hold piece feature. Ghost piece (shadow showing where it lands).\n' +
+      'Game over detection. High score in localStorage.';
+  }
+
+  // ── SNAKE ──
+  if (/зміїк|змійк|snake|snaky/.test(d)) {
+    return desc + '\n\n[SNAKE REQUIREMENTS — MANDATORY]\n' +
+      'Grid-based movement. Snake grows when eating food.\n' +
+      'Wall collision AND self-collision = game over.\n' +
+      'Arrow keys + WASD. Speed increases as snake grows.\n' +
+      'Food placed randomly (never on snake). Score = length - 1.\n' +
+      'Smooth visual: rounded segments, gradient colors from head to tail.\n' +
+      'High score persistence in localStorage. Restart on press.';
+  }
+
+  // ── AK-47 / weapons ──
+  if (/ак.?47|ак.?74|калашник|автомат|rifle|assault.?rif|ak47|ak74|carbine|m16|m4a1|gun|пістол|pistol|пушк|revolver|shotgun|sniper|снайп/.test(d)) {
+    return desc + '\n\n[WEAPON DRAWING REQUIREMENTS — MANDATORY]\n' +
+      'Draw on Canvas 900x400. Use ctx.beginPath(), lineTo(), bezierCurveTo(), arc() — NO simple rectangles.\n' +
+      'AK-47 must have ALL these parts drawn as distinct Canvas shapes:\n' +
+      '  1. Stock (приклад): wooden curved shape, right side\n' +
+      '  2. Receiver/body (ствольна коробка): main rectangular body with details\n' +
+      '  3. Magazine (магазин): curved banana magazine pointing down-forward\n' +
+      '  4. Barrel (ствол): long thin cylinder extending left\n' +
+      '  5. Gas tube (газова трубка): thin tube above barrel\n' +
+      '  6. Front sight (мушка): small vertical post at barrel end\n' +
+      '  7. Rear sight (приціл): folded sight near receiver\n' +
+      '  8. Pistol grip (пістолетна рукоятка): curved grip below receiver\n' +
+      '  9. Trigger guard (скоба): curved guard around trigger\n' +
+      ' 10. Charging handle (затвор): small handle on right side of receiver\n' +
+      ' 11. Dust cover: on top of receiver\n' +
+      'Colors: dark steel #2a2a2a for metal, #5c3d1e for wood, accent highlights\n' +
+      'Add technical label lines pointing to each part\n' +
+      'Add rotation animation: gun slowly rotates 360° showing all angles\n' +
+      'Bottom: display name "AK-47 / Автомат Калашникова" with specs text';
+  }
+
+  // ── VEHICLES: tanks, cars ──
+  if (/танк|tank|броне|armou?r/.test(d)) {
+    return desc + '\n\n[TANK DRAWING REQUIREMENTS — MANDATORY]\n' +
+      'Draw on Canvas. Hull (hull body with track bogies), turret (rounded top with hatch), cannon barrel (long extending right).\n' +
+      'Tracks: series of small rectangles below hull. Road wheels visible.\n' +
+      'Colors: military green #4a5240 with dark shadows.\n' +
+      'Add slow rotation or side-scrolling animation.';
+  }
+  if (/машин|автомобіл|car\b|auto\b|vehicle|спортивн.*авт/.test(d)) {
+    return desc + '\n\n[CAR DRAWING REQUIREMENTS — MANDATORY]\n' +
+      'Draw on Canvas. Full car silhouette with: body shape, roof, windows (windshield, side, rear), doors, hood, trunk.\n' +
+      'Wheels: 2 circles with inner hub detail. Headlights and taillights.\n' +
+      'Spoiler if sports car. Realistic proportions. Shadow under car.\n' +
+      'Metallic gradient on body. Add slow idle animation (slight bounce).';
+  }
+
+  // ── HUMAN / CHARACTER ──
+  if (/людин|персонаж|character|солдат|soldier|людська фігур|stick.?man|чоловічок/.test(d)) {
+    return desc + '\n\n[CHARACTER DRAWING REQUIREMENTS — MANDATORY]\n' +
+      'Draw full human figure with Canvas: head (circle), neck, torso (trapezoid), arms with elbow and wrist joints, hands (simplified), legs with knee joints, feet.\n' +
+      'Clothing details drawn as filled shapes. Face: eyes, nose, mouth.\n' +
+      'All body parts connected correctly. Proportional anatomy.\n' +
+      'Add breathing or idle animation.';
+  }
+
+  // ── SOLAR SYSTEM / SPACE ──
+  if (/сонячн.*систем|solar.?sys|planet|планет|космос|space\b|universe/.test(d)) {
+    return desc + '\n\n[SPACE REQUIREMENTS — MANDATORY]\n' +
+      'All 8 planets with correct relative sizes and colors: Mercury(grey), Venus(yellow), Earth(blue+green), Mars(red), Jupiter(orange bands), Saturn(golden+rings), Uranus(light blue), Neptune(dark blue).\n' +
+      'Elliptical orbit paths drawn. Each planet orbits at correct relative speed. Sun in center with glow effect.\n' +
+      'Stars background (200+ random dots). Moon orbiting Earth.\n' +
+      'Planet name labels. Click planet to show info panel.';
+  }
+
+  // ── FIRE / PARTICLES ──
+  if (/вогонь|fire\b|flame|полум|частинк|particle/.test(d)) {
+    return desc + '\n\n[PARTICLE SYSTEM REQUIREMENTS — MANDATORY]\n' +
+      '300+ particles. Each particle: position, velocity, life, color, size.\n' +
+      'Fire: particles rise with random spread, fade from yellow→orange→red→transparent.\n' +
+      'Physics: gravity, wind, turbulence. Glow effect using composite operations.\n' +
+      '60fps with requestAnimationFrame. Interactive: click/move to spawn particles.';
+  }
+
+  // ── PIANO / MUSIC ──
+  if (/піаніно|piano|keyboard.*music|клавіш.*муз/.test(d)) {
+    return desc + '\n\n[PIANO REQUIREMENTS — MANDATORY]\n' +
+      'Draw 3 full octaves (C3 to C6 = 37 white keys, 25 black keys) using Canvas or HTML elements.\n' +
+      'White keys: 23px wide, 120px tall. Black keys: 14px wide, 80px tall, overlapping whites.\n' +
+      'WebAudio API: each key plays its exact frequency (A4=440Hz, equal temperament).\n' +
+      'Keyboard mapping: ASDFGHJK = white keys, WETYU = black keys.\n' +
+      'Keys highlight on press/click. Hold key for sustained note.\n' +
+      'Octave up/down buttons. Volume slider. Record and playback mode.';
+  }
+
+  // ── CLOCK ──
+  if (/годинник|clock|watch|timer.*clock|аналогов.*час/.test(d)) {
+    return desc + '\n\n[CLOCK REQUIREMENTS — MANDATORY]\n' +
+      'Canvas analog clock: outer ring with 60 minute marks (larger at 5-min intervals), 12 hour numbers.\n' +
+      'Three hands: hour (thick, short), minute (medium), second (thin, red with counterweight).\n' +
+      'Smooth second hand (real-time Date()), or sweep animation.\n' +
+      'Inner glow, metallic bezel effect. Dark luxury design.';
+  }
+
+  // ── FRACTAL / MATH VISUALIZATION ──
+  if (/фрактал|fractal|mandelbrot|julia|sierpin/.test(d)) {
+    return desc + '\n\n[FRACTAL REQUIREMENTS — MANDATORY]\n' +
+      'Render on Canvas using iteration algorithm. Full color mapping (HSL based on escape speed).\n' +
+      'Smooth infinite zoom: scroll to zoom in, drag to pan.\n' +
+      'Show iteration count, zoom level, coordinates in status bar.\n' +
+      'Web Worker for computation (non-blocking). Progressive rendering.';
+  }
+
+  // ── GENERIC VISUAL (no specific match) — force Canvas detail ──
+  if (type === 'component' || /малюй|draw|намалюй|зобрази|render|відобрази|show me|display/.test(d)) {
+    return desc + '\n\n[DRAWING REQUIREMENTS — MANDATORY]\n' +
+      'Use HTML Canvas (900x500 minimum). Draw with ctx.beginPath(), bezierCurveTo(), arc() paths.\n' +
+      'ABSOLUTELY NO simple colored rectangles as stand-ins for complex objects.\n' +
+      'Every object has: proper silhouette, color gradients (createLinearGradient), shadows (shadowBlur), details.\n' +
+      'Add animation if appropriate (requestAnimationFrame).';
+  }
+
+  return desc;
+}
+
 function generateProject() {
   if (_genRunning) return;
   var desc = (R('genDesc').value || '').trim();
@@ -71,66 +235,52 @@ function generateProject() {
   var provider   = R('genProvider').value;
   var complexity = R('genComplexity').value;
 
-  // ── Type-specific requirements ──
-  var typeReqs = {
-    game: [
-      'COMPLETE game logic — every rule, every mechanic, every edge case fully implemented',
-      'If it\'s a board game (chess, checkers, etc): ALL piece types with correct movement rules, captures, special moves (castling, en passant, promotion, etc), check/checkmate/stalemate detection, turn management',
-      'If it\'s an action/arcade game: smooth animation loop (requestAnimationFrame), collision detection, score system, lives/health, level progression, game over + restart',
-      'AI opponent (even simple) if the game is typically 2-player',
-      'Keyboard AND mouse/touch controls',
-      'Score display, timer, level indicator — all visible and working',
-    ],
-    app: [
-      'ALL functionality described must be fully implemented — no stubs, no fake data',
-      'Working data persistence using localStorage',
-      'Input validation with clear error messages',
-      'All buttons do real things — nothing is decorative',
-      'Smooth UI transitions and loading states',
-    ],
-    site: [
-      'All sections fully populated with realistic content',
-      'Working navigation (smooth scroll or routing)',
-      'Interactive elements: hover effects, modals, dropdowns — all functional',
-      'Responsive layout for different screen sizes',
-      'All forms have real validation',
-    ],
-    component: [
-      'Fully interactive — every prop/state combination works',
-      'Edge cases handled (empty state, loading, error state)',
-      'Smooth animations and transitions',
-      'Copy-paste ready, self-contained',
-    ],
-  };
+  // Auto-enhance description with detailed technical requirements
+  var enhancedDesc = _enhanceDescription(desc, _genType);
 
   // ── Complexity expansions ──
   var complexExtra = {
-    simple:  'Clean, functional implementation. All features work correctly.',
-    medium:  'Polished UI with smooth animations. Complete feature set. Dark modern design with gradients and shadows.',
-    complex: 'MAXIMUM quality. Stunning visuals, particle effects, smooth 60fps animations, advanced features. Make it impressive. This should look like a professional production release.',
+    simple:  'Clean, functional. All features fully working.',
+    medium:  'Polished UI, smooth animations, complete feature set, dark modern design.',
+    complex: 'MAXIMUM quality. Stunning visuals, particle effects, 60fps animations, full feature set. Professional production level.',
   };
 
-  // ── Build the smart prompt ──
-  var typeReqList = (typeReqs[_genType] || typeReqs.app).map(function(r){ return '  • ' + r; }).join('\n');
+  // ── Type-specific mandatory requirements ──
+  var typeRules = {
+    game:
+      'GAME RULES:\n' +
+      '• ALL game mechanics fully coded — every rule, every edge case\n' +
+      '• Board games: every piece type, legal move validation, special moves, check/checkmate\n' +
+      '• Arcade games: requestAnimationFrame loop, collision detection, score, lives, level up\n' +
+      '• Include simple AI opponent for 2-player games\n' +
+      '• Keyboard + mouse controls. Score/timer always visible.',
+    app:
+      'APP RULES:\n' +
+      '• Every button/feature fully implemented — nothing decorative or stub\n' +
+      '• localStorage persistence. Input validation. Loading states.',
+    site:
+      'SITE RULES:\n' +
+      '• All sections have real content. Navigation works. Forms validate.',
+    component:
+      'COMPONENT RULES:\n' +
+      '• Fully interactive. All states handled. Smooth animations.',
+  };
 
   var prompt =
-    'Create a ' + _genType + ' based on this description:\n' +
-    '"' + desc + '"\n\n' +
-    '━━━ COMPLEXITY LEVEL: ' + complexity.toUpperCase() + ' ━━━\n' +
+    'Build this ' + _genType + ':\n\n' +
+    enhancedDesc + '\n\n' +
+    '════ COMPLEXITY: ' + complexity.toUpperCase() + ' ════\n' +
     complexExtra[complexity] + '\n\n' +
-    '━━━ TYPE-SPECIFIC REQUIREMENTS (' + _genType.toUpperCase() + ') ━━━\n' +
-    typeReqList + '\n\n' +
-    '━━━ UNIVERSAL RULES (NEVER BREAK THESE) ━━━\n' +
-    '  • Single HTML file with embedded CSS and JavaScript — zero external dependencies\n' +
-    '  • Dark modern UI theme (background #0d0d0d or similar dark tone)\n' +
-    '  • NEVER write "// TODO", "// implement later", "/* placeholder */", or any stub\n' +
-    '  • NEVER simplify or cut corners — write EVERY function completely\n' +
-    '  • NEVER add comments explaining what code does — just write working code\n' +
-    '  • If drawing is needed: use Canvas or detailed SVG — real shapes, not 2 rectangles\n' +
-    '  • For weapons/vehicles/objects: draw them with proper silhouette using Canvas paths or SVG\n' +
-    '  • ALL interactive elements must respond correctly\n' +
-    '  • Code must run perfectly in a browser without errors\n\n' +
-    'Return ONLY the HTML code starting with <!DOCTYPE html>. No explanation. No markdown fences.';
+    (typeRules[_genType] || typeRules.app) + '\n\n' +
+    '════ ABSOLUTE RULES — VIOLATING ANY = WRONG ANSWER ════\n' +
+    '1. Single HTML file, embedded CSS+JS, zero CDN/external dependencies\n' +
+    '2. Dark theme: background #0d0d0d or #111\n' +
+    '3. ZERO stubs: no "// TODO", no "// implement", no placeholder functions\n' +
+    '4. Canvas drawings use REAL paths (beginPath, bezierCurveTo, arc) — NOT colored rectangles\n' +
+    '5. Every visual component drawn in full detail with gradients and shadows\n' +
+    '6. Code runs error-free in browser\n' +
+    '7. Output starts with <!DOCTYPE html> — nothing before it, nothing after </html>\n\n' +
+    'START NOW:';
 
   _genRunning = true;
   _genTokens  = 0;
@@ -156,24 +306,21 @@ function generateProject() {
   var area = R('genCodeArea'); if (area) area.textContent = '';
 
   var console_ = R('genConsole');
-  if (console_) console_.textContent = '> Провайдер: ' + provider + '\n> Тип: ' + _genType + ' | Складність: ' + complexity + '\n> Генерую...\n';
+  if (console_) console_.textContent = '> Провайдер: ' + provider + '\n> Тип: ' + _genType + ' | Складність: ' + complexity + '\n> Промт розширено: ' + (enhancedDesc.length > desc.length ? 'ТАК' : 'НІ') + '\n> Генерую...\n';
 
   var modelEl = R('genModel');
   var model = modelEl ? (modelEl.value || _genModelDefaults[provider] || 'gpt-4o') : _genModelDefaults[provider] || 'gpt-4o';
 
-  // Pick strongest system prompt
   var systemPrompt =
-    'You are an elite full-stack developer and UI designer. ' +
-    'Your output is always COMPLETE, PRODUCTION-READY HTML+CSS+JS in a single file. ' +
-    'Rules you NEVER break:\n' +
-    '1. Return ONLY raw HTML starting with <!DOCTYPE html> — no markdown, no fences, no explanation\n' +
-    '2. Every feature in the request is FULLY implemented — no stubs, no placeholders, no TODOs\n' +
-    '3. Game logic is complete — all rules, win conditions, AI, animations\n' +
-    '4. Visual elements are drawn in detail — use Canvas paths / SVG shapes, never lazy placeholders\n' +
-    '5. Code runs without a single console error\n' +
-    '6. Dark theme, modern design, smooth 60fps animations where relevant\n' +
-    '7. If user asks for an object (weapon, vehicle, animal): render it with real detailed graphics\n' +
-    'You write as much code as needed. Length is never a concern — completeness is everything.';
+    'You are a world-class creative developer who builds COMPLETE, STUNNING single-file HTML apps.\n' +
+    'YOUR IRON RULES:\n' +
+    '• Output ONLY raw HTML starting with <!DOCTYPE html>. Zero markdown. Zero explanation.\n' +
+    '• Every feature described is FULLY implemented. Zero stubs. Zero TODOs.\n' +
+    '• Canvas graphics: use real bezierCurveTo / arc paths for every shape. Never draw a gun as 2 boxes.\n' +
+    '• Chess/board games: implement EVERY rule (castling, en passant, check, checkmate, AI).\n' +
+    '• Arcade games: full physics loop, collision, scoring, game over, restart.\n' +
+    '• Dark theme. Smooth animations. Professional look.\n' +
+    '• You write 500-2000+ lines if needed. Completeness > brevity.';
 
   pyCall('ai_send_stream', JSON.stringify({
     id: _genReqId,
