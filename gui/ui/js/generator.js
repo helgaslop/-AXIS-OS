@@ -7,7 +7,6 @@ function switchGenMode(el) {
   _genMode = el.dataset.mode;
   R('genModeCode').style.display  = (_genMode === 'code')  ? 'grid' : 'none';
   R('genModeImage').style.display = (_genMode === 'image') ? 'grid' : 'none';
-  R('genModeVideo').style.display = (_genMode === 'video') ? 'grid' : 'none';
 }
 
 // ═══ CODE GENERATOR — STREAMING ═══
@@ -293,7 +292,7 @@ function generateImage() {
   R('imgResultEmpty').style.display='none';
   R('imgResult').style.display='none';
   var anim = R('imgGenAnim'); if (anim) anim.style.display='flex';
-  R('imgGenMsg').textContent = 'Надсилаю запит до ' + (provider==='openai'?'DALL·E 3':'Google Imagen') + '...';
+  R('imgGenMsg').textContent = 'Надсилаю запит до ' + (provider==='openai'?'DALL·E 3':'FLUX (Pollinations)') + '...';
 
   var messages = [
     {msg:'Аналізую промт...', delay:1500},
@@ -380,96 +379,3 @@ function useImageAsRef() {
   showToast('✓ Зображення встановлено як референс');
 }
 
-// ═══ VIDEO GENERATOR (Luma AI) ═══
-var _vidRunning = false;
-var _vidRefB64  = '';
-var _vidUrl     = '';
-var _vidPollTimer = null;
-
-function handleVidRefDrop(ev) {
-  ev.preventDefault();
-  R('vidRefZone').style.borderColor = 'var(--border)';
-  var file = ev.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) loadVidRefFile(file);
-}
-function handleVidRefFile(inp) {
-  var file = inp.files[0]; if (!file) return;
-  loadVidRefFile(file);
-}
-function loadVidRefFile(file) {
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    _vidRefB64 = e.target.result.split(',')[1];
-    var thumb = R('vidRefThumb');
-    thumb.querySelector('img').src = e.target.result;
-    thumb.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
-function generateVideo() {
-  if (_vidRunning) return;
-  var prompt = (R('vidPrompt').value || '').trim();
-  if (!prompt) { R('vidPrompt').style.borderColor='var(--red)'; R('vidPrompt').focus(); return; }
-  R('vidPrompt').style.borderColor = '';
-
-  _vidRunning = true;
-  var duration = R('vidDuration').value;
-  var aspect   = R('vidAspect').value;
-
-  var btn = R('vidGenBtn'); if (btn) { btn.disabled=true; btn.innerHTML='<span>⏳</span><span>Генерую...</span>'; }
-  R('vidResultEmpty').style.display = 'none';
-  R('vidResult').style.display = 'none';
-  R('vidGenAnim').style.display = 'flex';
-  R('vidStatus').textContent = '';
-  if (R('vidDownloadBtn')) R('vidDownloadBtn').style.display = 'none';
-
-  var vidReqId = 'vid_' + Date.now();
-  pyCall('generate_video', JSON.stringify({
-    id: vidReqId,
-    prompt: prompt,
-    duration: parseInt(duration),
-    aspect_ratio: aspect,
-    ref_image: _vidRefB64 || ''
-  }));
-
-  // Update status messages while waiting
-  var msgs = [
-    [3000,  'Запит прийнято, генерую відео...'],
-    [15000, 'Генерую перші кадри...'],
-    [40000, 'Рендеринг відео...'],
-    [80000, 'Завершальна обробка...'],
-  ];
-  msgs.forEach(function(m) {
-    setTimeout(function(){
-      if (_vidRunning && R('vidStatusAnim')) R('vidStatusAnim').textContent = m[1];
-    }, m[0]);
-  });
-}
-
-function handleVideoReady(d) {
-  _vidRunning = false;
-  var btn = R('vidGenBtn'); if (btn) { btn.disabled=false; btn.innerHTML='<span>🎬</span><span>Згенерувати відео</span>'; }
-  R('vidGenAnim').style.display = 'none';
-
-  var url = d.url || d.video_url || '';
-  if (!url) { R('vidStatus').textContent = '⚠ Немає URL відео'; return; }
-  _vidUrl = url;
-
-  var vid = R('vidResult');
-  vid.style.display = 'block';
-  if (R('vidDownloadBtn')) R('vidDownloadBtn').style.display = 'inline-flex';
-  R('vidStatus').textContent = '✅ Відео готове! Збережено в Зображення/AXIS OS';
-  showToast('🎬 Відео згенеровано!');
-  if (_notifSettings.ai !== false) playNotifSound();
-
-  vid.src = url;
-}
-
-function downloadVideo() {
-  if (!_vidUrl) return;
-  var a = document.createElement('a');
-  a.href = _vidUrl;
-  a.download = 'axis_video_' + Date.now() + '.mp4';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
