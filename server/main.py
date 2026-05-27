@@ -246,69 +246,66 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
         return {"text": text}
 
 
-# ── Image generation (uses server's own free Google key from US) ─────────────
+# ── Image generation (HuggingFace FLUX from US — free, no billing needed) ────
 class ImageRequest(BaseModel):
     prompt: str
-    google_key: str = ""   # kept for backwards compat but server key takes priority
+    google_key: str = ""   # unused, kept for backwards compat
     ref_image_b64: str = ""
 
 
 @app.post("/api/v1/image")
 async def generate_image(body: ImageRequest, authorization: str = Header(None)):
-    """Generate image via Gemini from US (bypasses EU free-tier restrictions).
-    Server uses its own free Google key (GOOGLE_API_KEY env var) — no billing on user."""
+    """Generate image via HuggingFace FLUX from US (bypasses EU DNS + free, no billing)."""
     key = _extract_key(authorization)
     lic = validate_license(key)
     if not lic["ok"]:
         raise HTTPException(status_code=403, detail=lic["error"])
 
-    # Server key first (free tier, no billing); user key only as last resort
-    google_key = PROVIDER_KEYS.get("google", "") or body.google_key
-    if not google_key:
-        raise HTTPException(status_code=400,
-            detail="Google API key not configured on server. "
-                   "Set GOOGLE_API_KEY in Railway environment variables.")
-
     import base64 as _b64
-    import httpx as _hx
+    import asyncio
 
+    HF_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
+    hf_headers = {"Content-Type": "application/json", "Accept": "image/png"}
+    if HF_KEY:
+        hf_headers["Authorization"] = f"Bearer {HF_KEY}"
+
+    # FLUX.1-schnell — best free model, MIT license, very fast
     _MODELS = [
-        "gemini-2.5-flash-image",
-        "gemini-3.1-flash-image-preview",
-        "gemini-3-pro-image-preview",
+        "black-forest-labs/FLUX.1-schnell",
+        "stabilityai/stable-diffusion-xl-base-1.0",
+        "Lykon/dreamshaper-8",
     ]
-    BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-    cfg = {"responseModalities": ["IMAGE", "TEXT"]}
 
     all_errors: list[str] = []
-    async with _hx.AsyncClient(timeout=90) as client:
+    async with _hx.AsyncClient(timeout=120) as client:
         for model in _MODELS:
-            try:
-                if body.ref_image_b64:
-                    contents = [{"parts": [
-                        {"inline_data": {"mime_type": "image/png",
-                                         "data": body.ref_image_b64}},
-                        {"text": body.prompt},
-                    ]}]
-                else:
-                    contents = [{"parts": [{"text": body.prompt}]}]
-
-                r = await client.post(
-                    f"{BASE}/{model}:generateContent?key={google_key}",
-                    json={"contents": contents, "generationConfig": cfg},
-                )
-                if r.status_code != 200:
-                    all_errors.append(f"{model} HTTP {r.status_code}: {r.text[:200]}")
-                    continue
-                data = r.json()
-                for cand in data.get("candidates", []):
-                    for part in cand.get("content", {}).get("parts", []):
-                        if "inlineData" in part:
-                            return JSONResponse({"b64": part["inlineData"]["data"]})
-                all_errors.append(f"{model}: no image in response — {data}")
-            except Exception as e:
-                all_errors.append(f"{model}: {e}")
-                continue
+            url = f"https://api-inference.huggingface.co/models/{model}"
+            for attempt in range(12):   # retry up to 2 min for model warm-up
+                try:
+                    r = await client.post(
+                        url, headers=hf_headers,
+                        json={"inputs": body.prompt,
+                              "parameters": {"num_inference_steps": 4, "guidance_scale": 0}
+                              if "FLUX" in model else
+                              {"num_inference_steps": 20}},
+                    )
+                    if r.status_code == 503:
+                        if attempt < 11:
+                            await asyncio.sleep(10)
+                            continue
+                        all_errors.append(f"{model} HTTP 503: model still loading")
+                        break
+                    if r.status_code != 200:
+                        all_errors.append(f"{model} HTTP {r.status_code}: {r.text[:200]}")
+                        break
+                    img_bytes = r.content
+                    if len(img_bytes) < 1000:
+                        all_errors.append(f"{model}: response too small ({len(img_bytes)} bytes)")
+                        break
+                    return JSONResponse({"b64": _b64.b64encode(img_bytes).decode()})
+                except Exception as e:
+                    all_errors.append(f"{model}: {e}")
+                    break
 
     raise HTTPException(status_code=500,
         detail="Image generation failed:\n" + "\n".join(all_errors))

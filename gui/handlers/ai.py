@@ -112,13 +112,14 @@ class AiHandlerMixin:
         except Exception as e:
             print(f"[AXIS] auto-save image failed: {e}")
 
-        # Check if generated via proxy (US) or direct
+        # proxy_active = used Railway (FLUX/HuggingFace, free); else direct Gemini/DALL-E
         via_proxy = getattr(self._ai, 'proxy_active', False)
         self.push_to_js.emit("image_ready", json.dumps({
             "id": req_id,
             "b64": b64,
             "saved_path": saved_path,
             "via_proxy": via_proxy,
+            "source": "🤗 FLUX (безкоштовно)" if via_proxy else "🔑 Gemini/DALL-E",
         }))
 
     def _on_video_ready(self, req_id: str, url: str):

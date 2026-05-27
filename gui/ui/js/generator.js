@@ -335,7 +335,7 @@ function handleImageReady(d) {
   var ur = R('imgUseAsRefBtn'); if (ur) ur.style.display='inline-flex';
 
   // Show where saved + source indicator
-  var src = d.via_proxy ? '🇺🇸 через проксі (безкоштовно)' : '🔑 прямий запит';
+  var src = d.source || (d.via_proxy ? '🤗 FLUX (безкоштовно)' : '🔑 прямий запит');
   var fileName = _imgSavedPath ? _imgSavedPath.split('\\').pop() : '';
   var msg = fileName
     ? '💾 Збережено: Зображення/AXIS OS/' + fileName + ' · ' + src
