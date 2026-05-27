@@ -246,25 +246,28 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
         return {"text": text}
 
 
-# ── Image generation (routes user's Google key from US) ──────────────────────
+# ── Image generation (uses server's own free Google key from US) ─────────────
 class ImageRequest(BaseModel):
     prompt: str
-    google_key: str
+    google_key: str = ""   # kept for backwards compat but server key takes priority
     ref_image_b64: str = ""
 
 
 @app.post("/api/v1/image")
 async def generate_image(body: ImageRequest, authorization: str = Header(None)):
     """Generate image via Gemini from US (bypasses EU free-tier restrictions).
-    User passes their own Google key — server just proxies the request."""
+    Server uses its own free Google key (GOOGLE_API_KEY env var) — no billing on user."""
     key = _extract_key(authorization)
     lic = validate_license(key)
     if not lic["ok"]:
         raise HTTPException(status_code=403, detail=lic["error"])
 
-    google_key = body.google_key or PROVIDER_KEYS.get("google", "")
+    # Server key first (free tier, no billing); user key only as last resort
+    google_key = PROVIDER_KEYS.get("google", "") or body.google_key
     if not google_key:
-        raise HTTPException(status_code=400, detail="Google API key required")
+        raise HTTPException(status_code=400,
+            detail="Google API key not configured on server. "
+                   "Set GOOGLE_API_KEY in Railway environment variables.")
 
     import base64 as _b64
     import httpx as _hx
@@ -308,6 +311,68 @@ async def generate_image(body: ImageRequest, authorization: str = Header(None)):
                 continue
 
     raise HTTPException(status_code=500, detail=f"Image generation failed: {last_err}")
+
+
+# ── Video generation (HuggingFace from US — bypasses EU DNS block) ───────────
+class VideoRequest(BaseModel):
+    prompt: str
+    duration: int = 5
+
+
+@app.post("/api/v1/video")
+async def generate_video(body: VideoRequest, authorization: str = Header(None)):
+    """Generate video via HuggingFace from US (bypasses EU/Germany DNS restrictions).
+    Returns base64-encoded mp4."""
+    key = _extract_key(authorization)
+    lic = validate_license(key)
+    if not lic["ok"]:
+        raise HTTPException(status_code=403, detail=lic["error"])
+
+    import asyncio
+    import base64 as _b64
+
+    HF_KEY = os.environ.get("HUGGINGFACE_API_KEY", "")
+    hf_headers = {"Content-Type": "application/json"}
+    if HF_KEY:
+        hf_headers["Authorization"] = f"Bearer {HF_KEY}"
+
+    _MODELS = [
+        "cerspense/zeroscope_v2_576w",
+        "damo-vilab/text-to-video-ms-1.7b",
+    ]
+    num_frames = min(24, max(8, body.duration * 8))
+    payload = {
+        "inputs": body.prompt,
+        "parameters": {"num_frames": num_frames, "num_inference_steps": 25},
+    }
+
+    last_err = ""
+    async with _hx.AsyncClient(timeout=200) as client:
+        for model in _MODELS:
+            url = f"https://api-inference.huggingface.co/models/{model}"
+            for attempt in range(18):   # retry up to 3 min for model warm-up
+                try:
+                    r = await client.post(url, headers=hf_headers, json=payload)
+                    if r.status_code == 503:
+                        if attempt < 17:
+                            await asyncio.sleep(10)
+                            continue
+                        last_err = f"{model} HTTP 503: model still loading"
+                        break
+                    if r.status_code != 200:
+                        last_err = f"{model} HTTP {r.status_code}: {r.text[:150]}"
+                        break
+                    video_bytes = r.content
+                    if len(video_bytes) < 1000:
+                        last_err = f"{model}: response too small ({len(video_bytes)} bytes)"
+                        break
+                    b64 = _b64.b64encode(video_bytes).decode()
+                    return JSONResponse({"b64": b64, "mime": "video/mp4"})
+                except Exception as e:
+                    last_err = f"{model}: {e}"
+                    break   # try next model
+
+    raise HTTPException(status_code=500, detail=f"Video generation failed: {last_err}")
 
 
 # ── Admin stats endpoint ──────────────────────────────────────────────────────

@@ -531,15 +531,13 @@ class AIManager(QObject):
         return b64
 
     def _proxy_image(self, prompt: str, ref_b64: str = "") -> str:
-        """Generate image via proxy server (US) — uses user's Google key from US IP."""
+        """Generate image via proxy server (US) using server's own free Google key.
+        No user billing key sent — server's GOOGLE_API_KEY env var is used."""
         import urllib.request as _ur
-        import urllib.error as _ue
         import json as _j
 
-        google_key = self.api_keys.get("google", "")
         payload = _j.dumps({
             "prompt": prompt,
-            "google_key": google_key,
             "ref_image_b64": ref_b64,
         }).encode()
         req = _ur.Request(
@@ -557,6 +555,42 @@ class AIManager(QObject):
         if not b64:
             raise RuntimeError("Proxy: no image in response")
         return b64
+
+    def _proxy_video(self, prompt: str, duration: int) -> str:
+        """Generate video via proxy server (US) — bypasses EU/Germany HuggingFace DNS block.
+        Returns base64-encoded mp4 bytes."""
+        import urllib.request as _ur
+        import json as _j
+        import pathlib
+        import time as _time
+
+        payload = _j.dumps({
+            "prompt": prompt,
+            "duration": duration,
+        }).encode()
+        req = _ur.Request(
+            f"{PROXY_URL}/api/v1/video",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._license_key}",
+            },
+            method="POST",
+        )
+        with _ur.urlopen(req, timeout=200) as r:
+            data = _j.loads(r.read())
+        b64 = data.get("b64", "")
+        if not b64:
+            raise RuntimeError("Proxy: no video in response")
+
+        # Decode and save to ~/Pictures/AXIS OS/
+        import base64 as _b64
+        video_bytes = _b64.b64decode(b64)
+        save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        fname = f"axis_video_{int(_time.time())}.mp4"
+        (save_dir / fname).write_bytes(video_bytes)
+        return fname
 
     def _gemini_imagen(self, prompt: str, size: str, ref_b64: str) -> str:
         key = self.api_keys.get("google", "")
@@ -617,16 +651,27 @@ class AIManager(QObject):
 
     def _video_worker(self, req_id, prompt, duration, aspect_ratio, ref_image_b64):
         try:
-            # Try HuggingFace first (free), fall back to Luma
+            # 1. Try proxy (US) when license active — bypasses EU/Germany DNS block
+            if self.proxy_active and PROXY_URL and self._license_key:
+                try:
+                    fname = self._proxy_video(prompt, duration)
+                    self.video_ready.emit(req_id, fname)
+                    return
+                except Exception as e:
+                    print(f"[AXIS] proxy video failed, trying local HF: {e}")
+
+            # 2. Try HuggingFace directly (works outside Germany / if proxy fails)
             try:
                 fname = self._hf_video(prompt, duration, aspect_ratio)
                 self.video_ready.emit(req_id, fname)
                 return
             except Exception as e:
-                print(f"[AXIS] HF video failed, trying Luma: {e}")
+                print(f"[AXIS] HF video failed: {e}")
                 self.response_error.emit(req_id,
-                    f"⚠ HuggingFace не зміг згенерувати відео: {e}\n\n"
-                    "Спробуйте додати API ключ Luma або HuggingFace у Налаштуваннях.")
+                    f"⚠ Не вдалось згенерувати відео: {e}\n\n"
+                    "Можливі рішення:\n"
+                    "• Активуйте ліцензію AXIS OS (відео через проксі США)\n"
+                    "• Або додайте HuggingFace токен у Налаштуваннях")
         except Exception as e:
             self.response_error.emit(req_id, str(e))
 
