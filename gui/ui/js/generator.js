@@ -1,12 +1,15 @@
 /* AXIS OS ? AI Generator */
 // ═══ GENERATOR MODE SWITCH ═══
-var _genMode = 'code';
+var _genMode = 'image';
 function switchGenMode(el) {
   document.querySelectorAll('.gen-mode-tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
   _genMode = el.dataset.mode;
   R('genModeCode').style.display  = (_genMode === 'code')  ? 'grid' : 'none';
   R('genModeImage').style.display = (_genMode === 'image') ? 'grid' : 'none';
+  if (_genMode === 'code') {
+    showToast('⚠ Генерація коду в розробці — результати можуть бути неточними');
+  }
 }
 
 // ═══ CODE GENERATOR — STREAMING ═══

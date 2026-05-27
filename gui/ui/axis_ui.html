@@ -1203,13 +1203,17 @@
       <!-- Mode switcher -->
       <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
         <div class="gen-mode-tabs">
-          <div class="gen-mode-tab active" data-mode="code"  onclick="switchGenMode(this)">💻 Код</div>
-          <div class="gen-mode-tab" data-mode="image" onclick="switchGenMode(this)">🖼 Зображення</div>
+          <div class="gen-mode-tab" data-mode="code" onclick="switchGenMode(this)" style="opacity:0.55;position:relative;">
+            💻 Код
+            <span style="position:absolute;top:-7px;right:-4px;background:#f59e0b;color:#000;font-size:8px;font-weight:700;padding:1px 4px;border-radius:4px;letter-spacing:.3px;line-height:14px;">BETA</span>
+          </div>
+          <div class="gen-mode-tab active" data-mode="image" onclick="switchGenMode(this)">🖼 Зображення</div>
         </div>
+        <span style="font-size:10px;color:var(--text3);opacity:.6;">💡 Генерація коду в розробці</span>
       </div>
 
       <!-- ── CODE MODE ── -->
-      <div id="genModeCode" class="gen-layout">
+      <div id="genModeCode" class="gen-layout" style="display:none;">
         <div class="gen-left">
           <div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏ Опишіть що створити</div>
@@ -1299,7 +1303,7 @@
       </div>
 
       <!-- ── IMAGE MODE ── -->
-      <div id="genModeImage" class="gen-layout" style="display:none;">
+      <div id="genModeImage" class="gen-layout">
         <div class="gen-left">
           <div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏ Опис зображення</div>
