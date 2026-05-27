@@ -280,7 +280,7 @@ async def generate_image(body: ImageRequest, authorization: str = Header(None)):
     BASE = "https://generativelanguage.googleapis.com/v1beta/models"
     cfg = {"responseModalities": ["IMAGE", "TEXT"]}
 
-    last_err = ""
+    all_errors: list[str] = []
     async with _hx.AsyncClient(timeout=90) as client:
         for model in _MODELS:
             try:
@@ -298,19 +298,20 @@ async def generate_image(body: ImageRequest, authorization: str = Header(None)):
                     json={"contents": contents, "generationConfig": cfg},
                 )
                 if r.status_code != 200:
-                    last_err = f"{model} HTTP {r.status_code}: {r.text[:150]}"
+                    all_errors.append(f"{model} HTTP {r.status_code}: {r.text[:200]}")
                     continue
                 data = r.json()
                 for cand in data.get("candidates", []):
                     for part in cand.get("content", {}).get("parts", []):
                         if "inlineData" in part:
                             return JSONResponse({"b64": part["inlineData"]["data"]})
-                last_err = f"{model}: no image in response"
+                all_errors.append(f"{model}: no image in response — {data}")
             except Exception as e:
-                last_err = f"{model}: {e}"
+                all_errors.append(f"{model}: {e}")
                 continue
 
-    raise HTTPException(status_code=500, detail=f"Image generation failed: {last_err}")
+    raise HTTPException(status_code=500,
+        detail="Image generation failed:\n" + "\n".join(all_errors))
 
 
 # ── Video generation (HuggingFace from US — bypasses EU DNS block) ───────────
