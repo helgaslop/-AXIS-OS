@@ -245,6 +245,70 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
         return {"text": text}
 
 
+# ── Image generation (routes user's Google key from US) ──────────────────────
+class ImageRequest(BaseModel):
+    prompt: str
+    google_key: str
+    ref_image_b64: str = ""
+
+
+@app.post("/api/v1/image")
+async def generate_image(body: ImageRequest, authorization: str = Header(None)):
+    """Generate image via Gemini from US (bypasses EU free-tier restrictions).
+    User passes their own Google key — server just proxies the request."""
+    key = _extract_key(authorization)
+    lic = validate_license(key)
+    if not lic["ok"]:
+        raise HTTPException(status_code=403, detail=lic["error"])
+
+    google_key = body.google_key or PROVIDER_KEYS.get("google", "")
+    if not google_key:
+        raise HTTPException(status_code=400, detail="Google API key required")
+
+    import base64 as _b64
+    import httpx as _hx
+
+    _MODELS = [
+        "gemini-2.5-flash-image",
+        "gemini-3.1-flash-image-preview",
+        "gemini-3-pro-image-preview",
+    ]
+    BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+    cfg = {"responseModalities": ["IMAGE", "TEXT"]}
+
+    last_err = ""
+    async with _hx.AsyncClient(timeout=90) as client:
+        for model in _MODELS:
+            try:
+                if body.ref_image_b64:
+                    contents = [{"parts": [
+                        {"inline_data": {"mime_type": "image/png",
+                                         "data": body.ref_image_b64}},
+                        {"text": body.prompt},
+                    ]}]
+                else:
+                    contents = [{"parts": [{"text": body.prompt}]}]
+
+                r = await client.post(
+                    f"{BASE}/{model}:generateContent?key={google_key}",
+                    json={"contents": contents, "generationConfig": cfg},
+                )
+                if r.status_code != 200:
+                    last_err = f"{model} HTTP {r.status_code}: {r.text[:150]}"
+                    continue
+                data = r.json()
+                for cand in data.get("candidates", []):
+                    for part in cand.get("content", {}).get("parts", []):
+                        if "inlineData" in part:
+                            return JSONResponse({"b64": part["inlineData"]["data"]})
+                last_err = f"{model}: no image in response"
+            except Exception as e:
+                last_err = f"{model}: {e}"
+                continue
+
+    raise HTTPException(status_code=500, detail=f"Image generation failed: {last_err}")
+
+
 # ── Admin stats endpoint ──────────────────────────────────────────────────────
 @app.get("/api/v1/admin/stats")
 def admin_stats(authorization: str = Header(None)):

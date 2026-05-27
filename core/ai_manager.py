@@ -442,7 +442,15 @@ class AIManager(QObject):
             if provider == "openai":
                 b64 = self._dalle(prompt, size, style, ref_image_b64)
             elif provider == "google":
-                b64 = self._gemini_imagen(prompt, size, ref_image_b64)
+                # Route through proxy (US) if license active — bypasses EU free-tier block
+                if self.proxy_active and self._proxy_url and self._license_key:
+                    try:
+                        b64 = self._proxy_image(prompt, ref_image_b64)
+                    except Exception as e:
+                        print(f"[AXIS] proxy image failed, trying direct: {e}")
+                        b64 = self._gemini_imagen(prompt, size, ref_image_b64)
+                else:
+                    b64 = self._gemini_imagen(prompt, size, ref_image_b64)
             else:
                 self.response_error.emit(req_id, f"Генерація зображень не підтримується для «{provider}».\nВикористайте OpenAI (DALL-E 3) або Google (Imagen).")
                 return
@@ -520,6 +528,34 @@ class AIManager(QObject):
             import urllib.request as _ur
             with _ur.urlopen(resp.data[0].url) as r:
                 b64 = base64.b64encode(r.read()).decode()
+        return b64
+
+    def _proxy_image(self, prompt: str, ref_b64: str = "") -> str:
+        """Generate image via proxy server (US) — uses user's Google key from US IP."""
+        import urllib.request as _ur
+        import urllib.error as _ue
+        import json as _j
+
+        google_key = self.api_keys.get("google", "")
+        payload = _j.dumps({
+            "prompt": prompt,
+            "google_key": google_key,
+            "ref_image_b64": ref_b64,
+        }).encode()
+        req = _ur.Request(
+            f"{self._proxy_url}/api/v1/image",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self._license_key}",
+            },
+            method="POST",
+        )
+        with _ur.urlopen(req, timeout=90) as r:
+            data = _j.loads(r.read())
+        b64 = data.get("b64", "")
+        if not b64:
+            raise RuntimeError("Proxy: no image in response")
         return b64
 
     def _gemini_imagen(self, prompt: str, size: str, ref_b64: str) -> str:
