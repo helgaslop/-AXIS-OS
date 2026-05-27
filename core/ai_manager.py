@@ -581,91 +581,81 @@ class AIManager(QObject):
 
     def _video_worker(self, req_id, prompt, duration, aspect_ratio, ref_image_b64):
         try:
-            # Try Gemini Veo first (free with billing), fall back to Luma
-            google_key = self.api_keys.get("google", "")
-            if google_key:
-                try:
-                    path = self._gemini_video(prompt, duration, aspect_ratio, ref_image_b64)
-                    self.video_ready.emit(req_id, path)
-                    return
-                except Exception as e:
-                    print(f"[AXIS] Gemini Veo failed, trying Luma: {e}")
-            url = self._luma_video(prompt, duration, aspect_ratio, ref_image_b64)
-            self.video_ready.emit(req_id, url)
+            # Try HuggingFace first (free), fall back to Luma
+            try:
+                fname = self._hf_video(prompt, duration, aspect_ratio)
+                self.video_ready.emit(req_id, fname)
+                return
+            except Exception as e:
+                print(f"[AXIS] HF video failed, trying Luma: {e}")
+                self.response_error.emit(req_id,
+                    f"⚠ HuggingFace не зміг згенерувати відео: {e}\n\n"
+                    "Спробуйте додати API ключ Luma або HuggingFace у Налаштуваннях.")
         except Exception as e:
             self.response_error.emit(req_id, str(e))
 
-    def _gemini_video(self, prompt: str, duration: int, aspect_ratio: str,
-                      ref_b64: str) -> str:
-        """Generate video via Gemini Veo. Returns file:// path to saved mp4."""
+    def _hf_video(self, prompt: str, duration: int, aspect_ratio: str) -> str:
+        """Generate video via HuggingFace Inference API (free).
+        Uses zeroscope_v2_576w — no API key required, but optional HF token.
+        Returns filename saved to ~/Pictures/AXIS OS/."""
         import time as _time
-        import urllib.request as _ur
         import pathlib
-        from google import genai as _genai
-        from google.genai import types as _gtypes
+        import urllib.request as _ur
+        import urllib.error as _ue
+        import json as _j
 
-        key = self.api_keys.get("google", "")
-        client = _genai.Client(api_key=key)
+        hf_key = self.api_keys.get("huggingface", "")
+        headers = {"Content-Type": "application/json"}
+        if hf_key:
+            headers["Authorization"] = f"Bearer {hf_key}"
 
-        # Duration: Veo supports 5–8 s on free tier
-        veo_dur = max(5, min(int(duration), 8))
+        # zeroscope: fast, free, decent quality 576×320
+        _MODELS = [
+            "cerspense/zeroscope_v2_576w",
+            "damo-vilab/text-to-video-ms-1.7b",
+        ]
 
-        cfg = _gtypes.GenerateVideosConfig(
-            aspect_ratio=aspect_ratio,
-            duration_seconds=veo_dur,
-            number_of_videos=1,
+        num_frames = min(24, max(8, duration * 8))  # ~8 fps
+        payload = _j.dumps({
+            "inputs": prompt,
+            "parameters": {"num_frames": num_frames, "num_inference_steps": 25},
+        }).encode()
+
+        last_err = ""
+        for model in _MODELS:
+            url = f"https://api-inference.huggingface.co/models/{model}"
+            try:
+                req = _ur.Request(url, data=payload, headers=headers, method="POST")
+                # HF may return 503 (model loading) — retry up to 3 min
+                for attempt in range(18):
+                    try:
+                        with _ur.urlopen(req, timeout=120) as r:
+                            video_bytes = r.read()
+                        if len(video_bytes) < 1000:
+                            raise RuntimeError(f"відповідь занадто мала: {len(video_bytes)} байт")
+                        # Save to Pictures/AXIS OS/
+                        save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
+                        save_dir.mkdir(parents=True, exist_ok=True)
+                        fname = f"axis_video_{int(_time.time())}.mp4"
+                        (save_dir / fname).write_bytes(video_bytes)
+                        return fname
+                    except _ue.HTTPError as e:
+                        body = e.read().decode()[:200]
+                        if e.code == 503 and attempt < 17:
+                            # Model warming up — wait and retry
+                            _time.sleep(10)
+                            continue
+                        last_err = f"{model} HTTP {e.code}: {body}"
+                        break
+            except Exception as e:
+                last_err = f"{model}: {e}"
+                continue
+
+        raise RuntimeError(
+            f"⚠ HuggingFace не зміг згенерувати відео.\n{last_err}\n\n"
+            "Щоб покращити доступність — додайте безкоштовний токен:\n"
+            "huggingface.co/settings/tokens → Налаштування → API Ключі → HuggingFace"
         )
-
-        if ref_b64:
-            img_bytes = base64.b64decode(ref_b64)
-            image = _gtypes.Image(image_bytes=img_bytes, mime_type="image/png")
-            op = client.models.generate_videos(
-                model="veo-2.0-generate-001",
-                prompt=prompt,
-                image=image,
-                config=cfg,
-            )
-        else:
-            op = client.models.generate_videos(
-                model="veo-2.0-generate-001",
-                prompt=prompt,
-                config=cfg,
-            )
-
-        # Poll up to 3 minutes
-        for _ in range(36):
-            _time.sleep(5)
-            op = client.operations.get(op)
-            if op.done:
-                break
-        else:
-            raise RuntimeError("⚠ Gemini Veo: timeout після 3 хвилин")
-
-        if op.error:
-            raise RuntimeError(f"⚠ Gemini Veo: {op.error.message}")
-
-        videos = (op.result.generated_videos or []) if op.result else []
-        if not videos:
-            raise RuntimeError("⚠ Gemini Veo: відео не згенеровано")
-
-        uri = videos[0].video.uri
-        if not uri:
-            raise RuntimeError("⚠ Gemini Veo: немає URI відео")
-
-        # Download video bytes
-        dl_url = uri if "key=" in uri else f"{uri}{'&' if '?' in uri else '?'}key={key}"
-        req = _ur.Request(dl_url)
-        with _ur.urlopen(req, timeout=60) as r:
-            video_bytes = r.read()
-
-        # Save to Pictures/AXIS OS/
-        save_dir = pathlib.Path.home() / "Pictures" / "AXIS OS"
-        save_dir.mkdir(parents=True, exist_ok=True)
-        fname = f"axis_video_{int(_time.time())}.mp4"
-        fpath = save_dir / fname
-        fpath.write_bytes(video_bytes)
-
-        return fname  # just the filename; handler converts to http:// URL
 
     def _luma_video(self, prompt: str, duration: int, aspect_ratio: str,
                     ref_b64: str) -> str:

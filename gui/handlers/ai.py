@@ -27,6 +27,7 @@ class AiHandlerMixin:
             "deepseek":    "deepseek_key",
             "perplexity":  "perplexity_key",
             "luma":        "luma_key",
+            "huggingface": "huggingface_key",
             "serper":      "serper_key",
             "tavily":      "tavily_key",
             "openweather": "openweather_key",
@@ -187,7 +188,7 @@ class AiHandlerMixin:
 
         simple = [
             "openai", "anthropic", "google", "xai",
-            "deepseek", "perplexity", "luma",
+            "deepseek", "perplexity", "luma", "huggingface",
             "serper", "tavily", "openweather",
         ]
         for p in simple:

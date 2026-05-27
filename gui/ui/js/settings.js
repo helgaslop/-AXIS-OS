@@ -10,7 +10,8 @@ var apiProviders = {
     {ico:'🔍', name:'Perplexity',desc:'Sonar Pro — AI пошук в інтернеті', color:'#0d2a2a', dot:'#20b2aa', id:'perplexity'},
   ],
   media: [
-    {ico:'🎬', name:'Luma AI',   desc:'Dream Machine — генерація відео',  color:'#1a0a2e', dot:'#9b59b6', id:'luma'},
+    {ico:'🤗', name:'HuggingFace', desc:'Безкоштовна генерація відео (zeroscope)', color:'#2a1e0a', dot:'#ff9500', id:'huggingface'},
+    {ico:'🎬', name:'Luma AI',     desc:'Dream Machine — платна генерація відео', color:'#1a0a2e', dot:'#9b59b6', id:'luma'},
   ],
   search: [
     {ico:'🌐', name:'Serper',    desc:'Google Search API — веб-пошук для AI', color:'#1a2e1a', dot:'#27ae60', id:'serper'},
@@ -31,6 +32,7 @@ var _apiStatusMap = {
   xai:         {name:'xAI',          ico:'⚫', dot:'#aaa'},
   deepseek:    {name:'DeepSeek',     ico:'🌊', dot:'#1e90ff'},
   perplexity:  {name:'Perplexity',   ico:'🔍', dot:'#20b2aa'},
+  huggingface: {name:'HuggingFace',   ico:'🤗', dot:'#ff9500'},
   luma:        {name:'Luma AI',      ico:'🎬', dot:'#9b59b6'},
   serper:      {name:'Serper',       ico:'🌐', dot:'#27ae60'},
   tavily:      {name:'Tavily',       ico:'🔎', dot:'#e67e22'},
