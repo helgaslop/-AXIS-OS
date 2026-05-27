@@ -1205,7 +1205,6 @@
         <div class="gen-mode-tabs">
           <div class="gen-mode-tab active" data-mode="code"  onclick="switchGenMode(this)">💻 Код</div>
           <div class="gen-mode-tab" data-mode="image" onclick="switchGenMode(this)">🖼 Зображення</div>
-          <div class="gen-mode-tab" data-mode="video" onclick="switchGenMode(this)">🎬 Відео</div>
         </div>
       </div>
 
@@ -1331,8 +1330,8 @@
           <div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">⚡ Провайдер</div>
             <select id="imgProvider" style="width:100%;font-size:12px;">
+              <option value="google">🤗 FLUX (безкоштовно, через проксі)</option>
               <option value="openai">OpenAI DALL·E 3</option>
-              <option value="google">Google Imagen (Gemini)</option>
             </select>
           </div>
           <!-- Reference image upload -->
@@ -1371,7 +1370,7 @@
             <div id="imgResultEmpty" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text3);">
               <div style="font-size:56px;opacity:.15;">🖼</div>
               <div style="font-size:13px;">Введіть опис і натисніть «Згенерувати»</div>
-              <div style="font-size:11px;opacity:.6;">DALL·E 3 або Google Imagen</div>
+              <div style="font-size:11px;opacity:.6;">FLUX безкоштовно · DALL·E 3 з ключем OpenAI</div>
             </div>
             <!-- Image generation progress animation -->
             <div id="imgGenAnim" style="display:none;flex-direction:column;align-items:center;gap:16px;">
@@ -1384,64 +1383,6 @@
         </div>
       </div>
 
-      <!-- ── VIDEO MODE (Luma AI) ── -->
-      <div id="genModeVideo" class="gen-layout" style="display:none;">
-        <div class="gen-left">
-          <div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">✏️ Опис відео</div>
-            <textarea id="vidPrompt" rows="4" style="width:100%;font-size:12px;resize:none;" placeholder="Красивий захід сонця над горами, кінематографічна зйомка, 4K..."></textarea>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🎞 Тривалість</div>
-            <select id="vidDuration" style="width:100%;font-size:12px;">
-              <option value="5">5 секунд</option>
-              <option value="9" selected>9 секунд</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">📐 Формат</div>
-            <select id="vidAspect" style="width:100%;font-size:12px;">
-              <option value="16:9" selected>16:9 — Горизонтальне</option>
-              <option value="9:16">9:16 — Вертикальне (Reels)</option>
-              <option value="1:1">1:1 — Квадрат</option>
-              <option value="4:3">4:3 — Класичне</option>
-            </select>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">🖼 Стартовий кадр (необов'язково)</div>
-            <div id="vidRefZone" style="border:2px dashed var(--border);border-radius:8px;padding:14px;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;transition:.2s;" onclick="R('vidRefInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="handleVidRefDrop(event)">
-              📷 Клікніть або перетягніть зображення
-              <div id="vidRefThumb" style="margin-top:8px;display:none;"><img alt="Video reference thumbnail" style="max-width:100%;max-height:80px;border-radius:6px;"></div>
-            </div>
-            <input type="file" id="vidRefInput" accept="image/*" style="display:none;" onchange="handleVidRefFile(this)">
-          </div>
-          <button class="gen-generate-btn" id="vidGenBtn" onclick="generateVideo()">
-            <span>🎬</span><span>Згенерувати відео</span>
-          </button>
-          <div id="vidStatus" style="font-size:11px;color:var(--text3);text-align:center;min-height:16px;"></div>
-          <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;">🤗 HuggingFace (безкоштовно) · або Luma AI (платно)</div>
-        </div>
-        <div class="gen-right">
-          <div class="gen-right-tabs" style="height:44px;">
-            <div class="gen-right-tab active">🎬 Відео</div>
-            <div style="flex:1;"></div>
-            <button class="btn btn-sm" id="vidDownloadBtn" style="display:none;margin:6px 0;" onclick="downloadVideo()">⬇ Завантажити</button>
-          </div>
-          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;">
-            <div id="vidResultEmpty" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text3);">
-              <div style="font-size:48px;opacity:.2;">🎬</div>
-              <div style="font-size:13px;">Введіть опис і натисніть «Згенерувати»</div>
-              <div style="font-size:11px;opacity:.6;">Luma Dream Machine • ~30–120 сек</div>
-            </div>
-            <div id="vidGenAnim" style="display:none;flex-direction:column;align-items:center;gap:16px;">
-              <div style="width:48px;height:48px;border:3px solid rgba(155,89,182,.3);border-top-color:#9b59b6;border-radius:50%;animation:imgSpin 1s linear infinite;"></div>
-              <div id="vidStatusAnim" style="font-size:12px;color:var(--text3);">Генерую відео...</div>
-              <div style="font-size:10px;color:var(--text3);opacity:.7;">Генерація відео займає 30–120 секунд</div>
-            </div>
-            <video id="vidResult" style="display:none;max-width:100%;max-height:100%;border-radius:8px;" controls loop></video>
-          </div>
-        </div>
-      </div>
 
     </div>
 
