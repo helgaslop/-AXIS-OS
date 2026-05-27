@@ -70,20 +70,67 @@ function generateProject() {
 
   var provider   = R('genProvider').value;
   var complexity = R('genComplexity').value;
-  var typeLabels = {game:'гру',app:'застосунок',site:'сайт',component:'компонент'};
-  var complexLabels = {
-    simple:  'простий',
-    medium:  'середнього рівня з гарним UI',
-    complex: 'складний із анімаціями, ефектами та повним функціоналом'
+
+  // ── Type-specific requirements ──
+  var typeReqs = {
+    game: [
+      'COMPLETE game logic — every rule, every mechanic, every edge case fully implemented',
+      'If it\'s a board game (chess, checkers, etc): ALL piece types with correct movement rules, captures, special moves (castling, en passant, promotion, etc), check/checkmate/stalemate detection, turn management',
+      'If it\'s an action/arcade game: smooth animation loop (requestAnimationFrame), collision detection, score system, lives/health, level progression, game over + restart',
+      'AI opponent (even simple) if the game is typically 2-player',
+      'Keyboard AND mouse/touch controls',
+      'Score display, timer, level indicator — all visible and working',
+    ],
+    app: [
+      'ALL functionality described must be fully implemented — no stubs, no fake data',
+      'Working data persistence using localStorage',
+      'Input validation with clear error messages',
+      'All buttons do real things — nothing is decorative',
+      'Smooth UI transitions and loading states',
+    ],
+    site: [
+      'All sections fully populated with realistic content',
+      'Working navigation (smooth scroll or routing)',
+      'Interactive elements: hover effects, modals, dropdowns — all functional',
+      'Responsive layout for different screen sizes',
+      'All forms have real validation',
+    ],
+    component: [
+      'Fully interactive — every prop/state combination works',
+      'Edge cases handled (empty state, loading, error state)',
+      'Smooth animations and transitions',
+      'Copy-paste ready, self-contained',
+    ],
   };
 
-  var prompt = 'Згенеруй ' + complexLabels[complexity] + ' ' + typeLabels[_genType] + '.\n'
-    + 'Опис: ' + desc + '\n\n'
-    + 'Вимоги:\n'
-    + '- Один HTML файл із вбудованим CSS та JavaScript\n'
-    + '- Темний сучасний дизайн\n'
-    + '- Повністю робочий код без зовнішніх залежностей\n'
-    + '- Повернути ТІЛЬКИ HTML код без пояснень, починаючи з <!DOCTYPE html>';
+  // ── Complexity expansions ──
+  var complexExtra = {
+    simple:  'Clean, functional implementation. All features work correctly.',
+    medium:  'Polished UI with smooth animations. Complete feature set. Dark modern design with gradients and shadows.',
+    complex: 'MAXIMUM quality. Stunning visuals, particle effects, smooth 60fps animations, advanced features. Make it impressive. This should look like a professional production release.',
+  };
+
+  // ── Build the smart prompt ──
+  var typeReqList = (typeReqs[_genType] || typeReqs.app).map(function(r){ return '  • ' + r; }).join('\n');
+
+  var prompt =
+    'Create a ' + _genType + ' based on this description:\n' +
+    '"' + desc + '"\n\n' +
+    '━━━ COMPLEXITY LEVEL: ' + complexity.toUpperCase() + ' ━━━\n' +
+    complexExtra[complexity] + '\n\n' +
+    '━━━ TYPE-SPECIFIC REQUIREMENTS (' + _genType.toUpperCase() + ') ━━━\n' +
+    typeReqList + '\n\n' +
+    '━━━ UNIVERSAL RULES (NEVER BREAK THESE) ━━━\n' +
+    '  • Single HTML file with embedded CSS and JavaScript — zero external dependencies\n' +
+    '  • Dark modern UI theme (background #0d0d0d or similar dark tone)\n' +
+    '  • NEVER write "// TODO", "// implement later", "/* placeholder */", or any stub\n' +
+    '  • NEVER simplify or cut corners — write EVERY function completely\n' +
+    '  • NEVER add comments explaining what code does — just write working code\n' +
+    '  • If drawing is needed: use Canvas or detailed SVG — real shapes, not 2 rectangles\n' +
+    '  • For weapons/vehicles/objects: draw them with proper silhouette using Canvas paths or SVG\n' +
+    '  • ALL interactive elements must respond correctly\n' +
+    '  • Code must run perfectly in a browser without errors\n\n' +
+    'Return ONLY the HTML code starting with <!DOCTYPE html>. No explanation. No markdown fences.';
 
   _genRunning = true;
   _genTokens  = 0;
@@ -114,12 +161,26 @@ function generateProject() {
   var modelEl = R('genModel');
   var model = modelEl ? (modelEl.value || _genModelDefaults[provider] || 'gpt-4o') : _genModelDefaults[provider] || 'gpt-4o';
 
+  // Pick strongest system prompt
+  var systemPrompt =
+    'You are an elite full-stack developer and UI designer. ' +
+    'Your output is always COMPLETE, PRODUCTION-READY HTML+CSS+JS in a single file. ' +
+    'Rules you NEVER break:\n' +
+    '1. Return ONLY raw HTML starting with <!DOCTYPE html> — no markdown, no fences, no explanation\n' +
+    '2. Every feature in the request is FULLY implemented — no stubs, no placeholders, no TODOs\n' +
+    '3. Game logic is complete — all rules, win conditions, AI, animations\n' +
+    '4. Visual elements are drawn in detail — use Canvas paths / SVG shapes, never lazy placeholders\n' +
+    '5. Code runs without a single console error\n' +
+    '6. Dark theme, modern design, smooth 60fps animations where relevant\n' +
+    '7. If user asks for an object (weapon, vehicle, animal): render it with real detailed graphics\n' +
+    'You write as much code as needed. Length is never a concern — completeness is everything.';
+
   pyCall('ai_send_stream', JSON.stringify({
     id: _genReqId,
     provider: provider,
     model: model,
     messages: [{role:'user', content: prompt}],
-    system: 'You are a code generator. Return ONLY clean, complete, working HTML code. No explanation, no markdown fences.'
+    system: systemPrompt
   }));
 }
 
