@@ -17,7 +17,7 @@ import urllib.error
 from PyQt6.QtCore import QObject, pyqtSignal
 
 OLLAMA_BASE      = "http://localhost:11434"
-_DEFAULT_PROXY   = "https://api.axis-os.app"
+_DEFAULT_PROXY   = "https://axis-os-production-5220.up.railway.app"
 PROXY_URL        = os.environ.get("AXIS_PROXY_URL", _DEFAULT_PROXY)
 
 
@@ -443,7 +443,7 @@ class AIManager(QObject):
                 b64 = self._dalle(prompt, size, style, ref_image_b64)
             elif provider == "google":
                 # Route through proxy (US) if license active — bypasses EU free-tier block
-                if self.proxy_active and self._proxy_url and self._license_key:
+                if self.proxy_active and PROXY_URL and self._license_key:
                     try:
                         b64 = self._proxy_image(prompt, ref_image_b64)
                     except Exception as e:
@@ -543,7 +543,7 @@ class AIManager(QObject):
             "ref_image_b64": ref_b64,
         }).encode()
         req = _ur.Request(
-            f"{self._proxy_url}/api/v1/image",
+            f"{PROXY_URL}/api/v1/image",
             data=payload,
             headers={
                 "Content-Type": "application/json",
@@ -889,7 +889,7 @@ class AIManager(QObject):
     def _proxy_call(self, provider: str, model: str, messages: list,
                     system_prompt: str, license_key: str) -> str:
         """Send a non-streaming request through the AXIS OS proxy server."""
-        payload = json.dumps({
+        body: dict = {
             "provider":      provider,
             "model":         model,
             "messages":      messages,
@@ -897,7 +897,12 @@ class AIManager(QObject):
             "stream":        False,
             "temperature":   self.temperature,
             "max_tokens":    self.max_tokens,
-        }).encode()
+        }
+        # Pass user's own key for providers not configured on server (e.g. Google)
+        user_key = self.api_keys.get(provider, "")
+        if user_key:
+            body["user_key"] = user_key
+        payload = json.dumps(body).encode()
         req = urllib.request.Request(
             f"{PROXY_URL}/api/v1/chat",
             data=payload,
@@ -914,7 +919,7 @@ class AIManager(QObject):
     def _proxy_stream(self, request_id: str, provider: str, model: str,
                       messages: list, system_prompt: str, license_key: str):
         """Stream tokens from the AXIS OS proxy server via SSE."""
-        payload = json.dumps({
+        body: dict = {
             "provider":      provider,
             "model":         model,
             "messages":      messages,
@@ -922,7 +927,12 @@ class AIManager(QObject):
             "stream":        True,
             "temperature":   self.temperature,
             "max_tokens":    self.max_tokens,
-        }).encode()
+        }
+        # Pass user's own key for providers not configured on server (e.g. Google)
+        user_key = self.api_keys.get(provider, "")
+        if user_key:
+            body["user_key"] = user_key
+        payload = json.dumps(body).encode()
         req = urllib.request.Request(
             f"{PROXY_URL}/api/v1/chat",
             data=payload,

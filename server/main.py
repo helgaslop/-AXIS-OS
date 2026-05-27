@@ -173,6 +173,7 @@ class ChatRequest(BaseModel):
     stream: bool = True
     temperature: float = 0.7
     max_tokens: int = 4096
+    user_key: str = ""   # optional: client passes own provider key
 
 
 class ActivateRequest(BaseModel):
@@ -229,8 +230,8 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
     if not allowed:
         raise HTTPException(status_code=429, detail=msg)
 
-    # 3. Get provider key
-    provider_key = PROVIDER_KEYS.get(body.provider, "")
+    # 3. Get provider key — server key first, user key as fallback
+    provider_key = PROVIDER_KEYS.get(body.provider, "") or body.user_key
     if not provider_key and body.provider != "ollama":
         raise HTTPException(status_code=503,
             detail=f"Provider {body.provider} not configured on server.")
