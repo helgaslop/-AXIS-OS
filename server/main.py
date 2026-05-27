@@ -230,8 +230,8 @@ async def chat(body: ChatRequest, authorization: str = Header(None)):
     if not allowed:
         raise HTTPException(status_code=429, detail=msg)
 
-    # 3. Get provider key — server key first, user key as fallback
-    provider_key = PROVIDER_KEYS.get(body.provider, "") or body.user_key
+    # 3. Get provider key — user key has priority, server key as fallback
+    provider_key = body.user_key or PROVIDER_KEYS.get(body.provider, "")
     if not provider_key and body.provider != "ollama":
         raise HTTPException(status_code=503,
             detail=f"Provider {body.provider} not configured on server.")
