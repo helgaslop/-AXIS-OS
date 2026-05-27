@@ -1555,7 +1555,7 @@
           <div class="sset active" id="sset-general">
             <div class="sgroup">
               <div class="sgroup-title">⚙ Загальні</div>
-              <div class="srow"><label>Мінімізувати в трей</label><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Мінімізувати в трей</label><label class="toggle"><input type="checkbox" id="minimizeToTray" checked onchange="pyCall('save_config', JSON.stringify({minimize_to_tray: this.checked})); showToast(this.checked ? '✓ Мінімізація в трей увімкнена' : '✓ Мінімізація в трей вимкнена')"><span class="toggle-slider"></span></label></div>
               <div class="srow">
                 <label>Мова інтерфейсу</label>
                 <select id="uiLang" style="max-width:180px;" onchange="applyUiLanguage(this.value)">
@@ -2180,7 +2180,7 @@
                   <div style="width:22px;height:22px;border-radius:50%;background:#ef4444;cursor:pointer;" onclick="setAccent('#ef4444','#f97316')"></div>
                 </div>
               </div>
-              <div class="srow"><label>Анімації</label><label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+              <div class="srow"><label>Анімації інтерфейсу</label><label class="toggle"><input type="checkbox" id="uiAnimations" checked onchange="document.body.classList.toggle('no-animations', !this.checked); localStorage.setItem('ui_animations', this.checked); showToast(this.checked ? '✓ Анімації увімкнено' : '✓ Анімації вимкнено')"><span class="toggle-slider"></span></label></div>
             </div>
           </div>
 

@@ -16,9 +16,6 @@ window.axisPush = function(type, jsonStr) {
       ai_response: handleAiResponse,
       ai_error:    handleAiError,
       toast:       function(x) { showToast(x.msg); },
-      code_output:   function(x) { /* IDE removed */ },
-      file_content:  function(x) { /* IDE removed */ },
-      file_selected: function(x) { /* IDE removed */ },
       tts_audio:   handleTtsAudio,
       tts_error:   function(x) { showToast('⚠ TTS: ' + x.error); if(liveSpeaking){ liveSpeaking=false; liveOnSpeakEnd(); } },
       stt_result:  handleSttResult,
@@ -40,7 +37,7 @@ window.axisPush = function(type, jsonStr) {
       },
       sphere_config: function(x) {
         _savedCfg = x;
-        if (x.api_keys) { _savedApiKeys = x.api_keys; updateGenKeyStatus(); if(R('acpProvidersList')) renderAcpProviders(); }
+        if (x.api_keys) { _savedApiKeys = x.api_keys; updateGenKeyStatus(); }
         loadSphereSettings(x);
         if (x.accent_color)  document.documentElement.style.setProperty('--accent', x.accent_color);
         if (x.accent_color2) document.documentElement.style.setProperty('--indigo', x.accent_color2);
@@ -50,6 +47,7 @@ window.axisPush = function(type, jsonStr) {
         if (x.github_repo)   { var _gr=R('githubRepoInp');   if(_gr) _gr.value=x.github_repo; }
         var _auc=R('autoUpdateChk'); if(_auc) _auc.checked = (x.auto_update !== false);
         if (x.custom_system_prompt) { var _cs=R('customSystemPrompt'); if(_cs) _cs.value=x.custom_system_prompt; }
+        if (x.minimize_to_tray !== undefined) { var _mt=R('minimizeToTray'); if(_mt) _mt.checked=!!x.minimize_to_tray; }
         var _ai=x.ai||{};
         if (_ai.default_provider) { var _dp=R('defaultProvider'); if(_dp) _dp.value=_ai.default_provider; }
         if (_ai.temperature!==undefined) { var _tp=R('aiTemperature'); if(_tp) _tp.value=_ai.temperature; }
@@ -74,10 +72,7 @@ window.axisPush = function(type, jsonStr) {
         else handleChatDone && handleChatDone(x);     // chat streaming
       },
       image_ready:   function(x) { handleImageReady(x); },
-      video_ready:   function(x) { handleVideoReady(x); },
       sphere_status: function(x) { updateSphereStatus(!!x.running); },
-      ide_status:    function(x) { /* IDE removed */ },
-      ide_config:    function(x) { /* IDE removed */ },
       autostart_status: function(x) {
         // Sync hidden checkboxes (for saveSphereSettings)
         var sa = R('sp_autostart'); if (sa) sa.checked = !!x.sphere;
@@ -89,7 +84,6 @@ window.axisPush = function(type, jsonStr) {
       },
       user_commands: function(x) { if(Array.isArray(x)){ commands=_normalizeCmds(x); sortAndRenderLib(); renderRecentCmds(); } },
       macros_data:   function(x) { if(Array.isArray(x)){ macros=x; initMacros(); } },
-      file_saved:    function(x) { /* IDE removed */ },
       ollama_models: function(x) { if(Array.isArray(x)) loadOllamaChips(x); },
       navigate:    function(x) { if(x.page) showPage(x.page); },
       internal_cmd:function(x) {

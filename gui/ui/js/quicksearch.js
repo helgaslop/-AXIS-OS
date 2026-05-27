@@ -12,7 +12,7 @@ var _qsPages = [
   { icon: '📊', label: 'Монітор',         category: 'Сторінки', action: function(){ showPage('monitor'); }},
   { icon: '🤖', label: 'AI Агенти',       category: 'Сторінки', action: function(){ showPage('agents'); }},
   { icon: '💬', label: 'AI Чат',          category: 'Сторінки', action: function(){ showPage('chat'); }},
-  { icon: '💻', label: 'IDE',             category: 'Сторінки', action: function(){ showPage('ide'); }},
+  { icon: '💻', label: 'AI Агенти / IDE', category: 'Сторінки', action: function(){ showPage('agents'); }},
   { icon: '✨', label: 'Генератор',       category: 'Сторінки', action: function(){ showPage('generator'); }},
   { icon: '🎵', label: 'Музика',          category: 'Сторінки', action: function(){ showPage('music'); }},
   { icon: '📋', label: 'Команди',         category: 'Сторінки', action: function(){ showPage('commands'); }},

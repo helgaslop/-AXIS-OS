@@ -87,6 +87,11 @@ function initApp(){
   _safeCall(_initClipboard,     '_initClipboard');
   _safeCall(_initMediaInfo,     '_initMediaInfo');
   _safeCall(renderRecentCmds,   'renderRecentCmds');
+  // Restore animations preference
+  if (localStorage.getItem('ui_animations') === 'false') {
+    document.body.classList.add('no-animations');
+    var animChk = R('uiAnimations'); if (animChk) animChk.checked = false;
+  }
   // Load real Windows autostart state for both checkboxes
   pyCall('get_autostart_status');
   // Check if sphere is already running

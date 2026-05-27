@@ -84,7 +84,7 @@ function handleFileContent(d){
     R('ideLangFull') && (R('ideLangFull').textContent = langName + ' · ' + fname);
     // Track in recent files sidebar
     if(typeof ideAddRecentFile === 'function') ideAddRecentFile(d.path, fname);
-    showPage('ide');
+    showPage('agents');
   }
 }
 function ideSave(){

@@ -425,7 +425,7 @@ function copyGenCode() {
 
 function saveGenToIde() {
   if (!_genCode) { showToast('⚠ Немає коду'); return; }
-  showPage('ide');
+  showPage('agents');
   setTimeout(function(){
     var ed = R('ideEditor'); if (ed) { ed.value = _genCode; ideSetMode('html'); }
     showToast('✓ Код відкрито в IDE');

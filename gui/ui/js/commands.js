@@ -37,7 +37,7 @@ var palCmds=[
   {ico:'📊',label:'Системний монітор',fn:function(){showPage('monitor');}},
   {ico:'🤖',label:'Агенти',fn:function(){showPage('agents');}},
   {ico:'💬',label:'AI Чат',fn:function(){showPage('chat');}},
-  {ico:'💻',label:'IDE',fn:function(){showPage('ide');}},
+  {ico:'💻',label:'IDE / Агенти',fn:function(){showPage('agents');}},
   {ico:'📋',label:'Команди',fn:function(){showPage('commands');}},
   {ico:'⚡',label:'Автоматизація',fn:function(){showPage('macros');}},
   {ico:'➕',label:'Створити команду',fn:function(){showPage('commands');openCmdModal();}},
@@ -238,7 +238,7 @@ function renderBuiltinCmds(q) {
 }
 
 function copyBuiltin(phrase) {
-  navigator.clipboard.writeText(phrase).then(function(){ showToast('📋 Скопійовано: ' + phrase.slice(0,30)); });
+  _copyText(phrase, '📋 Скопійовано: ' + phrase.slice(0,30));
 }
 
 var _newCmdType = 'shell';
@@ -279,6 +279,10 @@ function openCmdModal(id) { showPage('commands'); showCmdCreate(id); }
 function closeCmdModal()  { showCmdLib(); }
 
 function _resetCmdForm(id) {
+  // Cancel any active listen/hotkey capture
+  if (_listenTriggerActive) { _listenTriggerActive = false; pyCall('stop_stt', '{}'); }
+  _cmdHotkeyCapturing = false;
+  _cmdListenEnabled = true; // default ON for new commands
   cmdEditIdx = id || -1;
   _newCmdType = 'shell';
   R('cmdEditId').value    = id || '';
@@ -288,7 +292,9 @@ function _resetCmdForm(id) {
   R('cmdIcon').value      = '';
   R('cmdDesc').value      = '';
   R('cmdBody').value      = '';
-  R('cmdHotkey').value    = '';
+  var _ltb = R('listenTriggerBtn'); if(_ltb){_ltb.textContent='🎤 Слухати';_ltb.classList.remove('recording');}
+  var _hki = R('cmdHotkey'); if(_hki){_hki.value='';_hki.placeholder='Натисніть сюди + клавіші...';_hki.style.borderColor='';}
+  _updateListenToggleUI();
   R('cmdCreateTitle').textContent = 'Створення команди';
   var fi = R('cmdFileInfo'); if (fi) fi.style.display = 'none';
   document.querySelectorAll('#cmdTypeSelect .cmd-type-radio-btn').forEach(function(c){ c.classList.remove('active'); });
@@ -307,6 +313,8 @@ function _resetCmdForm(id) {
       R('cmdHotkey').value    = cmd.hotkey || '';
       R('cmdTrigger').value   = cmd.trigger || '';
       R('cmdTriggerAlts').value = cmd.trigger_alts || '';
+      _cmdListenEnabled = cmd.sphere_listen !== false; // default true
+      _updateListenToggleUI();
       _newCmdType = cmd.type || 'shell';
       document.querySelectorAll('#cmdTypeSelect .cmd-type-radio-btn').forEach(function(c){
         c.classList.toggle('active', c.dataset.type === _newCmdType);
@@ -319,6 +327,7 @@ function _resetCmdForm(id) {
 
 // ── Library render ──────────────────────────────────────────────────────────
 function sortAndRenderLib() {
+  _rebuildHotkeyMap();
   var tc = R('cmdTotalCount'); if (tc) tc.textContent = '(' + commands.length + ')';
   var sort = (R('cmdSortSelect') || {value:'date_desc'}).value;
   var sorted = commands.slice();
@@ -641,6 +650,7 @@ function saveCmd() {
     type:         _newCmdType,
     body:         body,
     hotkey:       R('cmdHotkey').value.trim(),
+    sphere_listen: _cmdListenEnabled,
     trigger:      trigger,
     trigger_alts: trigAlts,
     created_at:   editId > 0 ? ((commands.find(function(c){return c.id===editId;})||{}).created_at || Date.now()) : Date.now(),
@@ -660,6 +670,7 @@ function saveCmd() {
     showToast('✓ Команду «'+name+'» створено');
   }
   pyCall('save_commands', JSON.stringify({commands: commands}));
+  _rebuildHotkeyMap();
   _resetCmdForm();
   renderCmdListPanel('');
   var lc=R('cmdListCount'); if(lc) lc.textContent='('+commands.length+')';
@@ -715,7 +726,7 @@ function runCmd(id) {
     showToast('▶ ' + cmd.name);
   } else if (cmd.type === 'python') {
     pyCall('run_code', JSON.stringify({code: cmd.body, lang:'python'}));
-    showPage('ide');
+    showPage('agents');
     showToast('▶ Python: ' + cmd.name);
   } else if (cmd.type === 'url') {
     pyCall('run_macro', JSON.stringify({command: 'start ' + cmd.body, type:'shell'}));
@@ -994,6 +1005,98 @@ function playNotifSound(type) {
   } catch(e) {}
 }
 
+// ═══ SPHERE LISTEN TOGGLE ═══
+var _cmdListenEnabled = true; // default ON
+
+function toggleCmdListen() {
+  _cmdListenEnabled = !_cmdListenEnabled;
+  _updateListenToggleUI();
+}
+
+function _updateListenToggleUI() {
+  var tog   = R('cmdListenToggle');
+  var thumb = R('cmdListenThumb');
+  if (!tog) return;
+  if (_cmdListenEnabled) {
+    tog.style.background   = 'var(--accent)';
+    thumb.style.left       = '22px';
+    tog.title              = 'Сфера слухає — натисніть щоб вимкнути';
+  } else {
+    tog.style.background   = 'rgba(255,255,255,.12)';
+    thumb.style.left       = '3px';
+    tog.title              = 'Сфера НЕ слухає — натисніть щоб увімкнути';
+  }
+}
+
+// ═══ LISTEN FOR TRIGGER (voice → cmdTrigger field) ═══
+var _listenTriggerActive = false;
+
+function listenForTrigger() {
+  var btn = R('listenTriggerBtn');
+  if (_listenTriggerActive) {
+    // Cancel
+    _listenTriggerActive = false;
+    pyCall('stop_stt', '{}');
+    if (btn) { btn.textContent = '🎤 Слухати'; btn.classList.remove('recording'); }
+    return;
+  }
+  _listenTriggerActive = true;
+  if (btn) { btn.textContent = '⏹ Стоп'; btn.classList.add('recording'); }
+  var lang = (typeof sttLang !== 'undefined') ? sttLang : 'uk-UA';
+  var devIdx = (typeof _micSettings !== 'undefined') ? (_micSettings.deviceIndex || 0) : 0;
+  var sens   = (typeof _micSettings !== 'undefined') ? (_micSettings.sensitivity || 50) : 50;
+  pyCall('start_stt', JSON.stringify({mode:'single', lang:lang, device_index:devIdx, sensitivity:sens}));
+  showToast('🎤 Говоріть тригерну фразу...');
+}
+
+// Called from sphere.js handleSttResult when _listenTriggerActive is set
+function _handleTriggerListenResult(text) {
+  _listenTriggerActive = false;
+  var btn = R('listenTriggerBtn');
+  if (btn) { btn.textContent = '🎤 Слухати'; btn.classList.remove('recording'); }
+  if (!text) { showToast('⚠ Фразу не розпізнано, спробуйте ще'); return; }
+  var inp = R('cmdTrigger');
+  if (inp) inp.value = text;
+  showToast('✓ Тригер: «' + text + '»');
+}
+
+// ═══ CMD HOTKEY CAPTURE ═══
+var _cmdHotkeyCapturing = false;
+
+function startCmdHotkeyCapture() {
+  _cmdHotkeyCapturing = true;
+  var inp = R('cmdHotkey');
+  if (inp) { inp.value = ''; inp.placeholder = '⌨ Натисніть клавіші...'; inp.style.borderColor = 'var(--accent)'; }
+}
+
+var _KEY_NAMES = {
+  ' ':'Space','ArrowUp':'↑','ArrowDown':'↓','ArrowLeft':'←','ArrowRight':'→',
+  'Enter':'Enter','Escape':'Esc','Backspace':'Backspace','Tab':'Tab',
+  'Delete':'Delete','Insert':'Insert','Home':'Home','End':'End',
+  'PageUp':'PgUp','PageDown':'PgDn','F1':'F1','F2':'F2','F3':'F3','F4':'F4',
+  'F5':'F5','F6':'F6','F7':'F7','F8':'F8','F9':'F9','F10':'F10',
+  'F11':'F11','F12':'F12'
+};
+
+document.addEventListener('keydown', function(e) {
+  if (!_cmdHotkeyCapturing) return;
+  if (document.activeElement !== R('cmdHotkey')) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  var k = e.key;
+  if (['Control','Shift','Alt','Meta'].includes(k)) return;
+  var parts = [];
+  if (e.ctrlKey)  parts.push('Ctrl');
+  if (e.shiftKey) parts.push('Shift');
+  if (e.altKey)   parts.push('Alt');
+  parts.push(_KEY_NAMES[k] || (k.length === 1 ? k.toUpperCase() : k));
+  var combo = parts.join('+');
+  var inp = R('cmdHotkey');
+  if (inp) { inp.value = combo; inp.style.borderColor = 'var(--accent)'; inp.blur(); }
+  _cmdHotkeyCapturing = false;
+  showToast('✓ ' + combo);
+}, true);
+
 // ═══ HOTKEYS ═══
 var _hotkeys = JSON.parse(localStorage.getItem('axis_hotkeys') || '{}');
 var _hotkeyCapturing = null;
@@ -1029,7 +1132,19 @@ function resetHotkeys() {
   showToast('↺ Гарячі клавіші скинуто');
 }
 
+// ── Precomputed hotkey → command map for O(1) dispatch ───────────────────────
+var _cmdHotkeyMap = {};
+function _rebuildHotkeyMap() {
+  _cmdHotkeyMap = {};
+  for (var i = 0; i < commands.length; i++) {
+    var c = commands[i];
+    if (c.hotkey && c.enabled !== false) _cmdHotkeyMap[c.hotkey] = c;
+  }
+}
+
 document.addEventListener('keydown', function(e) {
+  // Already handled by the capture-phase listener — skip
+  if (_cmdHotkeyCapturing) return;
   // Capture mode
   if (_hotkeyCapturing && _hotkeyCapturing.dataset.listening === '1') {
     e.preventDefault();
@@ -1052,9 +1167,25 @@ document.addEventListener('keydown', function(e) {
     }
     return;
   }
-  // Execute hotkeys
-  var combo = (e.ctrlKey?'Ctrl+':'') + (e.shiftKey?'Shift+':'') + (e.altKey?'Alt+':'') + (e.key.length===1?e.key.toUpperCase():e.key);
+  // Build combo string
+  var k2 = e.key;
+  k2 = _KEY_NAMES[k2] || (k2.length === 1 ? k2.toUpperCase() : k2);
+  var combo = (e.ctrlKey?'Ctrl+':'') + (e.shiftKey?'Shift+':'') + (e.altKey?'Alt+':'') + k2;
   combo = combo.replace(/\+$/,'');
+
+  // ── Execute command hotkeys ──────────────────────────────────────────────
+  if (!['Control','Shift','Alt','Meta'].includes(e.key)) {
+    var _mc = _cmdHotkeyMap[combo];
+    if (_mc) {
+      e.preventDefault();
+      pyCall('run_command', JSON.stringify({type: _mc.type, body: _mc.body, name: _mc.name}));
+      _updateCmdStats(_mc.id, true);
+      showCmdOverlay(_mc.name);
+      return;
+    }
+  }
+
+  // ── Execute app hotkeys ──────────────────────────────────────────────────
   for (var action in _hotkeys) {
     if (_hotkeys[action] === combo) {
       e.preventDefault();
