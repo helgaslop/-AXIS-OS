@@ -1,8 +1,8 @@
 // AXIS OS — Order Confirmation Email
-// Відправляє email підтвердження покупцю через Resend (безкоштовно).
+// Відправляє email підтвердження покупцю через Brevo (безкоштовно 300/день).
 // Налаштування: Netlify → Site settings → Environment variables
-//   RESEND_API_KEY  = re_xxxxxxxxxxxxxxxx  (resend.com → безкоштовна реєстрація)
-//   OWNER_EMAIL     = axis.os.assistant@gmail.com  (кому приходять нотифікації)
+//   BREVO_API_KEY  = xkeysib-xxxxxxxx  (brevo.com → безкоштовна реєстрація)
+//   OWNER_EMAIL    = axis.os.assistant@gmail.com
 
 exports.handler = async (event) => {
   const CORS = {
@@ -15,8 +15,9 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method Not Allowed' };
 
-  const apiKey    = process.env.RESEND_API_KEY;
+  const apiKey     = process.env.BREVO_API_KEY;
   const ownerEmail = process.env.OWNER_EMAIL || 'axis.os.assistant@gmail.com';
+  const senderEmail = ownerEmail;
 
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { body = {}; }
@@ -29,7 +30,7 @@ exports.handler = async (event) => {
 
   // Якщо немає API ключа — повертаємо OK (Netlify Forms вже повідомив власника)
   if (!apiKey) {
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, note: 'no RESEND_API_KEY' }) };
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, note: 'no BREVO_API_KEY' }) };
   }
 
   const planLabel = plan || 'AXIS OS License';
@@ -90,41 +91,32 @@ exports.handler = async (event) => {
   <p style="color:#8b949e;font-size:13px;">Перевір оплату і надішли ключ ліцензії на email покупця.</p>
 </div>`;
 
-  try {
-    // Надсилаємо обидва листи паралельно
-    const [buyerRes, ownerRes] = await Promise.all([
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'AXIS OS <onboarding@resend.dev>',
-          to: [email],
-          subject: `✅ AXIS OS — Замовлення отримано (${planLabel})`,
-          html: buyerHtml
-        })
-      }),
-      fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'AXIS OS Orders <onboarding@resend.dev>',
-          to: [ownerEmail],
-          subject: `🛒 Нове замовлення: ${planLabel} — ${email}`,
-          html: ownerHtml
-        })
+  const sendEmail = (to, subject, html) =>
+    fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: { name: 'AXIS OS', email: senderEmail },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html
       })
+    });
+
+  try {
+    const [buyerRes, ownerRes] = await Promise.all([
+      sendEmail(email,       `✅ AXIS OS — Замовлення отримано (${planLabel})`, buyerHtml),
+      sendEmail(ownerEmail,  `🛒 Нове замовлення: ${planLabel} — ${email}`,     ownerHtml)
     ]);
 
-    if (!buyerRes.ok) {
-      const err = await buyerRes.text();
-      throw new Error(`Resend error ${buyerRes.status}: ${err}`);
-    }
+    const buyerData = await buyerRes.text();
+    if (!buyerRes.ok) throw new Error(`Brevo buyer error ${buyerRes.status}: ${buyerData}`);
 
+    console.log('Emails sent. Buyer:', buyerRes.status, 'Owner:', ownerRes.status);
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
 
   } catch (err) {
-    console.error('order-confirm error:', err);
-    // Не повертаємо 500 — front-end показав success незалежно
+    console.error('order-confirm error:', err.message);
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: false, error: err.message }) };
   }
 };
