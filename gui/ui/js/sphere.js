@@ -14,7 +14,35 @@ function loadSphereSettings(d) {
   sv('sp_language',      d.language          || 'uk-UA');
   sv('sp_tts_prov',      d.tts_provider      || 'openai');
   sv('sp_tts_voice',     d.tts_voice         || 'onyx');
-  sv('sp_edge_voice',    d.edge_voice        || 'uk-UA-PolinaNeural');
+
+  // Edge voice: handle custom values not present in the hardcoded select options
+  var edgeVoice = d.edge_voice || 'uk-UA-PolinaNeural';
+  var edgeSel = R('sp_edge_voice');
+  if (edgeSel) {
+    edgeSel.value = edgeVoice;
+    // If the value didn't stick (custom voice not in list), inject a temporary option
+    if (edgeSel.value !== edgeVoice) {
+      var customOpt = document.createElement('option');
+      customOpt.value = edgeVoice;
+      customOpt.textContent = edgeVoice + ' (збережений)';
+      edgeSel.insertBefore(customOpt, edgeSel.firstChild);
+      edgeSel.value = edgeVoice;
+    }
+  }
+
+  // Sync runtime TTS state so speakText() uses the saved provider/voice immediately
+  var savedProv  = d.tts_provider || 'browser';
+  var savedVoice = d.tts_voice    || '';
+  onTtsProviderChange(savedProv);
+  // After onTtsProviderChange populates ttsVoiceSel, override with the saved voice
+  if (savedVoice) {
+    currentTtsVoice = savedVoice;
+    var vSel = R('ttsVoiceSel');
+    if (vSel) vSel.value = savedVoice;
+  }
+  // Also sync the VOICE tab provider dropdown
+  var ttsProvSel = R('ttsProv');
+  if (ttsProvSel) ttsProvSel.value = savedProv;
   sv('sp_ai_prov',       d.ai_provider       || 'openai');
   sv('sp_dialog_prov',   d.dialog_provider   || 'openai');
   sv('sp_weather_city',  d.weather_city      || 'Kyiv');
@@ -158,11 +186,26 @@ var TG_DEFAULTS = [
   { label: '💻 Робота',       type: 'command', action: 'відкрий робочий процес' },
   { label: '🎵 Музика',       type: 'command', action: 'включи музику'          },
   { label: '📷 Скріншот',     type: 'command', action: 'зроби скріншот'         },
-  { label: '❌ Вимкнути ПК',  type: 'command', action: 'виключи пк'             },
+  { label: '🍅 Помодоро',     type: 'topic_pomodoro'                          },
+  { label: '💤 Вимкнути ПК', type: 'topic_system2'                           },
 ];
 
 var TG_TYPES = [
   { value: 'command',           label: '⚡ Команда'                  },
+  // ── Тематичні меню (смарт-меню під тему) ─────────────────────────
+  { value: 'topic_notes',       label: '📝 Тема: Нотатки'           },
+  { value: 'topic_music',       label: '🎵 Тема: Музика / Spotify'  },
+  { value: 'topic_tasks',       label: '✅ Тема: Задачі'            },
+  { value: 'topic_habits',      label: '🏆 Тема: Звички'            },
+  { value: 'topic_news',        label: '📰 Тема: Новини'            },
+  { value: 'topic_reminders',   label: '⏰ Тема: Нагадування'       },
+  { value: 'topic_weather',     label: '🌤 Тема: Погода'            },
+  // ── Підменю (список з Sphere) ─────────────────────────────────────
+  { value: 'topic_alarms',      label: '⏰ Тема: Будильники'         },
+  { value: 'topic_focus',       label: '🎯 Тема: Фокус-режим'        },
+  { value: 'topic_system2',     label: '🖥 Тема: Система+'            },
+  { value: 'topic_pomodoro',    label: '🍅 Тема: Помодоро'            },
+  // ── Підменю (динамічний список з Python) ──────────────────────────
   { value: 'submenu_steam',     label: '🎮 Підменю: Steam ігри'      },
   { value: 'submenu_watch',     label: '🎬 Підменю: Серіали/Відео'   },
   { value: 'submenu_volume',    label: '🔊 Підменю: Гучність'        },
@@ -323,6 +366,13 @@ function stopRecording() {
 // Called by Python with recognized text
 function handleSttResult(d) {
   var text = (d.text || '').trim();
+
+  // Redirect to trigger-listen capture if active
+  if (typeof _listenTriggerActive !== 'undefined' && _listenTriggerActive) {
+    _handleTriggerListenResult(text);
+    return;
+  }
+
   if (!text) return;
 
   // Stop phrase
@@ -381,10 +431,13 @@ var currentAudio    = null;
 var OPENAI_VOICES = [
   {id:'onyx',    label:'Onyx — глибокий чоловічий'},
   {id:'echo',    label:'Echo — чоловічий'},
+  {id:'ash',     label:'Ash — виразний чоловічий'},
   {id:'fable',   label:'Fable — молодий'},
   {id:'alloy',   label:'Alloy — нейтральний'},
   {id:'nova',    label:'Nova — жіночий'},
   {id:'shimmer', label:'Shimmer — ніжний жіночий'},
+  {id:'coral',   label:'Coral — живий жіночий'},
+  {id:'sage',    label:'Sage — спокійний нейтральний'},
 ];
 
 // Google TTS voices (Cloud TTS, uses Google API key)

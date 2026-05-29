@@ -5,6 +5,21 @@
 
 const nodemailer = require('nodemailer');
 
+// ── HTML entity escaping — prevents XSS in email template ──────────────────
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;')
+    .replace(/'/g,  '&#39;');
+}
+
+// ── Strict email validation — prevents header injection ─────────────────────
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email || ''));
+}
+
 exports.handler = async (event) => {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
@@ -28,10 +43,35 @@ exports.handler = async (event) => {
   let body;
   try { body = JSON.parse(event.body || '{}'); } catch { body = {}; }
 
-  const { email = '', plan = '', amount = '', method = '' } = body;
-  if (!email || !email.includes('@')) {
+  const {
+    email    = '',
+    plan     = '',
+    amount   = '',
+    method   = '',
+    name     = '',
+    surname  = '',
+    phone    = '',
+    deviceId = ''
+  } = body;
+
+  // Validate email strictly — prevents header injection and garbage addresses
+  if (!isValidEmail(email)) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'invalid email' }) };
   }
+
+  // Escape all user-supplied fields before placing them in HTML
+  const ePlan     = escHtml(plan);
+  const eAmount   = escHtml(amount);
+  const eMethod   = escHtml(method);
+  const eEmail    = escHtml(email);
+  const eName     = escHtml(name);
+  const eSurname  = escHtml(surname);
+  const ePhone    = escHtml(phone);
+  const eDeviceId = escHtml(deviceId);
+  const eFullName = (eName || eSurname) ? `${eName} ${eSurname}`.trim() : '';
+  const greeting  = eFullName
+    ? `Привіт, <strong style="color:#e6edf3;">${eFullName}</strong>!`
+    : 'Вітаємо!';
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -55,10 +95,11 @@ p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
 .row{display:flex;justify-content:space-between;padding:5px 0;font-size:14px;border-bottom:1px solid rgba(255,255,255,.05);}
 .row:last-child{border:none;}
 .row span:first-child{color:#8b949e;}
-.row span:last-child{font-weight:700;}
+.row span:last-child{font-weight:700;word-break:break-all;}
 .cta{display:block;text-align:center;background:linear-gradient(135deg,#00d4ff,#7c3aed);
   color:#000;font-weight:800;padding:13px;border-radius:10px;text-decoration:none;margin:20px 0 0;font-size:15px;}
 .foot{text-align:center;padding:14px 32px;font-size:12px;color:#484f58;border-top:1px solid rgba(255,255,255,.06);}
+.dev{font-size:11px;color:#30363d;margin-top:6px;font-family:monospace;letter-spacing:.05em;}
 </style></head>
 <body>
 <div class="wrap">
@@ -66,17 +107,23 @@ p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
   <div class="body">
     <div class="badge">✅ Замовлення отримано</div>
     <h2>Дякуємо за покупку!</h2>
-    <p>Ми отримали ваше замовлення і перевіряємо оплату. Ліцензійний ключ надішлемо на цей email протягом <strong style="color:#e6edf3;">1–24 годин</strong>.</p>
+    <p>${greeting} Ми отримали ваше замовлення і перевіряємо оплату. Ліцензійний ключ надішлемо на цей email протягом <strong style="color:#e6edf3;">1–24 годин</strong>.</p>
     <div class="info">
-      <div class="row"><span>План</span><span>${plan}</span></div>
-      <div class="row"><span>Сума</span><span>${amount}</span></div>
-      <div class="row"><span>Оплата</span><span>${method}</span></div>
-      <div class="row"><span>Email</span><span>${email}</span></div>
+      ${eFullName ? `<div class="row"><span>Покупець</span><span>${eFullName}</span></div>` : ''}
+      <div class="row"><span>План</span><span>${ePlan}</span></div>
+      <div class="row"><span>Сума</span><span>${eAmount}</span></div>
+      <div class="row"><span>Оплата</span><span>${eMethod}</span></div>
+      <div class="row"><span>Email</span><span>${eEmail}</span></div>
+      ${ePhone ? `<div class="row"><span>Телефон</span><span>${ePhone}</span></div>` : ''}
     </div>
     <p>Хочете швидше? Напишіть нам у Telegram — відповімо одразу.</p>
     <a href="https://t.me/Helgaslopp" class="cta">Написати в Telegram @Helgaslopp</a>
   </div>
-  <div class="foot">AXIS OS · ${gmailUser} · Якщо ви не робили це замовлення — ігноруйте лист.</div>
+  <div class="foot">
+    AXIS OS &mdash; Підтримка: <a href="https://t.me/Helgaslopp" style="color:#00d4ff;text-decoration:none;">@Helgaslopp</a><br>
+    Якщо ви не робили це замовлення &mdash; ігноруйте лист.
+    ${eDeviceId ? `<div class="dev">Device ID: ${eDeviceId}</div>` : ''}
+  </div>
 </div>
 </body></html>`;
 
@@ -84,7 +131,7 @@ p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
     await transporter.sendMail({
       from: `"AXIS OS" <${gmailUser}>`,
       to: email,
-      subject: `✅ AXIS OS — Замовлення отримано (${plan})`,
+      subject: `✅ AXIS OS — Замовлення отримано (${escHtml(plan)})`,
       html: buyerHtml
     });
 

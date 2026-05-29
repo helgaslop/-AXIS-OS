@@ -2083,11 +2083,20 @@ function appendEscalate(){
         <button class="order-btn-primary" id="ostep1-next" onclick="orderGoStep(2)" disabled>Далі →</button>
       </div>
 
-      <!-- Step 2: Email -->
+      <!-- Step 2: Contact info -->
       <div id="ostep-2" style="display:none;">
-        <p style="font-size:14px;font-weight:700;margin-bottom:4px;">Ваш email</p>
-        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Ключ ліцензії надішлемо на цю адресу після підтвердження оплати</p>
-        <input type="email" class="order-email-input" id="orderEmailInput" placeholder="your@email.com" oninput="validateOrderEmail()">
+        <p style="font-size:14px;font-weight:700;margin-bottom:4px;">Контактні дані</p>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Ключ ліцензії надішлемо на email після підтвердження оплати</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <input type="text" class="order-email-input" id="orderNameInput" placeholder="Ім'я *" oninput="validateContactForm()" autocomplete="given-name">
+          <input type="text" class="order-email-input" id="orderSurnameInput" placeholder="Прізвище *" oninput="validateContactForm()" autocomplete="family-name">
+        </div>
+        <input type="email" class="order-email-input" id="orderEmailInput" placeholder="Email * (для ключа ліцензії)" oninput="validateContactForm()" autocomplete="email" style="margin-bottom:10px;">
+        <input type="tel" class="order-email-input" id="orderPhoneInput" placeholder="Телефон (необов'язково, для швидкого зв'язку)" oninput="validateContactForm()" autocomplete="tel">
+        <div id="ostep2-hint" style="font-size:11px;color:var(--text3);margin:8px 0 4px;display:flex;align-items:center;gap:5px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          Дані використовуються тільки для відправки ліцензійного ключа і захисту від шахраїв
+        </div>
         <button class="order-btn-primary" id="ostep2-next" onclick="orderGoStep(3)" disabled>Далі →</button>
         <button class="order-btn-back" onclick="orderGoStep(1)">← Назад</button>
       </div>
@@ -2123,7 +2132,7 @@ function appendEscalate(){
       <div id="ostep-5" style="display:none;">
         <div class="order-success">
           <div class="order-success-ico">🎉</div>
-          <h4>Дякуємо за замовлення!</h4>
+          <h4>Дякуємо за замовлення<span id="orderConfirmName"></span>!</h4>
           <p>Ми отримали ваш запит. Надішлемо ключ ліцензії на <strong id="orderConfirmEmail"></strong> протягом <strong>1–24 годин</strong> після підтвердження оплати.</p>
           <p>Хочеш швидше? Напиши нам — відповімо одразу.</p>
           <a href="https://t.me/Helgaslopp" target="_blank" class="order-tg-link">
@@ -2139,7 +2148,9 @@ function appendEscalate(){
 <!-- Netlify форма для нотифікацій про замовлення (прихована) -->
 <form name="axis-order" data-netlify="true" netlify-honeypot="bot-field" hidden>
   <input type="hidden" name="form-name" value="axis-order">
-  <input name="plan"><input name="amount"><input name="email"><input name="payment_method"><input name="bot-field">
+  <input name="plan"><input name="amount"><input name="email">
+  <input name="payment_method"><input name="name"><input name="surname">
+  <input name="phone"><input name="device_id"><input name="bot-field">
 </form>
 
 <script>
@@ -2149,6 +2160,28 @@ const O_NAMES  = {monthly:'Місячний — $5/міс', yearly:'Річний
 const USDT_ADDR    = 'TXiZ5UPfsFrjo71Ab4bH6BeCqLJDyiv6pL';
 const PAYPAL_EMAIL = 'aksutinvova4@gmail.com';
 const MONO_CARD    = '4441 1110 6712 2550';
+
+// ── Device Fingerprint (anti-fraud) ──────────────────────────────────────────
+// Generates a short hex ID from browser/OS characteristics.
+// Sent with every order so the owner can tie the license to a specific device.
+function genDeviceId() {
+  const raw = [
+    navigator.userAgent || '',
+    screen.width + 'x' + screen.height + '@' + (screen.colorDepth || 0),
+    (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : ''),
+    navigator.language || '',
+    navigator.platform || '',
+    String(navigator.hardwareConcurrency || 0),
+    String(navigator.deviceMemory || 0)
+  ].join('|');
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) {
+    h = (Math.imul(h, 33) ^ raw.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(16).toUpperCase().padStart(8, '0');
+}
+let _oDeviceId = '';
+document.addEventListener('DOMContentLoaded', function() { _oDeviceId = genDeviceId(); });
 
 let _oPlan = null, _oPayMethod = null;
 
@@ -2186,8 +2219,12 @@ function renderOStep(n) {
 }
 function orderGoStep(n) {
   if (n===3) {
-    const v = document.getElementById('orderEmailInput').value.trim();
-    if (!v || !v.includes('@')) return;
+    // Full validation before advancing — must match validateContactForm logic
+    const name    = (document.getElementById('orderNameInput').value||'').trim();
+    const surname = (document.getElementById('orderSurnameInput').value||'').trim();
+    const email   = (document.getElementById('orderEmailInput').value||'').trim();
+    const emailOk = email.includes('@') && email.includes('.');
+    if (!name || !surname || !emailOk) return;
   }
   renderOStep(n);
 }
@@ -2199,11 +2236,16 @@ function selectOrderPlan(plan) {
   const next = document.getElementById('ostep1-next');
   if (next) next.disabled = false;
 }
-function validateOrderEmail() {
-  const v = (document.getElementById('orderEmailInput').value||'').trim();
+function validateContactForm() {
+  const name    = (document.getElementById('orderNameInput').value||'').trim();
+  const surname = (document.getElementById('orderSurnameInput').value||'').trim();
+  const email   = (document.getElementById('orderEmailInput').value||'').trim();
+  const emailOk = email.includes('@') && email.includes('.');
   const btn = document.getElementById('ostep2-next');
-  if (btn) btn.disabled = !v || !v.includes('@') || !v.includes('.');
+  if (btn) btn.disabled = !name || !surname || !emailOk;
 }
+// Keep old name as alias for any chat-flow callers
+function validateOrderEmail() { validateContactForm(); }
 function qrUrl(data) {
   return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data='+encodeURIComponent(data);
 }
@@ -2263,13 +2305,17 @@ function copyVal(text, btn) {
   });
 }
 async function confirmPayment() {
-  const email = (document.getElementById('orderEmailInput').value||'').trim();
+  const email    = (document.getElementById('orderEmailInput').value||'').trim();
+  const name     = (document.getElementById('orderNameInput').value||'').trim();
+  const surname  = (document.getElementById('orderSurnameInput').value||'').trim();
+  const phone    = (document.getElementById('orderPhoneInput').value||'').trim();
   const planName = O_NAMES[_oPlan]||_oPlan||'';
   const amount   = O_PRICES[_oPlan]||'';
   const mNames   = {usdt:'USDT TRC20', paypal:'PayPal', mono:'Monobank'};
   const method   = mNames[_oPayMethod]||_oPayMethod||'';
+  const deviceId = _oDeviceId || genDeviceId();
 
-  // 1. Netlify Forms — сповіщення власнику
+  // 1. Netlify Forms — сповіщення власнику (включає device ID для захисту від шахраїв)
   try {
     const fd = new FormData();
     fd.append('form-name','axis-order');
@@ -2277,6 +2323,10 @@ async function confirmPayment() {
     fd.append('amount', amount);
     fd.append('email', email);
     fd.append('payment_method', method);
+    fd.append('name', name);
+    fd.append('surname', surname);
+    fd.append('phone', phone);
+    fd.append('device_id', deviceId);
     await fetch('/',{method:'POST',body:fd});
   } catch(e){}
 
@@ -2285,11 +2335,14 @@ async function confirmPayment() {
     await fetch('/.netlify/functions/order-confirm',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, plan:planName, amount, method})
+      body: JSON.stringify({email, plan:planName, amount, method, name, surname, phone, deviceId})
     });
   } catch(e){}
 
+  const fullName = [name, surname].filter(Boolean).join(' ');
   document.getElementById('orderConfirmEmail').textContent = email;
+  const nameEl = document.getElementById('orderConfirmName');
+  if (nameEl) nameEl.textContent = fullName ? ', ' + fullName : '';
   renderOStep(5);
 }
 </script>
