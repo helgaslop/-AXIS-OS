@@ -1,0 +1,16 @@
+{
+  "name": "AXIS OS",
+  "short_name": "AXIS OS",
+  "description": "AI голосовий асистент для Windows",
+  "start_url": "https://axis-os-app.netlify.app/",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#00d4ff",
+  "icons": [
+    {
+      "src": "img/screen-sphere.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
