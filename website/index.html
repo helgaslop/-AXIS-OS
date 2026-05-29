@@ -857,6 +857,7 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
     <div class="hero-ctas">
       <a href="https://github.com/helgaslop/-AXIS-OS/releases/download/v1.2.0/AXIS_OS_Setup_1.2.0.exe"
          target="_blank" rel="noopener noreferrer" class="btn-primary">⬇ <span data-i18n="hero.cta1">Завантажити безкоштовно</span></a>
+      <button onclick="openOrder(null)" class="btn-primary" style="background:linear-gradient(135deg,var(--accent2),#9333ea);border:none;cursor:pointer;">🛒 <span data-i18n="hero.cta3">Купити ліцензію</span></button>
       <a href="#" onclick="showTab('screens');return false;" class="btn-secondary">▶ <span data-i18n="hero.cta2">Дивитися демо</span></a>
     </div>
     <div class="hero-stats">
@@ -1149,6 +1150,22 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
     <div class="sec-label" data-i18n="pr.label">Ціни</div>
     <h2 class="sec-title" data-i18n="pr.title">Простий і чесний прайс</h2>
     <p class="sec-sub" style="margin:0 auto;" data-i18n="pr.sub">Починай безкоштовно, переходь на платний план коли будеш готовий</p>
+  </div>
+
+  <!-- Trust stats -->
+  <div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-bottom:40px;margin-top:8px;">
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:40px;">
+      <span style="font-size:18px;">🔥</span>
+      <div><div style="font-size:16px;font-weight:900;color:var(--accent);" id="counterDownloads">2 847</div><div style="font-size:11px;color:var(--text2);">завантажень</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:40px;">
+      <span style="font-size:18px;">💎</span>
+      <div><div style="font-size:16px;font-weight:900;color:var(--accent2);" id="counterLicenses">134</div><div style="font-size:11px;color:var(--text2);">активних ліцензій</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:40px;">
+      <span style="font-size:18px;">⭐</span>
+      <div><div style="font-size:16px;font-weight:900;color:#fbbf24;">4.9/5</div><div style="font-size:11px;color:var(--text2);">оцінка користувачів</div></div>
+    </div>
   </div>
 
   <!-- Cards -->
@@ -1534,6 +1551,7 @@ const T = {
     'nav.home':'Головна','nav.features':'Функції','nav.screens':'Скріншоти',
     'nav.how':'Як почати','nav.pricing':'Ціни','nav.faq':'FAQ','nav.download':'Завантажити',
     'hero.badge':'v1.2 — Безкоштовний пробний 7 днів','hero.t1':'Твій ПК під','hero.t2':'голосовим контролем',
+    'hero.cta3':'Купити ліцензію',
     'hero.sub':"AXIS OS — AI асистент для Windows. Керуй комп'ютером голосом, автоматизуй задачі, підключи Spotify, Telegram і ChatGPT.",
     'hero.cta1':'Завантажити безкоштовно','hero.cta2':'Дивитися демо',
     'stat1':'команд','stat2':'AI провайдерів','stat3':'локально','stat4':'фоновий режим',
@@ -1583,6 +1601,7 @@ const T = {
     'nav.home':'Home','nav.features':'Features','nav.screens':'Screenshots',
     'nav.how':'Get started','nav.pricing':'Pricing','nav.faq':'FAQ','nav.download':'Download',
     'hero.badge':'v1.2 — Free 7-day trial','hero.t1':'Your PC under','hero.t2':'voice control',
+    'hero.cta3':'Buy License',
     'hero.sub':'AXIS OS — AI assistant for Windows. Control by voice, automate tasks, connect Spotify, Telegram and ChatGPT.',
     'hero.cta1':'Download for free','hero.cta2':'Watch demo',
     'stat1':'commands','stat2':'AI providers','stat3':'local','stat4':'background mode',
@@ -1632,6 +1651,7 @@ const T = {
     'nav.home':'Главная','nav.features':'Функции','nav.screens':'Скриншоты',
     'nav.how':'Начало','nav.pricing':'Цены','nav.faq':'FAQ','nav.download':'Скачать',
     'hero.badge':'v1.2 — Бесплатный пробный 7 дней','hero.t1':'Твой ПК под','hero.t2':'голосовым контролем',
+    'hero.cta3':'Купить лицензию',
     'hero.sub':'AXIS OS — AI ассистент для Windows. Управляй голосом, автоматизируй задачи, подключи Spotify, Telegram и ChatGPT.',
     'hero.cta1':'Скачать бесплатно','hero.cta2':'Смотреть демо',
     'stat1':'команд','stat2':'AI провайдеров','stat3':'локально','stat4':'фоновый режим',
@@ -1961,34 +1981,31 @@ function appendOrderCards(){
     <div class="chat-msg-ava">⬡</div>
     <div>
       <div class="chat-order-cards">
-        <div class="chat-plan-card" onclick="selectPlan('Місячний — $5/міс')">
+        <div class="chat-plan-card" onclick="openOrderFromChat('monthly')">
           <div class="cp-name">📅 Місячний</div>
           <div class="cp-price">$5</div>
           <div class="cp-period">/місяць</div>
         </div>
-        <div class="chat-plan-card pop" onclick="selectPlan('Річний — $40/рік')">
+        <div class="chat-plan-card pop" onclick="openOrderFromChat('yearly')">
           <div class="cp-name">⭐ Річний</div>
           <div class="cp-price">$40</div>
           <div class="cp-period">/рік · -33%</div>
         </div>
-        <div class="chat-plan-card" onclick="selectPlan('Lifetime — $99')">
+        <div class="chat-plan-card" onclick="openOrderFromChat('lifetime')">
           <div class="cp-name">♾️ Назавжди</div>
           <div class="cp-price">$99</div>
           <div class="cp-period">одноразово</div>
         </div>
-        <div class="chat-plan-card" onclick="selectPlan('Пробний — безкоштовно')">
-          <div class="cp-name">⏳ Пробний</div>
-          <div class="cp-price">$0</div>
-          <div class="cp-period">7 днів</div>
-        </div>
       </div>
-      <div class="chat-escalate" style="margin-top:10px;">
-        <a href="https://t.me/Helgaslopp" target="_blank" class="chat-esc-btn" style="display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.604c-.148.658-.54.818-1.092.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.604.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.91.617z"/></svg> Telegram</a>
-        <a href="mailto:axis.os.assistant@gmail.com" class="chat-esc-btn" style="display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg> Email</a>
-      </div>
+      <button onclick="openOrderFromChat(null)" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;border:none;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;">🛒 Оформити замовлення</button>
     </div>`;
   msgs.appendChild(wrap);
   msgs.scrollTop = msgs.scrollHeight;
+}
+
+function openOrderFromChat(plan){
+  toggleChat();
+  setTimeout(()=>openOrder(plan), 200);
 }
 
 // Коли вибирають план — відправляємо повідомлення
@@ -2247,16 +2264,31 @@ function copyVal(text, btn) {
 }
 async function confirmPayment() {
   const email = (document.getElementById('orderEmailInput').value||'').trim();
+  const planName = O_NAMES[_oPlan]||_oPlan||'';
+  const amount   = O_PRICES[_oPlan]||'';
+  const mNames   = {usdt:'USDT TRC20', paypal:'PayPal', mono:'Monobank'};
+  const method   = mNames[_oPayMethod]||_oPayMethod||'';
+
+  // 1. Netlify Forms — сповіщення власнику
   try {
     const fd = new FormData();
     fd.append('form-name','axis-order');
-    fd.append('plan', O_NAMES[_oPlan]||_oPlan||'');
-    fd.append('amount', O_PRICES[_oPlan]||'');
+    fd.append('plan', planName);
+    fd.append('amount', amount);
     fd.append('email', email);
-    const mNames={usdt:'USDT TRC20',paypal:'PayPal',mono:'Monobank'};
-    fd.append('payment_method', mNames[_oPayMethod]||_oPayMethod||'');
+    fd.append('payment_method', method);
     await fetch('/',{method:'POST',body:fd});
   } catch(e){}
+
+  // 2. Email підтвердження покупцю через Netlify function
+  try {
+    await fetch('/.netlify/functions/order-confirm',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, plan:planName, amount, method})
+    });
+  } catch(e){}
+
   document.getElementById('orderConfirmEmail').textContent = email;
   renderOStep(5);
 }
