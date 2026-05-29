@@ -14,16 +14,32 @@ logs/
 *.log
 
 # ── SECRETS — НІКОЛИ не пушити! ──────────────────────────────────────────────
-data/release.cfg
 data/config.json
+data/agent_config.json
 data/sphere_config.json
 data/wake_config.json
-data/agent_config.json
+data/release.cfg
 data/.spotify_token
+.env
+
+# ── USER DATA — особисті дані ─────────────────────────────────────────────────
+data/profile.json
+data/convo_memories.json
+data/sphere_memory.json
+data/watch_history.json
+data/usage_stats.json
+data/notes.json
+data/tasks.json
+data/habits.json
+data/reminders.json
+data/alarms.json
+data/timers.json
+
+# ── CACHE / RUNTIME ───────────────────────────────────────────────────────────
 data/activity.json
 data/session_time.json
 data/app_cache.json
-.env
+data/license.json
 
 # Editors
 .idea/
@@ -33,3 +49,4 @@ data/app_cache.json
 # OS
 Thumbs.db
 .DS_Store
+.mise.toml
