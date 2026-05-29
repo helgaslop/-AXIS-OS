@@ -250,9 +250,16 @@ function showSSet(el, id) {
       // Scroll content to top on section switch
       var sc = document.querySelector('.settings-content');
       if (sc) sc.scrollTop = 0;
+      // Trigger lazy-load actions when certain sections open
+      if (id === 'sset-license') {
+        if (typeof checkLicenseStatus === 'function') checkLicenseStatus();
+      }
     }, 100);
   } else {
     next.classList.add('active');
+    if (id === 'sset-license') {
+      if (typeof checkLicenseStatus === 'function') checkLicenseStatus();
+    }
   }
 }
 

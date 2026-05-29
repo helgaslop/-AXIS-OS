@@ -577,3 +577,114 @@ function testTtsVoice() {
   speakText('Привіт! Це тест голосу AXIS. Hello, AXIS voice test.');
   setTimeout(function(){ ttsEnabled = prev; if(st) st.textContent = ''; }, 4000);
 }
+
+// ═══ LICENSE ══════════════════════════════════════════════════════════════════
+var LICENSE_API = 'https://axis-os.netlify.app/.netlify/functions/license-check';
+
+// Generate same device fingerprint as the website order form
+function _licDeviceId() {
+  var raw = [
+    navigator.userAgent || '',
+    screen.width + 'x' + screen.height + '@' + (screen.colorDepth || 0),
+    (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : ''),
+    navigator.language || '',
+    navigator.platform || '',
+    String(navigator.hardwareConcurrency || 0),
+    String(navigator.deviceMemory || 0)
+  ].join('|');
+  var h = 5381;
+  for (var i = 0; i < raw.length; i++) { h = (Math.imul(h, 33) ^ raw.charCodeAt(i)) >>> 0; }
+  return h.toString(16).toUpperCase().padStart(8, '0');
+}
+
+// Load saved license key and check status with server
+function checkLicenseStatus() {
+  var ico  = R('lic-status-ico');
+  var txt  = R('lic-status-text');
+  var sub  = R('lic-status-sub');
+  var inp  = R('licKeyInput');
+  var msg  = R('lic-msg');
+  if (!ico) return;
+
+  var saved = (typeof _savedCfg !== 'undefined' && _savedCfg) ? (_savedCfg.license_key || '') : '';
+  if (!saved) {
+    ico.textContent = '⚠️'; txt.textContent = 'Ліцензія не активована';
+    sub.textContent = 'Введіть ключ нижче щоб активувати';
+    return;
+  }
+
+  if (inp) inp.value = saved;
+  ico.textContent = '⏳'; txt.textContent = 'Перевірка ключа...'; sub.textContent = '';
+
+  fetch(LICENSE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: saved, deviceId: _licDeviceId() })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.valid) {
+      var planNames = { monthly:'Місячний', yearly:'Річний', lifetime:'Lifetime (Назавжди)' };
+      ico.textContent  = '✅';
+      txt.textContent  = 'Ліцензія активна';
+      txt.style.color  = '#3fb950';
+      sub.textContent  = '📦 План: ' + (planNames[d.plan] || d.plan) + (d.name ? '  |  👤 ' + d.name : '');
+      if (msg) msg.textContent = '';
+    } else {
+      ico.textContent  = '❌';
+      txt.textContent  = 'Ліцензія недійсна';
+      txt.style.color  = '#f85149';
+      sub.textContent  = d.error || '';
+    }
+  })
+  .catch(function() {
+    ico.textContent = '🌐'; txt.textContent = 'Немає з\'єднання'; txt.style.color = '';
+    sub.textContent = 'Перевірку буде виконано при наступному підключенні';
+  });
+}
+
+// Activate a new license key entered by the user
+function activateLicense() {
+  var inp = R('licKeyInput');
+  var msg = R('lic-msg');
+  var ico = R('lic-status-ico');
+  var txt = R('lic-status-text');
+  var sub = R('lic-status-sub');
+  if (!inp) return;
+
+  var key = inp.value.trim().toUpperCase();
+  if (!/^AXIS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
+    if (msg) { msg.textContent = '⚠️ Невірний формат. Очікується: AXIS-XXXX-XXXX-XXXX-XXXX'; msg.style.color = '#f0a83e'; }
+    return;
+  }
+
+  if (msg) { msg.textContent = '⏳ Перевірка...'; msg.style.color = ''; }
+  if (ico) ico.textContent = '⏳';
+
+  fetch(LICENSE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: key, deviceId: _licDeviceId() })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    if (d.valid) {
+      // Save to config
+      pyCall('save_config', JSON.stringify({ license_key: key, license_plan: d.plan }));
+      var planNames = { monthly:'Місячний', yearly:'Річний', lifetime:'Lifetime (Назавжди)' };
+      if (ico) { ico.textContent = '✅'; }
+      if (txt) { txt.textContent = 'Ліцензія активована!'; txt.style.color = '#3fb950'; }
+      if (sub) sub.textContent = '📦 ' + (planNames[d.plan] || d.plan);
+      if (msg) { msg.textContent = '✅ Ключ прийнято і збережено'; msg.style.color = '#3fb950'; }
+      showToast('🔑 Ліцензію активовано: ' + (planNames[d.plan] || d.plan));
+    } else {
+      if (ico) ico.textContent = '❌';
+      if (txt) { txt.textContent = 'Ключ не прийнято'; txt.style.color = '#f85149'; }
+      if (sub) sub.textContent = d.error || '';
+      if (msg) { msg.textContent = '❌ ' + (d.error || 'Ключ недійсний'); msg.style.color = '#f85149'; }
+    }
+  })
+  .catch(function() {
+    if (msg) { msg.textContent = '🌐 Немає з\'єднання з сервером'; msg.style.color = '#f0a83e'; }
+  });
+}

@@ -1543,6 +1543,7 @@
           <div class="snav-item" onclick="showSSet(this,'sset-notif')"><span class="snav-ico">🔔</span>Сповіщення</div>
           <div class="snav-item" onclick="showSSet(this,'sset-theme')"><span class="snav-ico">🎨</span>Вигляд</div>
           <div class="snav-divider"></div>
+          <div class="snav-item" onclick="showSSet(this,'sset-license')"><span class="snav-ico">🔑</span>Ліцензія</div>
           <div class="snav-item" onclick="showSSet(this,'sset-data')"><span class="snav-ico">📊</span>Дані</div>
           <div class="snav-item" onclick="showSSet(this,'sset-backup')"><span class="snav-ico">💾</span>Резервна копія</div>
           <div class="snav-item" onclick="showSSet(this,'sset-about')"><span class="snav-ico">ℹ</span>Про систему</div>
@@ -2212,6 +2213,34 @@
                 </div>
               </div>
               <div class="srow"><label>Анімації інтерфейсу</label><label class="toggle"><input type="checkbox" id="uiAnimations" checked onchange="document.body.classList.toggle('no-animations', !this.checked); localStorage.setItem('ui_animations', this.checked); showToast(this.checked ? '✓ Анімації увімкнено' : '✓ Анімації вимкнено')"><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+
+          <!-- LICENSE -->
+          <div class="sset" id="sset-license">
+            <div class="sgroup">
+              <div class="sgroup-title">🔑 Ліцензія AXIS OS</div>
+              <div id="lic-status-bar" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3,#161b22);border-radius:10px;margin-bottom:14px;border:1px solid rgba(255,255,255,.06);">
+                <span id="lic-status-ico" style="font-size:22px;">⏳</span>
+                <div>
+                  <div id="lic-status-text" style="font-weight:700;font-size:13px;">Перевірка...</div>
+                  <div id="lic-status-sub"  style="font-size:11px;color:var(--text3,#484f58);margin-top:2px;"></div>
+                </div>
+              </div>
+              <div class="srow">
+                <label>Ліцензійний ключ</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <input id="licKeyInput" type="text" style="max-width:240px;font-family:monospace;letter-spacing:.06em;font-size:13px;"
+                         placeholder="AXIS-XXXX-XXXX-XXXX-XXXX" autocomplete="off"
+                         oninput="this.value=this.value.toUpperCase()">
+                  <button class="btn btn-sm" onclick="activateLicense()">✅ Активувати</button>
+                </div>
+              </div>
+              <div id="lic-msg" style="font-size:12px;margin-top:6px;color:var(--text3,#484f58);"></div>
+              <div style="margin-top:14px;padding:10px 14px;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.12);border-radius:8px;font-size:12px;color:var(--text2,#8b949e);line-height:1.7;">
+                💡 Купити ліцензію: <a href="https://axis-os.netlify.app/#pricing" target="_blank" style="color:var(--accent,#00d4ff);">axis-os.netlify.app</a><br>
+                📧 Підтримка: <a href="https://t.me/Helgaslopp" target="_blank" style="color:var(--accent,#00d4ff);">@Helgaslopp</a>
+              </div>
             </div>
           </div>
 

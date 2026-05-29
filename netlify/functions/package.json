@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "nodemailer": "^6.9.14"
+    "nodemailer": "^6.9.14",
+    "@netlify/blobs": "^8.1.0"
   }
 }
