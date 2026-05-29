@@ -636,6 +636,77 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
   .pricing-grid{grid-template-columns:1fr;}
   .hero-stats{grid-template-columns:1fr 1fr;}
 }
+
+/* ══ ORDER MODAL ═════════════════════════════════════════════════════════════ */
+.order-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:2000;
+  backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;}
+.order-overlay.open{display:flex;}
+.order-panel{background:var(--bg2);border:1px solid var(--border);border-radius:20px;
+  width:100%;max-width:460px;max-height:92vh;overflow-y:auto;position:relative;}
+.order-head{display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px 14px;border-bottom:1px solid var(--border);
+  position:sticky;top:0;background:var(--bg2);z-index:1;border-radius:20px 20px 0 0;}
+.order-head h3{font-size:16px;font-weight:800;}
+.order-close{background:none;border:none;color:var(--text2);font-size:22px;
+  cursor:pointer;line-height:1;padding:2px 8px;border-radius:8px;}
+.order-close:hover{background:var(--bg3);color:var(--text);}
+.order-body{padding:22px;}
+.order-progress{display:flex;gap:6px;margin-bottom:22px;}
+.order-prog-step{flex:1;height:3px;border-radius:2px;background:var(--bg4);transition:background .3s;}
+.order-prog-step.done{background:var(--accent);}
+.order-prog-step.active{background:rgba(0,212,255,.5);}
+.order-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.order-plan-btn{background:var(--bg3);border:2px solid var(--border);border-radius:12px;
+  padding:14px 12px;cursor:pointer;text-align:left;transition:all .2s;color:var(--text);}
+.order-plan-btn:hover{border-color:var(--accent);background:rgba(0,212,255,.05);}
+.order-plan-btn.selected{border-color:var(--accent);background:rgba(0,212,255,.09);}
+.opb-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.opb-price{font-size:22px;font-weight:900;color:var(--accent);}
+.opb-note{font-size:11px;color:var(--text2);margin-top:2px;}
+.order-email-input{width:100%;padding:13px 16px;background:var(--bg3);
+  border:1.5px solid var(--border);border-radius:11px;color:var(--text);
+  font-size:15px;font-family:inherit;margin-bottom:16px;transition:border .2s;}
+.order-email-input:focus{outline:none;border-color:var(--accent);}
+.order-pay-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
+.order-pay-btn{display:flex;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--bg3);border:2px solid var(--border);border-radius:12px;
+  cursor:pointer;transition:all .2s;color:var(--text);width:100%;text-align:left;}
+.order-pay-btn:hover{border-color:var(--accent);background:rgba(0,212,255,.05);}
+.opay-icon{font-size:22px;width:34px;text-align:center;flex-shrink:0;}
+.opay-name{font-size:14px;font-weight:700;}
+.opay-desc{font-size:12px;color:var(--text2);}
+.order-qr-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:18px;}
+.order-qr-img{width:176px;height:176px;border-radius:12px;background:#fff;padding:8px;border:1px solid var(--border);}
+.order-amount-badge{background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#000;font-weight:900;font-size:17px;padding:5px 18px;border-radius:20px;margin:10px 0 14px;}
+.order-addr-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;
+  padding:11px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;width:100%;}
+.order-addr-txt{flex:1;font-size:12px;font-family:'JetBrains Mono',monospace;word-break:break-all;}
+.order-copy-btn{background:var(--bg4);border:1px solid var(--border);border-radius:7px;
+  color:var(--text2);cursor:pointer;padding:5px 10px;font-size:11px;
+  white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.order-copy-btn:hover,.order-copy-btn.copied{background:var(--accent3);color:#000;border-color:transparent;}
+.order-note{font-size:12px;color:var(--text2);text-align:center;margin-bottom:14px;line-height:1.6;}
+.order-warning{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);
+  border-radius:10px;padding:10px 14px;font-size:12px;color:#fbbf24;margin-bottom:14px;}
+.order-btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#000;border:none;border-radius:11px;font-size:15px;font-weight:800;
+  cursor:pointer;transition:all .25s;font-family:inherit;}
+.order-btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,212,255,.3);}
+.order-btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.order-btn-back{background:none;border:none;color:var(--text2);cursor:pointer;
+  font-size:13px;margin-top:10px;display:block;text-align:center;
+  width:100%;padding:6px;font-family:inherit;}
+.order-btn-back:hover{color:var(--text);}
+.order-success{text-align:center;padding:8px 0 4px;}
+.order-success-ico{font-size:52px;margin-bottom:14px;}
+.order-success h4{font-size:19px;font-weight:900;margin-bottom:10px;}
+.order-success p{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6;}
+.order-tg-link{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;
+  background:linear-gradient(135deg,#229ed9,#1a7ab5);color:#fff;
+  border-radius:11px;font-weight:700;font-size:14px;transition:all .25s;}
+.order-tg-link:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(34,158,217,.35);}
+@media(max-width:480px){.order-plan-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -1114,7 +1185,7 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
         <li data-i18n="pf6">Пріоритетна підтримка</li>
         <li data-i18n="pf7">Оновлення включено</li>
       </ul>
-      <a href="https://t.me/Helgaslopp" target="_blank" rel="noopener noreferrer" class="p-btn p-btn-main" data-i18n="p2.btn">Почати зараз</a>
+      <button onclick="openOrder('monthly')" class="p-btn p-btn-main" data-i18n="p2.btn">Почати зараз</button>
     </div>
 
     <div class="price-card anim" data-a="up" data-d="3">
@@ -1131,7 +1202,7 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
         <li data-i18n="pf6">Пріоритетна підтримка</li>
         <li data-i18n="pf8">Ранній доступ до нових функцій</li>
       </ul>
-      <a href="https://t.me/Helgaslopp" target="_blank" rel="noopener noreferrer" class="p-btn p-btn-out" data-i18n="p3.btn">Отримати</a>
+      <button onclick="openOrder('yearly')" class="p-btn p-btn-out" data-i18n="p3.btn">Отримати</button>
     </div>
 
     <div class="price-card anim" data-a="up" data-d="4">
@@ -1147,7 +1218,7 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
         <li data-i18n="pf11">Необмежені пристрої</li>
         <li data-i18n="pf12">Ніколи не платиш знову</li>
       </ul>
-      <a href="https://t.me/Helgaslopp" target="_blank" rel="noopener noreferrer" class="p-btn p-btn-out" data-i18n="p4.btn">Купити назавжди</a>
+      <button onclick="openOrder('lifetime')" class="p-btn p-btn-out" data-i18n="p4.btn">Купити назавжди</button>
     </div>
   </div>
 
@@ -1207,18 +1278,18 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
   <!-- How to buy -->
   <div class="anim" data-a="up" style="margin-top:64px;">
     <h3 style="font-size:18px;font-weight:800;margin-bottom:6px;">Як придбати?</h3>
-    <p style="font-size:14px;color:var(--text2);margin-bottom:0;">Оплата через Telegram — простий і безпечний процес</p>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:0;">Оплата прямо на сайті — швидко і безпечно</p>
   </div>
   <div class="pay-steps anim" data-a="up">
     <div class="pay-step">
       <div class="pay-num">1</div>
-      <h4>Напиши в Telegram або Email</h4>
-      <p>Telegram: <strong>@Helgaslopp</strong> або Email: <a href="mailto:axis.os.assistant@gmail.com" style="color:var(--accent)">axis.os.assistant@gmail.com</a> — вкажи який план хочеш</p>
+      <h4>Обери план і спосіб оплати</h4>
+      <p>Натисни "Купити" на будь-якому плані. Підтримуємо <strong>USDT TRC20</strong>, <strong>PayPal</strong>, <strong>Monobank</strong>.</p>
     </div>
     <div class="pay-step">
       <div class="pay-num">2</div>
-      <h4>Отримай реквізити</h4>
-      <p>Відправимо реквізити для оплати. Підтримуємо Monobank, PrivatBank, PayPal, криптовалюта.</p>
+      <h4>Відправ оплату</h4>
+      <p>Скануй QR-код або скопіюй реквізити. Відправ точну суму і натисни "Я оплатив".</p>
     </div>
     <div class="pay-step">
       <div class="pay-num">3</div>
@@ -1245,15 +1316,14 @@ footer{background:var(--bg2);padding:48px 52px 32px;}
     <div style="position:relative;">
       <div style="font-size:48px;margin-bottom:12px;">⬡</div>
       <h3 style="font-size:26px;font-weight:900;margin-bottom:10px;">Готовий до повного доступу?</h3>
-      <p style="font-size:14px;color:var(--text2);margin-bottom:28px;max-width:420px;margin-left:auto;margin-right:auto;">Напиши в Telegram — відповімо протягом кількох годин і налаштуємо все разом.</p>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:28px;max-width:420px;margin-left:auto;margin-right:auto;">Обери план — оплати прямо на сайті через USDT, PayPal або Monobank.</p>
       <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-        <a href="https://t.me/Helgaslopp" target="_blank" rel="noopener noreferrer" class="btn-primary" style="display:inline-flex;align-items:center;gap:8px;font-size:15px;padding:13px 32px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.604c-.148.658-.54.818-1.092.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.604.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.91.617z"/></svg>
+        <button onclick="openOrder(null)" class="btn-primary" style="font-size:15px;padding:13px 32px;border:none;cursor:pointer;">
+          🛒 Купити зараз
+        </button>
+        <a href="https://t.me/Helgaslopp" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="display:inline-flex;align-items:center;gap:8px;font-size:15px;padding:13px 32px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.604c-.148.658-.54.818-1.092.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.604.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.91.617z"/></svg>
           Написати в Telegram
-        </a>
-        <a href="mailto:axis.os.assistant@gmail.com" class="btn-secondary" style="display:inline-flex;font-size:15px;padding:13px 32px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;vertical-align:middle;"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
-          axis.os.assistant@gmail.com
         </a>
       </div>
     </div>
@@ -1954,6 +2024,242 @@ function appendEscalate(){
     c.appendChild(p);
   }
 })();
+</script>
+
+<!-- ══ ORDER MODAL ══════════════════════════════════════════════════════════ -->
+<div class="order-overlay" id="orderOverlay" onclick="if(event.target===this)closeOrder()">
+  <div class="order-panel" id="orderPanel">
+    <div class="order-head">
+      <h3 id="orderTitle">Оформлення замовлення</h3>
+      <button class="order-close" onclick="closeOrder()">✕</button>
+    </div>
+    <div class="order-body">
+      <div class="order-progress">
+        <div class="order-prog-step active" id="prog-1"></div>
+        <div class="order-prog-step" id="prog-2"></div>
+        <div class="order-prog-step" id="prog-3"></div>
+        <div class="order-prog-step" id="prog-4"></div>
+      </div>
+
+      <!-- Step 1: Plan -->
+      <div id="ostep-1">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Оберіть план:</p>
+        <div class="order-plan-grid">
+          <button class="order-plan-btn" onclick="selectOrderPlan('monthly')" id="oplan-monthly">
+            <div class="opb-name">📅 Місячний</div>
+            <div class="opb-price">$5</div>
+            <div class="opb-note">на місяць</div>
+          </button>
+          <button class="order-plan-btn" onclick="selectOrderPlan('yearly')" id="oplan-yearly">
+            <div class="opb-name">🌟 Річний</div>
+            <div class="opb-price">$40</div>
+            <div class="opb-note">економія 33%</div>
+          </button>
+          <button class="order-plan-btn" onclick="selectOrderPlan('lifetime')" id="oplan-lifetime" style="grid-column:span 2;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div>
+              <div class="opb-name">♾️ Lifetime — Назавжди</div>
+              <div class="opb-note">один раз і назавжди · необмежені пристрої · VIP підтримка</div>
+            </div>
+            <div class="opb-price" style="flex-shrink:0;">$99</div>
+          </button>
+        </div>
+        <button class="order-btn-primary" id="ostep1-next" onclick="orderGoStep(2)" disabled>Далі →</button>
+      </div>
+
+      <!-- Step 2: Email -->
+      <div id="ostep-2" style="display:none;">
+        <p style="font-size:14px;font-weight:700;margin-bottom:4px;">Ваш email</p>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">Ключ ліцензії надішлемо на цю адресу після підтвердження оплати</p>
+        <input type="email" class="order-email-input" id="orderEmailInput" placeholder="your@email.com" oninput="validateOrderEmail()">
+        <button class="order-btn-primary" id="ostep2-next" onclick="orderGoStep(3)" disabled>Далі →</button>
+        <button class="order-btn-back" onclick="orderGoStep(1)">← Назад</button>
+      </div>
+
+      <!-- Step 3: Payment method -->
+      <div id="ostep-3" style="display:none;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Оберіть спосіб оплати:</p>
+        <div class="order-pay-grid">
+          <button class="order-pay-btn" onclick="selectPayMethod('usdt')">
+            <span class="opay-icon">💎</span>
+            <div><div class="opay-name">USDT TRC20</div><div class="opay-desc">Крипто · без комісії · миттєво</div></div>
+          </button>
+          <button class="order-pay-btn" onclick="selectPayMethod('paypal')">
+            <span class="opay-icon">🅿</span>
+            <div><div class="opay-name">PayPal</div><div class="opay-desc">Міжнародні картки</div></div>
+          </button>
+          <button class="order-pay-btn" onclick="selectPayMethod('mono')">
+            <span class="opay-icon">🏦</span>
+            <div><div class="opay-name">Monobank / PrivatBank</div><div class="opay-desc">Переказ на картку · Україна</div></div>
+          </button>
+        </div>
+        <button class="order-btn-back" onclick="orderGoStep(2)">← Назад</button>
+      </div>
+
+      <!-- Step 4: Payment details -->
+      <div id="ostep-4" style="display:none;">
+        <div id="orderPayDetails"></div>
+        <button class="order-btn-primary" onclick="confirmPayment()">✅ Я оплатив</button>
+        <button class="order-btn-back" onclick="orderGoStep(3)">← Назад</button>
+      </div>
+
+      <!-- Step 5: Success -->
+      <div id="ostep-5" style="display:none;">
+        <div class="order-success">
+          <div class="order-success-ico">🎉</div>
+          <h4>Дякуємо за замовлення!</h4>
+          <p>Ми отримали ваш запит. Надішлемо ключ ліцензії на <strong id="orderConfirmEmail"></strong> протягом <strong>1–24 годин</strong> після підтвердження оплати.</p>
+          <p>Хочеш швидше? Напиши нам — відповімо одразу.</p>
+          <a href="https://t.me/Helgaslopp" target="_blank" class="order-tg-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.604c-.148.658-.54.818-1.092.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.604.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.91.617z"/></svg>
+            Telegram @Helgaslopp
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Netlify форма для нотифікацій про замовлення (прихована) -->
+<form name="axis-order" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="hidden" name="form-name" value="axis-order">
+  <input name="plan"><input name="amount"><input name="email"><input name="payment_method"><input name="bot-field">
+</form>
+
+<script>
+// ═══ ORDER MODAL ═══════════════════════════════════════════════════════════════
+const O_PRICES = {monthly:'$5', yearly:'$40', lifetime:'$99'};
+const O_NAMES  = {monthly:'Місячний — $5/міс', yearly:'Річний — $40/рік', lifetime:'Lifetime — $99'};
+const USDT_ADDR    = 'TXiZ5UPfsFrjo71Ab4bH6BeCqLJDyiv6pL';
+const PAYPAL_EMAIL = 'aksutinvova4@gmail.com';
+const MONO_CARD    = '4441 1110 6712 2550';
+
+let _oPlan = null, _oPayMethod = null;
+
+function openOrder(plan) {
+  _oPlan = plan || null;
+  _oPayMethod = null;
+  document.getElementById('orderOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (plan) {
+    selectOrderPlan(plan);
+    renderOStep(2);
+  } else {
+    renderOStep(1);
+  }
+}
+function closeOrder() {
+  document.getElementById('orderOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function renderOStep(n) {
+  [1,2,3,4,5].forEach(i => {
+    const el = document.getElementById('ostep-'+i);
+    if (el) el.style.display = (i===n)?'':'none';
+  });
+  [1,2,3,4].forEach(i => {
+    const p = document.getElementById('prog-'+i);
+    if (!p) return;
+    p.className = 'order-prog-step' + (i<n?' done':i===n?' active':'');
+  });
+  const titles = {1:'Оберіть план',2:'Ваш email',3:'Спосіб оплати',4:'Оплата',5:'Замовлення прийнято'};
+  const t = document.getElementById('orderTitle');
+  if (t && titles[n]) t.textContent = titles[n];
+  const panel = document.getElementById('orderPanel');
+  if (panel) panel.scrollTop = 0;
+}
+function orderGoStep(n) {
+  if (n===3) {
+    const v = document.getElementById('orderEmailInput').value.trim();
+    if (!v || !v.includes('@')) return;
+  }
+  renderOStep(n);
+}
+function selectOrderPlan(plan) {
+  _oPlan = plan;
+  document.querySelectorAll('.order-plan-btn').forEach(b=>b.classList.remove('selected'));
+  const btn = document.getElementById('oplan-'+plan);
+  if (btn) btn.classList.add('selected');
+  const next = document.getElementById('ostep1-next');
+  if (next) next.disabled = false;
+}
+function validateOrderEmail() {
+  const v = (document.getElementById('orderEmailInput').value||'').trim();
+  const btn = document.getElementById('ostep2-next');
+  if (btn) btn.disabled = !v || !v.includes('@') || !v.includes('.');
+}
+function qrUrl(data) {
+  return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=12&data='+encodeURIComponent(data);
+}
+function selectPayMethod(method) {
+  _oPayMethod = method;
+  const price = O_PRICES[_oPlan]||'$?';
+  const priceNum = parseFloat(price.replace('$',''))||0;
+  const uah = Math.round(priceNum*41);
+  let html = '';
+  if (method==='usdt') {
+    html = `<div class="order-qr-wrap">
+      <div class="order-amount-badge">💎 ${price} USDT TRC20</div>
+      <img src="${qrUrl(USDT_ADDR)}" class="order-qr-img" alt="USDT QR" loading="lazy">
+    </div>
+    <p style="font-size:13px;font-weight:700;margin-bottom:8px;">Адреса гаманця TRC20:</p>
+    <div class="order-addr-box">
+      <span class="order-addr-txt">${USDT_ADDR}</span>
+      <button class="order-copy-btn" onclick="copyVal('${USDT_ADDR}',this)">Копіювати</button>
+    </div>
+    <div class="order-warning">⚠️ Відправляй тільки <strong>USDT у мережі TRC20</strong>. Інші мережі — кошти втрачаються.</div>
+    <p class="order-note">Відправ точно <strong>${price} USDT</strong> і натисни "Я оплатив"</p>`;
+  } else if (method==='paypal') {
+    html = `<div class="order-qr-wrap">
+      <div class="order-amount-badge">🅿 ${price} USD</div>
+      <img src="${qrUrl('https://paypal.me/'+PAYPAL_EMAIL.split('@')[0]+'/'+priceNum)}" class="order-qr-img" alt="PayPal QR" loading="lazy">
+    </div>
+    <p style="font-size:13px;font-weight:700;margin-bottom:8px;">PayPal email:</p>
+    <div class="order-addr-box">
+      <span class="order-addr-txt">${PAYPAL_EMAIL}</span>
+      <button class="order-copy-btn" onclick="copyVal('${PAYPAL_EMAIL}',this)">Копіювати</button>
+    </div>
+    <p class="order-note">Відправ <strong>${price} USD</strong> через PayPal на вказаний email.<br>В коментарі напиши: <strong>AXIS OS ${_oPlan}</strong></p>`;
+  } else if (method==='mono') {
+    html = `<div class="order-qr-wrap">
+      <div class="order-amount-badge">🏦 ~${uah} UAH</div>
+      <img src="${qrUrl(MONO_CARD.replace(/\s/g,''))}" class="order-qr-img" alt="Monobank QR" loading="lazy">
+    </div>
+    <p style="font-size:13px;font-weight:700;margin-bottom:8px;">Monobank / PrivatBank:</p>
+    <div class="order-addr-box">
+      <span class="order-addr-txt" style="font-size:15px;letter-spacing:.05em;">${MONO_CARD}</span>
+      <button class="order-copy-btn" onclick="copyVal('${MONO_CARD.replace(/\s/g,'')}',this)">Копіювати</button>
+    </div>
+    <p class="order-note">Переказ за курсом НБУ (~${uah} UAH = ${price}).<br>В призначенні: <strong>AXIS OS ${_oPlan}</strong></p>`;
+  }
+  document.getElementById('orderPayDetails').innerHTML = html;
+  renderOStep(4);
+}
+function copyVal(text, btn) {
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✓ Скопійовано'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Копіювати';btn.classList.remove('copied');},2000);
+  }).catch(()=>{
+    const t=document.createElement('textarea');t.value=text;
+    document.body.appendChild(t);t.select();document.execCommand('copy');
+    document.body.removeChild(t);
+    btn.textContent='✓'; setTimeout(()=>btn.textContent='Копіювати',1500);
+  });
+}
+async function confirmPayment() {
+  const email = (document.getElementById('orderEmailInput').value||'').trim();
+  try {
+    const fd = new FormData();
+    fd.append('form-name','axis-order');
+    fd.append('plan', O_NAMES[_oPlan]||_oPlan||'');
+    fd.append('amount', O_PRICES[_oPlan]||'');
+    fd.append('email', email);
+    const mNames={usdt:'USDT TRC20',paypal:'PayPal',mono:'Monobank'};
+    fd.append('payment_method', mNames[_oPayMethod]||_oPayMethod||'');
+    await fetch('/',{method:'POST',body:fd});
+  } catch(e){}
+  document.getElementById('orderConfirmEmail').textContent = email;
+  renderOStep(5);
+}
 </script>
 </body>
 </html>
