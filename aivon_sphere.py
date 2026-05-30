@@ -5778,7 +5778,11 @@ class AutomationEngine:
         closed = self._running_apps - current_apps
         self._running_apps = current_apps
 
-        for auto in self.automations:
+        try:
+            autos = list(self.automations)
+        except Exception:
+            autos = []
+        for auto in autos:
             if not auto.get("enabled", True):
                 continue
             trigger = auto.get("trigger", {})
@@ -5797,7 +5801,11 @@ class AutomationEngine:
         now = datetime.now()
         current_time = now.strftime("%H:%M")
         today = now.date().isoformat()
-        for auto in self.automations:
+        try:
+            autos = list(self.automations)
+        except Exception:
+            autos = []
+        for auto in autos:
             if not auto.get("enabled", True):
                 continue
             trigger = auto.get("trigger", {})
@@ -5827,7 +5835,11 @@ class AutomationEngine:
         except Exception:
             return
 
-        for auto in self.automations:
+        try:
+            autos = list(self.automations)
+        except Exception:
+            autos = []
+        for auto in autos:
             if not auto.get("enabled", True):
                 continue
             trigger = auto.get("trigger", {})
@@ -5848,7 +5860,11 @@ class AutomationEngine:
     def trigger_voice(self, phrase: str):
         """Перевірити voice_trigger автоматизації. Виклик з on_recognized."""
         phrase_lower = phrase.lower()
-        for auto in self.automations:
+        try:
+            autos = list(self.automations)
+        except Exception:
+            autos = []
+        for auto in autos:
             if not auto.get("enabled", True):
                 continue
             trigger = auto.get("trigger", {})
@@ -5971,6 +5987,9 @@ class AivonSphere(QWidget):
         self.macro_engine = MacroEngine()
         self.memory_enabled = self.config.get("memory_enabled", True)
         self.reminders = []  # [(datetime, reminder_dict), ...] where reminder_dict has keys: text, repeat, repeat_days
+        self._reminders_lock = threading.Lock()
+        self._silero_lock = threading.Lock()
+        self._dia_lock = threading.Lock()
         self._mode = self.config.get("current_mode", "normal")  # normal | work | game | quiet | focus
 
         # ── Interpreter (перекладач) ──────────────────────────────────────────
@@ -7805,8 +7824,8 @@ class AivonSphere(QWidget):
         
     def _do_listen(self):
         """Внутрішній метод слухання"""
-        self.config = load_config()  # Перечитуємо конфіг
-        self.voice_thread = VoiceThread(self.config.get("language", "uk-UA"), self.config)
+        _fresh_cfg = load_config()  # Перечитуємо конфіг (не перезаписуємо self.config з потоку)
+        self.voice_thread = VoiceThread(_fresh_cfg.get("language", "uk-UA"), _fresh_cfg)
         self.voice_thread.started_signal.connect(lambda: setattr(self, 'state', self.LISTENING))
         self.voice_thread.partial.connect(lambda t: setattr(self, 'response_text', t))
         self.voice_thread.stopped.connect(self.on_voice_stopped)
@@ -8657,6 +8676,12 @@ class AivonSphere(QWidget):
                         break
                 self.state = self.THINKING
                 self.response_text = "🌤 Перевіряю погоду..."
+                if hasattr(self, '_weather_thread') and self._weather_thread is not None:
+                    try:
+                        self._weather_thread.result.disconnect()
+                        self._weather_thread.error.disconnect()
+                    except Exception:
+                        pass
                 self._weather_thread = WeatherThread(ow_key, city)
                 self._weather_thread.result.connect(lambda t: self.respond(t))
                 self._weather_thread.error.connect(lambda e: self.respond(f"⚠️ Погода: {e}"))
@@ -8685,6 +8710,12 @@ class AivonSphere(QWidget):
             if tavily_key:
                 self.state = self.THINKING
                 self.response_text = "🔎 Шукаю..."
+                if hasattr(self, '_search_thread') and self._search_thread is not None:
+                    try:
+                        self._search_thread.result.disconnect()
+                        self._search_thread.error.disconnect()
+                    except Exception:
+                        pass
                 self._search_thread = TavilySearchThread(tavily_key, query)
                 self._search_thread.result.connect(lambda t: self.respond(t))
                 self._search_thread.sources.connect(lambda s: print(f"[Search] Sources: {s}"))
@@ -8693,6 +8724,12 @@ class AivonSphere(QWidget):
             elif serper_key:
                 self.state = self.THINKING
                 self.response_text = "🌐 Шукаю в Google..."
+                if hasattr(self, '_search_thread') and self._search_thread is not None:
+                    try:
+                        self._search_thread.result.disconnect()
+                        self._search_thread.error.disconnect()
+                    except Exception:
+                        pass
                 self._search_thread = SerperSearchThread(serper_key, query)
                 self._search_thread.result.connect(lambda t: self.respond(t))
                 self._search_thread.sources.connect(lambda s: print(f"[Search] Sources: {s}"))
@@ -9773,7 +9810,9 @@ $w.Stop()
         now = datetime.now()
         triggered = []
         remaining = []
-        for entry in self.reminders:
+        with self._reminders_lock:
+            reminders_copy = list(self.reminders)
+        for entry in reminders_copy:
             # Support both old tuple format (dt, text) and new dict format
             if isinstance(entry, tuple):
                 dt, payload = entry
@@ -9793,7 +9832,8 @@ $w.Stop()
                         remaining.append((next_dt, rdata))
             else:
                 remaining.append((dt, rdata))
-        self.reminders = remaining
+        with self._reminders_lock:
+            self.reminders = remaining
         for dt, rdata in triggered:
             text = rdata.get("text", "Нагадування!")
             repeat = rdata.get("repeat")
@@ -9973,7 +10013,8 @@ $w.Stop()
                 reminder_text = "Нагадування!"
 
             rdata = {"text": reminder_text, "repeat": repeat_type, "repeat_days": repeat_days}
-            self.reminders.append((target, rdata))
+            with self._reminders_lock:
+                self.reminders.append((target, rdata))
             self.jarvis.play("confirm")
             repeat_label = {
                 "daily": "щодня",
@@ -10004,7 +10045,8 @@ $w.Stop()
 
             target = datetime.now() + timedelta(seconds=delta)
             rdata = {"text": reminder_text, "repeat": None, "repeat_days": []}
-            self.reminders.append((target, rdata))
+            with self._reminders_lock:
+                self.reminders.append((target, rdata))
             self.jarvis.play("confirm")
             self.respond(f"🔔 Нагадаю через {amount} {unit}: {reminder_text}")
             return True
@@ -10022,7 +10064,8 @@ $w.Stop()
             if target <= now:
                 target += timedelta(days=1)
             rdata = {"text": reminder_text, "repeat": None, "repeat_days": []}
-            self.reminders.append((target, rdata))
+            with self._reminders_lock:
+                self.reminders.append((target, rdata))
             self.jarvis.play("confirm")
             self.respond(f"🔔 Нагадаю о {hour:02d}:{minute:02d}: {reminder_text}")
             return True
@@ -12261,8 +12304,8 @@ $w.Stop()
         """Multi-provider AI виклик для діалогу — з пам'яттю та роллю"""
         self.state = self.THINKING
         self.response_text = "🧠 ..."
-        
-        self.config = load_config()
+
+        _fresh_cfg = load_config()
         provider = self.dialog_provider
         
         # Ключі для кожного провайдера
@@ -12271,26 +12314,32 @@ $w.Stop()
             "anthropic": "anthropic_key", "xai": "xai_key",
             "perplexity": "perplexity_key",
         }
-        key = self.config.get(KEY_MAP.get(provider, ""), "")
+        key = _fresh_cfg.get(KEY_MAP.get(provider, ""), "")
         if not key:
             prov_name = VOICE_PROVIDER_NAMES.get(provider, provider)
             self.respond(f"Додайте ключ для {prov_name} в налаштуваннях")
             return
-        
+
         # Додаємо в історію (пам'ять діалогу)
         self.dialog_history.append({"role": "user", "content": text})
-        
+
         # Системний промпт з ролі
         role = getattr(self, 'dialog_role', 'assistant')
         system_prompt = DIALOG_ROLE_PROMPTS.get(role, DIALOG_ROLE_PROMPTS["assistant"])
-        
+
         # Будуємо повідомлення з контекстом
-        mem_size = self.config.get("dialog_memory_size", 20)
+        mem_size = _fresh_cfg.get("dialog_memory_size", 20)
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(self.dialog_history[-mem_size:])
-        
+
         print(f"[Dialog] provider={provider}, role={role}, history={len(self.dialog_history)} msgs")
-        self._dialog_thread = _DialogThread(provider, key, messages, self.config)
+        if hasattr(self, '_dialog_thread') and self._dialog_thread is not None:
+            try:
+                self._dialog_thread.result.disconnect()
+                self._dialog_thread.error.disconnect()
+            except Exception:
+                pass
+        self._dialog_thread = _DialogThread(provider, key, messages, _fresh_cfg)
         self._dialog_thread.result.connect(lambda answer: self._on_dialog_response(answer, provider))
         self._dialog_thread.error.connect(self._on_dialog_error)
         self._dialog_thread.start()
@@ -12436,9 +12485,9 @@ $w.Stop()
 
         # Використати OpenAI Assistants (пам'ять) якщо увімкнено та є ключ
         if self.memory_enabled and self.config.get("openai_key"):
-            self.config = load_config()
+            _fresh_cfg = load_config()
             mem = MemoryThread(
-                self.config, q,
+                _fresh_cfg, q,
                 callback=lambda text: self._respond_signal.emit(text),
                 error_callback=lambda e: QTimer.singleShot(0, lambda: self._ai_fallback(q, e))
             )
@@ -14829,12 +14878,16 @@ $w.Stop()
         
         self._start_tts(text)
     
-    def _play_next_tts_after_jarvis(self, text):
+    def _play_next_tts_after_jarvis(self, text, _attempt=0):
         """Чекаємо поки JARVIS звук закінчиться, потім запускаємо TTS"""
+        if _attempt > 200:
+            print("[TTS] _play_next_tts_after_jarvis timeout — forcing start")
+            self._start_tts(text)
+            return
         try:
             import pygame
             if pygame.mixer.get_busy():
-                QTimer.singleShot(150, lambda: self._play_next_tts_after_jarvis(text))
+                QTimer.singleShot(150, lambda: self._play_next_tts_after_jarvis(text, _attempt + 1))
                 return
         except Exception:
             pass
@@ -14948,19 +15001,22 @@ $w.Stop()
 
     def _silero_tts(self, text):
         """Silero TTS v3_ua — локальна українська нейро-TTS (CPU, ~50MB модель)"""
+        _fallback = False
         try:
             import torch, tempfile, os as _os
             if not getattr(self, '_silero_model', None):
-                print("[Silero] ⏳ Завантаження моделі uk-UA (перший запуск)...")
-                self._silero_model, _ = torch.hub.load(
-                    repo_or_dir='snakers4/silero-models',
-                    model='silero_tts',
-                    language='ua',
-                    speaker='v3_ua',
-                    trust_repo=True
-                )
-                self._silero_model.to(torch.device('cpu'))
-                print("[Silero] ✅ Модель завантажена")
+                with self._silero_lock:
+                    if not getattr(self, '_silero_model', None):
+                        print("[Silero] ⏳ Завантаження моделі uk-UA (перший запуск)...")
+                        self._silero_model, _ = torch.hub.load(
+                            repo_or_dir='snakers4/silero-models',
+                            model='silero_tts',
+                            language='ua',
+                            speaker='v3_ua',
+                            trust_repo=True
+                        )
+                        self._silero_model.to(torch.device('cpu'))
+                        print("[Silero] ✅ Модель завантажена")
             speaker  = self.config.get("silero_speaker", "mykyta")
             sr       = 48000
             audio    = self._silero_model.apply_tts(
@@ -14996,9 +15052,11 @@ $w.Stop()
         except Exception as e:
             print(f"[TTS] ❌ Silero error: {e} — перемикаюсь на edge-tts")
             self._silero_model = None
+            _fallback = True
             threading.Thread(target=self._edge_tts, args=(text,), daemon=True).start()
-            return
-        QTimer.singleShot(0, self._on_single_tts_done)
+        finally:
+            if not _fallback:
+                QTimer.singleShot(0, self._on_single_tts_done)
 
     def _nari_tts(self, text):
         """Nari Labs Dia 1.6B — локальна нейро-TTS (тільки англійська!)"""
@@ -15010,9 +15068,11 @@ $w.Stop()
                     "Nari Dia не встановлено. Запусти:\n"
                     "pip install git+https://github.com/nari-labs/dia.git sounddevice")
             if not getattr(self, '_dia_model', None):
-                print("[Nari Dia] ⏳ Завантаження моделі (перший запуск — може зайняти хвилину)...")
-                self._dia_model = Dia.from_pretrained("nari-labs/Dia-1.6B", compute_dtype="float16")
-                print("[Nari Dia] ✅ Модель завантажена")
+                with self._dia_lock:
+                    if not getattr(self, '_dia_model', None):
+                        print("[Nari Dia] ⏳ Завантаження моделі (перший запуск — може зайняти хвилину)...")
+                        self._dia_model = Dia.from_pretrained("nari-labs/Dia-1.6B", compute_dtype="float16")
+                        print("[Nari Dia] ✅ Модель завантажена")
             audio = self._dia_model.generate(f"[S1] {text[:500]}")
             if audio is not None and len(audio) > 0:
                 import sounddevice as sd

@@ -587,3 +587,20 @@ function useImageAsRef() {
   showToast('✓ Зображення встановлено як референс');
 }
 
+// Release large base64 image buffers when navigating away from the generator page
+function clearGeneratorImages() {
+  _imgRefB64    = '';
+  _imgResultB64 = '';
+}
+
+// Hook showPage to clear images when leaving the generator page
+(function() {
+  var _origShowPage = window.showPage;
+  window.showPage = function(id) {
+    if (id !== 'generator') {
+      clearGeneratorImages();
+    }
+    _origShowPage && _origShowPage(id);
+  };
+})();
+

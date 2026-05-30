@@ -8,6 +8,8 @@ import sys
 import threading
 import zipfile
 
+from gui.handlers.ai import _cfg_lock
+
 # Hide CMD windows on Windows
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
@@ -193,10 +195,7 @@ class SystemHandlerMixin:
         folder = p.get("folder", "").strip()
         self._cfg["update_folder"] = folder
         try:
-            from core.paths import CONFIG_FILE
-            import json as _j
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                _j.dump(self._cfg, f, ensure_ascii=False, indent=2)
+            self._save_config_file()
             self.push_to_js.emit("toast", json.dumps(
                 {"msg": "✓ Папку оновлень збережено"}))
         except Exception as e:
@@ -282,10 +281,7 @@ class SystemHandlerMixin:
     def _save_cfg_silent(self):
         """Зберігає self._cfg без сповіщень."""
         try:
-            from core.paths import CONFIG_FILE
-            import json as _j
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                _j.dump(self._cfg, f, ensure_ascii=False, indent=2)
+            self._save_config_file()
         except Exception:
             pass
 
@@ -429,7 +425,9 @@ class SystemHandlerMixin:
                 from core.paths import CONFIG_FILE
                 with open(CONFIG_FILE, encoding="utf-8") as f:
                     new_cfg = json.load(f)
-                self._cfg.update(new_cfg)
+                with _cfg_lock:
+                    self._cfg.update(new_cfg)
+                self._save_config_file()
                 # Refresh JS UI after backup restore
                 try:
                     import json as _json

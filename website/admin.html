@@ -329,23 +329,23 @@ function renderTable() {
   tbody.innerHTML = rows.map(l => {
     const devTip = l.activatedDeviceId ? `title="Device: ${l.activatedDeviceId}"` : '';
     return `<tr>
-      <td><span class="key-cell">${l.key}</span>
-          <button class="copy-btn" onclick="copyText('${l.key}')" title="Копіювати ключ">📋</button></td>
+      <td><span class="key-cell">${escHtml(l.key)}</span>
+          <button class="copy-btn" onclick="copyText('${escAttr(l.key)}')" title="Копіювати ключ">📋</button></td>
       <td>${planBadge(l.plan)}</td>
-      <td>${l.name||'—'} ${l.note?`<span style="color:var(--text3);font-size:11px;">(${escHtml(l.note)})</span>`:''}
+      <td>${escHtml(l.name)||'—'} ${l.note?`<span style="color:var(--text3);font-size:11px;">(${escHtml(l.note)})</span>`:''}
       </td>
-      <td>${l.email ? `<a href="mailto:${l.email}" style="color:var(--accent);text-decoration:none;">${l.email}</a>` : '—'}</td>
+      <td>${l.email ? `<a href="mailto:${escAttr(l.email)}" style="color:var(--accent);text-decoration:none;">${escHtml(l.email)}</a>` : '—'}</td>
       <td ${devTip}>${statusBadge(l.status)}</td>
       <td style="color:var(--text2);font-size:12px;">${fmt(l.createdAt)}</td>
       <td style="color:var(--text2);font-size:12px;">${l.activatedAt ? fmt(l.activatedAt) : '—'}</td>
       <td>
         <div class="actions">
           ${l.status !== 'revoked'
-            ? `<button class="btn btn-sm btn-danger" onclick="revokeKey('${l.key}')">Відкликати</button>`
-            : `<button class="btn btn-sm btn-gray" onclick="restoreKey('${l.key}')">Відновити</button>`
+            ? `<button class="btn btn-sm btn-danger" onclick="revokeKey('${escAttr(l.key)}')">Відкликати</button>`
+            : `<button class="btn btn-sm btn-gray" onclick="restoreKey('${escAttr(l.key)}')">Відновити</button>`
           }
           ${l.email && l.status !== 'revoked'
-            ? `<button class="btn btn-sm btn-blue" onclick="quickSend('${l.key}','${l.email}')">📧 Надіслати</button>`
+            ? `<button class="btn btn-sm btn-blue" onclick="quickSend('${escAttr(l.key)}','${escAttr(l.email)}')">📧 Надіслати</button>`
             : ''
           }
         </div>

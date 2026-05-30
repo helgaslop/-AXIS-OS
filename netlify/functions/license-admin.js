@@ -12,7 +12,7 @@ const crypto        = require('crypto');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CORS = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin':  process.env.URL || 'https://axis-os.netlify.app',
   'Access-Control-Allow-Headers': 'Content-Type, x-admin-secret',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Content-Type': 'application/json'
@@ -62,10 +62,10 @@ exports.handler = async (event) => {
   const store = getStore('axis-licenses');
 
   // Rate limit: max 20 requests per IP per minute
-  const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
+  const ip = ((event.headers['x-forwarded-for'] || '').split(',')[0].trim() || event.headers['client-ip'] || 'unknown').replace(/[^0-9a-fA-F.:]/g, '_').slice(0, 45);
   const rateLimitKey = `ratelimit:admin:${ip}`;
   try {
-    const rlStore = getStore('axis-licenses');
+    const rlStore = getStore('axis-ratelimits');
     const now = Date.now();
     const rl = (await rlStore.get(rateLimitKey, { type: 'json' })) || { count: 0, window: now };
     if (now - rl.window > 60000) { rl.count = 0; rl.window = now; }

@@ -5,6 +5,7 @@
 
 const nodemailer   = require('nodemailer');
 const { getStore } = require('@netlify/blobs');
+const crypto       = require('crypto');
 
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -66,7 +67,7 @@ exports.handler = async (event) => {
   try { body = JSON.parse(event.body || '{}'); } catch {}
 
   const { email='', plan='', amount='', method='',
-          name='', surname='', phone='', deviceId='', orderRef='' } = body;
+          name='', surname='', phone='', deviceId='' } = body;
 
   if (!isValidEmail(email)) {
     return { statusCode:400, headers:CORS, body:JSON.stringify({ error:'invalid email' }) };
@@ -85,9 +86,10 @@ exports.handler = async (event) => {
   const safeName    = String(name    || '').slice(0, 100);
   const safeSurname = String(surname || '').slice(0, 100);
   const safePhone   = String(phone   || '').replace(/[^\d\s\+\-\(\)]/g, '').slice(0, 20);
-  const safeRef     = String(orderRef|| '').replace(/[^A-Z0-9\-]/g, '').slice(0, 12);
 
-  const ref      = safeRef || ('AX-??????');
+  // Generate ref server-side — never trust client-supplied value
+  // Client may provide a ref for display purposes but we generate our own
+  const ref      = 'AX-' + crypto.randomBytes(3).toString('hex').toUpperCase();
   const fullName = [safeName, safeSurname].filter(Boolean).join(' ');
 
   // ── Save pending order ───────────────────────────────────────────────────
@@ -227,7 +229,7 @@ p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
     await transporter.sendMail({
       from: `"AXIS OS" <${gmailUser}>`,
       to: ownerEmail,
-      subject: `💰 AXIS OS — ${ref} | ${fullName||email} | ${plan} ${amount}`,
+      subject: `💰 AXIS OS — ${ref} | ${(fullName || email).replace(/[\r\n\t]+/g, ' ').slice(0, 80)} | ${escHtml(plan)} ${escHtml(amount)}`,
       html: ownerHtml,
     });
     console.log(`[Email] Owner notified: ${ownerEmail}`);

@@ -176,10 +176,21 @@ class AiHandlerMixin:
             # Refresh status panel automatically after saving
             threading.Thread(target=self._check_api_status_worker, daemon=True).start()
 
+    # Security: only allow specific config keys from JS — never api_keys or other sensitive fields
+    _ALLOWED_CONFIG_KEYS = {
+        'language', 'theme', 'accent_color', 'accent_color2',
+        'auto_update', 'minimize_to_tray', 'custom_system_prompt',
+        'ollama_url', 'update_folder', 'github_repo',
+        'ai_provider', 'dialog_provider', 'openai_model',
+        'ai_temperature', 'ai_max_tokens', 'default_provider',
+        'chat_max_history', 'chat_font_size',
+    }
+
     def _save_config(self, p: dict):
-        self._cfg.update(p)
-        if "ollama_url" in p:
-            self._ai.ollama_url = p["ollama_url"]
+        p_safe = {k: v for k, v in p.items() if k in self._ALLOWED_CONFIG_KEYS}
+        self._cfg.update(p_safe)
+        if "ollama_url" in p_safe:
+            self._ai.ollama_url = p_safe["ollama_url"]
         ai_p = p.get("ai", {})
         if "temperature" in ai_p:
             self._ai.temperature = float(ai_p["temperature"])

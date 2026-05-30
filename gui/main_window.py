@@ -195,16 +195,10 @@ class AxisWindow(QMainWindow):
         # Auto-discover Ollama models in background
         self.bridge._fetch_ollama(None)
         # Push sphere status after a short delay (sphere may still be starting)
-        import threading as _t
-        _t.Thread(target=self._push_sphere_status_async, daemon=True).start()
+        QTimer.singleShot(1500, lambda: self.bridge._sphere_status(None))
         # Auto-check for updates in background (якщо є github_repo і auto_update увімкнено)
         if self.config.get("auto_update", True) and self.config.get("github_repo", ""):
             QTimer.singleShot(5000, self._auto_check_update)
-
-    def _push_sphere_status_async(self):
-        import time
-        time.sleep(1.5)
-        self.bridge._sphere_status(None)
 
     def _auto_check_update(self):
         """Тиха авто-перевірка оновлень при запуску."""
@@ -273,10 +267,27 @@ class AxisWindow(QMainWindow):
             "width": self.width(), "height": self.height(),
             "x": pos.x(), "y": pos.y(),
         })
+        # Stop in-flight AI threads
+        try:
+            if hasattr(self, 'ai_manager') and self.ai_manager:
+                self.ai_manager.cancel_all_requests()
+        except Exception:
+            pass
+        # Wait for system monitor to finish
+        try:
+            self.monitor.wait(2000)
+        except Exception:
+            pass
         try:
             from core.paths import CONFIG_FILE
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(self.config, f, ensure_ascii=False, indent=2)
+            from gui.handlers.ai import _cfg_lock
+            import tempfile as _tempfile
+            cfg_path = str(CONFIG_FILE)
+            with _cfg_lock:
+                tmp_path = cfg_path + '.tmp'
+                with open(tmp_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.config, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, cfg_path)
         except Exception:
             pass
         event.accept()

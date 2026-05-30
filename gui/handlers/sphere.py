@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import threading
 
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
@@ -91,8 +92,18 @@ class SphereHandlerMixin:
                     if k in _preserve_if_empty and not new_val and existing.get(k):
                         continue
                     existing[k] = new_val
-            with open(sphere_cfg_path, "w", encoding="utf-8") as f:
-                json.dump(existing, f, ensure_ascii=False, indent=2)
+            tmp_fd, tmp_path = tempfile.mkstemp(
+                dir=os.path.dirname(sphere_cfg_path), suffix='.tmp')
+            try:
+                with os.fdopen(tmp_fd, 'w', encoding='utf-8') as f:
+                    json.dump(existing, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, sphere_cfg_path)
+            except Exception:
+                try:
+                    os.unlink(tmp_path)
+                except Exception:
+                    pass
+                raise
         except Exception as e:
             print(f"[AXIS] sphere_config.json save error: {e}")
         if "sphere_autostart" in p:

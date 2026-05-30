@@ -1,6 +1,7 @@
 /* AXIS OS ? AI Chat */
 // ═══ AI CHAT ═══
 var chatMessages = [];
+var _sendPending = false; // debounce flag — prevents double-send
 var currentProvider = 'openai';
 var currentModel = 'gpt-4.1';
 var pendingReqId = null;
@@ -505,6 +506,8 @@ function handleFileAttach(files) {
 })();
 
 function sendChat(){
+  if (_sendPending) return;
+  _sendPending = true;
   var inp = R('chatInput');
   var msg = inp.value.trim();
 
@@ -521,6 +524,7 @@ function sendChat(){
                            p.label.toLowerCase().indexOf(_styleVal.toLowerCase()) !== -1);
         });
         inp.value = '';
+        _sendPending = false;
         applyStyle(_matchedPreset ? _matchedPreset.key : _styleVal);
         return;
       }
@@ -534,6 +538,7 @@ function sendChat(){
     if (_remLow === _rememberPfx[_ri] || _remLow.startsWith(_rememberPfx[_ri] + ' ')) {
       var _topic = msg.slice(_rememberPfx[_ri].length).trim();
       inp.value = '';
+      _sendPending = false;
       _saveChatMemory(_topic);
       return;
     }
@@ -548,7 +553,7 @@ function sendChat(){
     }).join('\n\n');
   }
 
-  if (!msg && !attachCtx) return;
+  if (!msg && !attachCtx) { _sendPending = false; return; }
 
   // If only file, add auto prompt
   var fullMsg = msg;
@@ -575,6 +580,7 @@ function sendChat(){
       name: matched.name || matched.trigger
     }));
     _updateCmdStats(matched.id, true);
+    _sendPending = false;
     return;
   }
 
@@ -612,6 +618,7 @@ function sendChat(){
 // ─── Chat streaming support ───────────────────────────────────────────────────
 var _streamBubble = null;   // current streaming bubble element
 var _streamBubbleRaw = '';  // accumulated raw markdown text
+var _markdownRafPending = false; // RAF debounce for marked.parse()
 
 function handleChatToken(x) {
   if ((x.id||'') !== pendingReqId) return;  // ignore stale tokens
@@ -632,13 +639,22 @@ function handleChatToken(x) {
     _streamBubbleRaw = '';
   }
   _streamBubbleRaw += token;
-  // Render markdown incrementally
-  try {
-    _streamBubble.innerHTML = marked.parse(_streamBubbleRaw, {breaks:true, gfm:true});
-  } catch(e) {
-    _streamBubble.textContent = _streamBubbleRaw;
+  // Render markdown incrementally — throttled to one rAF per frame
+  if (!_markdownRafPending) {
+    _markdownRafPending = true;
+    requestAnimationFrame(function() {
+      _markdownRafPending = false;
+      var el = _streamBubble;
+      if (el) {
+        try {
+          el.innerHTML = marked.parse(_streamBubbleRaw, {breaks:true, gfm:true});
+        } catch(e) {
+          el.textContent = _streamBubbleRaw;
+        }
+      }
+      scrollChat();
+    });
   }
-  scrollChat();
 }
 
 function handleChatDone(x) {
@@ -648,6 +664,7 @@ function handleChatDone(x) {
   _streamBubble = null;
   _streamBubbleRaw = '';
   pendingReqId = null;
+  _sendPending = false;
   if (!text) return;
   // Clear the ID so next stream doesn't reuse this element
   if (bubbleEl) {
@@ -693,6 +710,7 @@ function handleAiResponse(d){
     _streamBubbleRaw = '';
   }
   if(thinkingEl){ thinkingEl.remove(); thinkingEl=null; }
+  _sendPending = false;
   var text = d.text || '';
 
   // Detect provider-switch notice injected by fallback chain
@@ -819,6 +837,10 @@ function addChatMsg(type, text, sender){
     while (body.children.length > MAX_DOM_MSGS) {
       body.removeChild(body.firstChild);
     }
+  }
+  // Keep chatMessages array in sync with DOM trim
+  if (typeof chatMessages !== 'undefined' && chatMessages.length > MAX_DOM_MSGS) {
+    chatMessages.splice(0, chatMessages.length - MAX_DOM_MSGS);
   }
 
   scrollChat();

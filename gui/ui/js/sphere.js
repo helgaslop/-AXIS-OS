@@ -510,6 +510,7 @@ function handleTtsAudio(d) {
   var audio = new Audio('data:audio/mp3;base64,' + d.audio_b64);
   currentAudio = audio;
   audio.onended = audio.onerror = function(){
+    audio.src = '';  // release decoded PCM buffer
     currentAudio = null;
     liveOnSpeakEnd();
   };

@@ -149,6 +149,7 @@
 
   // ── Auto-refresh every 3 s when page is active ────────────────────────────────
   function _startRefresh() {
+    clearInterval(_refreshTimer); _refreshTimer = null;
     _fetch();
     _refreshTimer = setInterval(function () {
       var page = R('page-processes');

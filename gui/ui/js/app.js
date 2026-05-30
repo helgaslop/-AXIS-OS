@@ -44,7 +44,11 @@ function toggleSphere() {
 }
 
 // Poll sphere status every 5 seconds
-setInterval(function() { if (typeof pyCall !== 'undefined') pyCall('sphere_status'); }, 5000);
+var _sphereStatusTimer = setInterval(function() { if (typeof pyCall !== 'undefined') pyCall('sphere_status'); }, 5000);
+
+window.addEventListener('beforeunload', function() {
+  if (_sphereStatusTimer) { clearInterval(_sphereStatusTimer); _sphereStatusTimer = null; }
+});
 
 // Close clipboard panel when clicking outside
 document.addEventListener('click', function(e) {
