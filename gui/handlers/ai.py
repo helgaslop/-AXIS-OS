@@ -5,6 +5,9 @@ import threading
 
 from core.secrets import get_all_keys, set_key as _secrets_set, migrate_from_config
 
+# Module-level lock to serialise concurrent config writes
+_cfg_lock = threading.Lock()
+
 
 def _get_license():
     from core.license import LicenseManager
@@ -90,7 +93,10 @@ class AiHandlerMixin:
         self.push_to_js.emit("ai_token", json.dumps({"id": req_id, "token": token}))
 
     def _on_ai_done(self, req_id: str):
-        self.push_to_js.emit("ai_done", json.dumps({"id": req_id}))
+        from PyQt6.QtCore import QTimer
+        data = json.dumps({"id": req_id})
+        # Delay ai_done by one event-loop cycle so all ai_token JS calls dispatch first
+        QTimer.singleShot(0, lambda data=data: self.push_to_js.emit('ai_done', data))
 
     def _on_image_ready(self, req_id: str, b64: str):
         # Auto-save to Pictures/AXIS OS/ and pass saved path to JS
@@ -184,8 +190,12 @@ class AiHandlerMixin:
     def _save_config_file(self):
         try:
             from core.paths import CONFIG_FILE
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(self._cfg, f, ensure_ascii=False, indent=2)
+            cfg_path = str(CONFIG_FILE)
+            tmp_path = cfg_path + '.tmp'
+            with _cfg_lock:
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(self._cfg, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, cfg_path)
         except Exception as e:
             print(f"[AXIS] config save error: {e}")
 

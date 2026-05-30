@@ -63,8 +63,9 @@ class AxisBridge(
     def call(self, cmd: str, data: str = ""):
         try:
             payload = json.loads(data) if data else {}
-        except Exception:
-            payload = {}
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"[Bridge] ⚠ Bad JSON for '{cmd}': {e} — skipping")
+            return
 
         handlers = {
             # Window

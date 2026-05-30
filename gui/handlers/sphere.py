@@ -222,6 +222,18 @@ class SphereHandlerMixin:
         self.push_to_js.emit("sphere_status", json.dumps({"running": running}))
 
     def _stop_sphere(self, _):
+        # Try stored proc first — cleanest shutdown
+        if hasattr(self, '_sphere_proc') and self._sphere_proc and self._sphere_proc.poll() is None:
+            try:
+                self._sphere_proc.terminate()
+                self._sphere_proc.wait(timeout=5)
+                self._sphere_proc = None
+                print("[Sphere] Process terminated via stored handle")
+                self.push_to_js.emit("toast", json.dumps({"msg": "⏹ Sphere зупинено"}))
+                threading.Thread(target=self._push_status_after, args=(0.8,), daemon=True).start()
+                return
+            except Exception as e:
+                print(f"[Sphere] Terminate failed: {e}")
         pids = self._sphere_pids()
         killed = 0
         if pids:
@@ -311,6 +323,7 @@ class SphereHandlerMixin:
                 [sys.executable, "-u", sphere_script],   # -u = unbuffered stdout
                 cwd=axis_dir,
                 creationflags=_NO_WINDOW, **pipe_kwargs)
+        self._sphere_proc = proc
 
         # Stream sphere output to Panel log viewer
         _stream_sphere_output(proc, _push_log)

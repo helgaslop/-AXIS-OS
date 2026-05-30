@@ -430,6 +430,13 @@ class SystemHandlerMixin:
                 with open(CONFIG_FILE, encoding="utf-8") as f:
                     new_cfg = json.load(f)
                 self._cfg.update(new_cfg)
+                # Refresh JS UI after backup restore
+                try:
+                    import json as _json
+                    self.push_to_js.emit('sphere_config', _json.dumps(self._cfg))
+                    print("[Backup] UI refreshed after import")
+                except Exception as e:
+                    print(f"[Backup] UI refresh failed: {e}")
             except Exception:
                 pass
 

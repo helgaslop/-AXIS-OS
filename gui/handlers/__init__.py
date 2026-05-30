@@ -7,9 +7,12 @@ from .stt_tts   import SttTtsHandlerMixin
 from .ide       import IdeHandlerMixin
 from .spotify   import SpotifyHandlerMixin
 from .dashboard import DashboardHandlerMixin
+from .license   import LicenseHandlerMixin
+from .profile   import ProfileHandlerMixin
 
 __all__ = [
     "AiHandlerMixin", "FilesHandlerMixin", "SystemHandlerMixin",
     "SphereHandlerMixin", "SttTtsHandlerMixin", "IdeHandlerMixin",
-    "SpotifyHandlerMixin", "DashboardHandlerMixin",
+    "SpotifyHandlerMixin", "DashboardHandlerMixin", "LicenseHandlerMixin",
+    "ProfileHandlerMixin",
 ]

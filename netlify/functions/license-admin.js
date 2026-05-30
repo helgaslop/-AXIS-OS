@@ -8,6 +8,7 @@
 
 const { getStore }  = require('@netlify/blobs');
 const nodemailer    = require('nodemailer');
+const crypto        = require('crypto');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CORS = {
@@ -21,7 +22,7 @@ const CORS = {
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function seg() {
   let s = '';
-  for (let i = 0; i < 4; i++) s += CHARS[Math.floor(Math.random() * CHARS.length)];
+  for (let i = 0; i < 4; i++) s += CHARS[crypto.randomInt(0, CHARS.length)];
   return s;
 }
 function generateKey() {
@@ -49,11 +50,31 @@ exports.handler = async (event) => {
   // Auth check
   const adminSecret = process.env.ADMIN_SECRET;
   const reqSecret   = event.headers['x-admin-secret'] || '';
-  if (!adminSecret || reqSecret !== adminSecret) {
+  if (!adminSecret) {
+    return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
+  }
+  const secretA = Buffer.from(reqSecret.padEnd(adminSecret.length, '\0').slice(0, adminSecret.length));
+  const secretB = Buffer.from(adminSecret);
+  if (secretA.length !== secretB.length || !crypto.timingSafeEqual(secretA, secretB)) {
     return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
   const store = getStore('axis-licenses');
+
+  // Rate limit: max 20 requests per IP per minute
+  const ip = event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'unknown';
+  const rateLimitKey = `ratelimit:admin:${ip}`;
+  try {
+    const rlStore = getStore('axis-licenses');
+    const now = Date.now();
+    const rl = (await rlStore.get(rateLimitKey, { type: 'json' })) || { count: 0, window: now };
+    if (now - rl.window > 60000) { rl.count = 0; rl.window = now; }
+    rl.count++;
+    await rlStore.setJSON(rateLimitKey, rl);
+    if (rl.count > 20) {
+      return { statusCode: 429, headers: CORS, body: JSON.stringify({ error: 'Too many requests' }) };
+    }
+  } catch(e) { /* rate limit failure is non-fatal */ }
 
   // ── GET: list all licenses + pending orders ────────────────────────────
   if (event.httpMethod === 'GET') {

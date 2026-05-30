@@ -3382,8 +3382,13 @@ class _DialogTTSThread(QThread):
                         pygame.mixer.init(frequency=24000)
                     pygame.mixer.music.load(tmp.name)
                     pygame.mixer.music.play()
-                    while pygame.mixer.music.get_busy():
+                    _tts_deadline = time.time() + 120
+                    while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
                         time.sleep(0.05)
+                    if time.time() >= _tts_deadline:
+                        print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                        try: pygame.mixer.music.stop()
+                        except: pass
                 except Exception:
                     if sys.platform == "win32":
                         subprocess.run(["powershell", "-c",
@@ -3421,8 +3426,13 @@ class _DialogTTSThread(QThread):
                     pygame.mixer.init(frequency=24000)
                 pygame.mixer.music.load(tmp.name)
                 pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
+                _tts_deadline = time.time() + 120
+                while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
                     time.sleep(0.05)
+                if time.time() >= _tts_deadline:
+                    print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                    try: pygame.mixer.music.stop()
+                    except: pass
             except Exception:
                 pass
             try:
@@ -3998,20 +4008,21 @@ class WakeWordThread(QThread):
             print(f"[Wake] ⚠️ Помилка мікрофона: {e}")
 
         print(f"[Wake] Мова: {self.lang} | Слухаю wake words...")
-        
+
+        mic = sr.Microphone()
         while self.running:
             if self.paused:
                 self.msleep(100)
                 continue
-                
+
             try:
-                with sr.Microphone() as src:
+                with mic as src:
                     r.adjust_for_ambient_noise(src, duration=0.3)
                     audio = r.listen(src, timeout=3, phrase_time_limit=4)
-                    
+
                 text = r.recognize_google(audio, language=self.lang).lower()
                 print(f"[Wake] Почув: '{text}'")
-                
+
                 # Спочатку перевіряємо повне привітання
                 detected = False
                 for wake in self.greeting_words:
@@ -4030,9 +4041,9 @@ class WakeWordThread(QThread):
                             self.msleep(2000)
                             detected = True
                             break
-                        
+
             except sr.WaitTimeoutError:
-                pass  # Тиша — нормально
+                self.msleep(50)  # Тиша — нормально, уникаємо tight spin
             except sr.UnknownValueError:
                 pass  # Не зрозумів — нормально
             except sr.RequestError as e:
@@ -4778,6 +4789,17 @@ class SearchThread(QThread):
 # ┌─ MODULE: sphere/ai.py (continued) ─────────────────────────────────────────┐
 # │  AIThread: складні AI запити з function calling + streaming                  │
 # └────────────────────────────────────────────────────────────────────────────┘
+
+_pyttsx3_engine_cache = None
+
+def _get_pyttsx3():
+    global _pyttsx3_engine_cache
+    if _pyttsx3_engine_cache is None:
+        import pyttsx3
+        _pyttsx3_engine_cache = pyttsx3.init()
+    return _pyttsx3_engine_cache
+
+
 class AIThread(QThread):
     """Multi-provider AI з підтримкою діалогу (conversation history).
 
@@ -4802,6 +4824,7 @@ class AIThread(QThread):
 
     # Спільна історія діалогу (зберігається між викликами)
     _history = []
+    _history_lock = threading.Lock()
     MAX_HISTORY = 8   # 8 пар = 16 повідомлень — достатньо для контексту, економія токенів
 
     # Лише справді складні запити → дорога модель
@@ -4844,7 +4867,8 @@ class AIThread(QThread):
 
     @classmethod
     def clear_history(cls):
-        cls._history.clear()
+        with cls._history_lock:
+            cls._history.clear()
 
     @staticmethod
     def _load_owner_context() -> str:
@@ -4921,10 +4945,11 @@ class AIThread(QThread):
             self._long_response = False
 
         # Додаємо повідомлення користувача в історію
-        AIThread._history.append({"role": "user", "content": self.msg})
-        # Обрізаємо історію
-        if len(AIThread._history) > AIThread.MAX_HISTORY * 2:
-            AIThread._history = AIThread._history[-(AIThread.MAX_HISTORY * 2):]
+        with AIThread._history_lock:
+            AIThread._history.append({"role": "user", "content": self.msg})
+            # Обрізаємо історію
+            if len(AIThread._history) > AIThread.MAX_HISTORY * 2:
+                AIThread._history = AIThread._history[-(AIThread.MAX_HISTORY * 2):]
 
         # Визначаємо пріоритетний провайдер з config (обраний в панелі)
         preferred = self.config.get("ai_provider", "openai")
@@ -4944,7 +4969,8 @@ class AIThread(QThread):
 
         def _emit_result(result: str):
             """Store history + emit response; emit sentence_ready if not already done."""
-            AIThread._history.append({"role": "assistant", "content": result})
+            with AIThread._history_lock:
+                AIThread._history.append({"role": "assistant", "content": result})
             if not self._sentences_emitted:
                 # Non-streaming provider — emit whole response as one sentence
                 self.sentence_ready.emit(result)
@@ -5008,11 +5034,13 @@ class AIThread(QThread):
         buf       = ""
         full_text = ""
         max_tok   = 4000 if getattr(self, '_long_response', False) else 500
+        with AIThread._history_lock:
+            _history_snapshot = list(AIThread._history)
         try:
             with client.messages.stream(
                 model="claude-sonnet-4-20250514", max_tokens=max_tok,
                 system=self.SYSTEM,
-                messages=list(AIThread._history),
+                messages=_history_snapshot,
             ) as stream:
                 for token in stream.text_stream:
                     if self._abort_event.is_set():
@@ -5024,7 +5052,7 @@ class AIThread(QThread):
             # Fallback: non-streaming
             res = anthropic.Anthropic(api_key=key).messages.create(
                 model="claude-sonnet-4-20250514", max_tokens=max_tok,
-                system=self.SYSTEM, messages=list(AIThread._history))
+                system=self.SYSTEM, messages=_history_snapshot)
             full_text = res.content[0].text
             buf       = full_text
 
@@ -5225,7 +5253,8 @@ class AIThread(QThread):
         import json as _j
         from openai import OpenAI
         client = OpenAI(api_key=key)
-        msgs   = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
+        with AIThread._history_lock:
+            msgs   = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
 
         # Task 6: long responses get more tokens
         if getattr(self, '_long_response', False):
@@ -5342,7 +5371,9 @@ class AIThread(QThread):
         import requests
         # Google Gemini — конвертуємо історію в формат contents
         contents = []
-        for m in AIThread._history:
+        with AIThread._history_lock:
+            _history_snapshot = list(AIThread._history)
+        for m in _history_snapshot:
             role = "user" if m["role"] == "user" else "model"
             contents.append({"role": role, "parts": [{"text": m["content"]}]})
         r = requests.post(
@@ -5364,14 +5395,16 @@ class AIThread(QThread):
     def _xai(self, key):
         from openai import OpenAI
         client = OpenAI(api_key=key, base_url="https://api.x.ai/v1")
-        msgs = [{"role": "system", "content": _GROK_PREFIX + self.SYSTEM}] + list(AIThread._history)
+        with AIThread._history_lock:
+            msgs = [{"role": "system", "content": _GROK_PREFIX + self.SYSTEM}] + list(AIThread._history)
         res = client.chat.completions.create(
             model="grok-2-latest", max_tokens=500, messages=msgs)
         return res.choices[0].message.content
 
     def _perplexity(self, key):
         import requests
-        msgs = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
+        with AIThread._history_lock:
+            msgs = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
         r = requests.post("https://api.perplexity.ai/chat/completions",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
             json={"model": "sonar", "max_tokens": 500, "messages": msgs}, timeout=15)
@@ -5599,8 +5632,13 @@ class TTSThread(QThread):
                     pygame.mixer.init()
                 pygame.mixer.music.load(temp_path)
                 pygame.mixer.music.play()
-                while pygame.mixer.music.get_busy():
+                _tts_deadline = time.time() + 120
+                while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
                     time.sleep(0.1)
+                if time.time() >= _tts_deadline:
+                    print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                    try: pygame.mixer.music.stop()
+                    except: pass
                 played = True
                 print(f"TTS: pygame OK (speed={self.speed})")
             except Exception as e:
@@ -5965,6 +6003,7 @@ class AivonSphere(QWidget):
         # TTS черга — щоб відповіді не накладались
         self._tts_queue = []
         self._tts_busy  = False
+        self._tts_lock  = threading.Lock()
         # Task 8: interrupt monitor (background VAD during TTS)
         self._interrupt_monitor = None
         # Task 1: currently running AIThread (for abort on interrupt)
@@ -11540,8 +11579,9 @@ $w.Stop()
             msgs = list(getattr(self, 'dialog_history', []))
             if not msgs:
                 # Try AIThread._history
-                msgs = [{"role": m["role"], "content": m["content"]}
-                        for m in AIThread._history[-20:]]
+                with AIThread._history_lock:
+                    msgs = [{"role": m["role"], "content": m["content"]}
+                            for m in AIThread._history[-20:]]
             if not msgs:
                 self.respond("Немає активної розмови для збереження 🤔")
                 return
@@ -14739,8 +14779,10 @@ $w.Stop()
         else:
             tts_text = text
 
-        self._tts_queue.append(tts_text)
-        if not self._tts_busy:
+        with self._tts_lock:
+            self._tts_queue.append(tts_text)
+            _should_play = not self._tts_busy
+        if _should_play:
             self._play_next_tts()
         # Telegram: відправляємо повну відповідь в чат
         self._tg_send(text)
@@ -14872,30 +14914,33 @@ $w.Stop()
             loop.close()
 
             import pygame
-            if not pygame.mixer.get_init():
-                pygame.mixer.init(frequency=24000)
-            pygame.mixer.music.load(path)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                time.sleep(0.05)
-            pygame.mixer.music.unload()
             try:
-                _os.unlink(path)
-            except Exception:
-                pass
-            print("[TTS] ✅ edge-tts done")
+                if pygame.mixer.get_init(): pygame.mixer.quit()
+                pygame.mixer.init(frequency=24000)
+                pygame.mixer.music.load(path)
+                pygame.mixer.music.play()
+                _tts_deadline = time.time() + 120
+                while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
+                    time.sleep(0.05)
+                if time.time() >= _tts_deadline:
+                    print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                    try: pygame.mixer.music.stop()
+                    except: pass
+                pygame.mixer.music.unload()
+                print("[TTS] ✅ edge-tts done")
+            finally:
+                try: _os.unlink(path)
+                except: pass
         except Exception as e:
             print(f"[TTS] ❌ edge-tts error: {e}")
             try:
-                import pyttsx3
-                engine = pyttsx3.init()
+                engine = _get_pyttsx3()
                 engine.setProperty('rate', 170)
                 for v in engine.getProperty('voices'):
                     if 'ru-ru' in v.id.lower():
                         engine.setProperty('voice', v.id); break
                 engine.say(text)
                 engine.runAndWait()
-                engine.stop()
             except Exception as e2:
                 print(f"[TTS] pyttsx3 fallback error: {e2}")
         finally:
@@ -14928,20 +14973,26 @@ $w.Stop()
             import scipy.io.wavfile as wav
             import numpy as np
             wav.write(tmp.name, sr, (audio.numpy() * 32767).astype(np.int16))
-            import pygame
-            if not pygame.mixer.get_init():
-                pygame.mixer.init(frequency=sr)
-            speed = float(self.config.get("tts_speed", 1.0))
-            pygame.mixer.music.load(tmp.name)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                import time; time.sleep(0.05)
-            pygame.mixer.music.unload()
             try:
-                _os.unlink(tmp.name)
-            except Exception:
-                pass
-            print("[TTS] ✅ Silero done")
+                import pygame
+                if pygame.mixer.get_init() and pygame.mixer.get_init()[0] != 48000: pygame.mixer.quit()
+                if not pygame.mixer.get_init():
+                    pygame.mixer.init(frequency=48000)
+                speed = float(self.config.get("tts_speed", 1.0))
+                pygame.mixer.music.load(tmp.name)
+                pygame.mixer.music.play()
+                _tts_deadline = time.time() + 120
+                while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
+                    import time; time.sleep(0.05)
+                if time.time() >= _tts_deadline:
+                    print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                    try: pygame.mixer.music.stop()
+                    except: pass
+                pygame.mixer.music.unload()
+                print("[TTS] ✅ Silero done")
+            finally:
+                try: _os.unlink(tmp.name)
+                except: pass
         except Exception as e:
             print(f"[TTS] ❌ Silero error: {e} — перемикаюсь на edge-tts")
             self._silero_model = None
@@ -14993,19 +15044,24 @@ $w.Stop()
             tmp.write(r.content)
             tmp.close()
             print(f"[TTS] MP3 saved: {len(r.content)} bytes")
-            import pygame
-            if not pygame.mixer.get_init():
-                pygame.mixer.init(frequency=24000)
-            pygame.mixer.music.load(tmp.name)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                time.sleep(0.05)
-            pygame.mixer.music.unload()
             try:
-                os.unlink(tmp.name)
-            except:
-                pass
-            print("[TTS] ✅ Playback done")
+                import pygame
+                if pygame.mixer.get_init(): pygame.mixer.quit()
+                pygame.mixer.init(frequency=24000)
+                pygame.mixer.music.load(tmp.name)
+                pygame.mixer.music.play()
+                _tts_deadline = time.time() + 120
+                while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
+                    time.sleep(0.05)
+                if time.time() >= _tts_deadline:
+                    print("[TTS] ⚠ Playback timeout — force-stopping mixer")
+                    try: pygame.mixer.music.stop()
+                    except: pass
+                pygame.mixer.music.unload()
+                print("[TTS] ✅ Playback done")
+            finally:
+                try: os.unlink(tmp.name)
+                except: pass
         except Exception as e:
             print(f"[TTS] ❌ OpenAI TTS error: {e}")
             raise
@@ -15016,10 +15072,13 @@ $w.Stop()
         """Один TTS закінчився — переходимо до наступного в черзі"""
         # Task 8: stop interrupt monitor when this TTS segment ends
         self._stop_interrupt_monitor()
-        if self._tts_queue:
+        with self._tts_lock:
+            _has_more = bool(self._tts_queue)
+            if not _has_more:
+                self._tts_busy = False
+        if _has_more:
             QTimer.singleShot(300, self._play_next_tts)
         else:
-            self._tts_busy = False
             self._on_all_tts_done()
     
     def _on_all_tts_done(self):

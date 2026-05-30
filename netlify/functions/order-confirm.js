@@ -45,6 +45,23 @@ exports.handler = async (event) => {
     return { statusCode:200, headers:CORS, body:JSON.stringify({ ok:true, note:'no GMAIL_PASS' }) };
   }
 
+  // Rate limit: max 5 orders per IP per hour
+  const ip = (event.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  if (gmailPass) { // only rate-limit if email sending is active
+    try {
+      const rlStore = getStore('axis-licenses');
+      const now = Date.now();
+      const key  = `ratelimit:order:${ip}`;
+      const rl   = (await rlStore.get(key, { type: 'json' })) || { count: 0, window: now };
+      if (now - rl.window > 3600000) { rl.count = 0; rl.window = now; }
+      rl.count++;
+      await rlStore.setJSON(key, rl);
+      if (rl.count > 5) {
+        return { statusCode: 429, headers: CORS, body: JSON.stringify({ error: 'Too many requests' }) };
+      }
+    } catch(e) { /* non-fatal */ }
+  }
+
   let body = {};
   try { body = JSON.parse(event.body || '{}'); } catch {}
 
@@ -55,12 +72,27 @@ exports.handler = async (event) => {
     return { statusCode:400, headers:CORS, body:JSON.stringify({ error:'invalid email' }) };
   }
 
-  const ref      = orderRef || ('AX-??????');
-  const fullName = [name, surname].filter(Boolean).join(' ');
+  // Whitelist validation — prevents oversized inputs and unexpected values
+  const VALID_METHODS = ['USDT TRC20', 'PayPal', 'Monobank'];
+  const planLower = (plan || '').toLowerCase();
+  const validPlan = planLower.includes('місячний') || planLower.includes('річний') ||
+                    planLower.includes('lifetime') || planLower.includes('monthly') ||
+                    planLower.includes('yearly');
+  if (!validPlan && plan) {
+    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'invalid plan' }) };
+  }
+  // Truncate fields to safe lengths
+  const safeName    = String(name    || '').slice(0, 100);
+  const safeSurname = String(surname || '').slice(0, 100);
+  const safePhone   = String(phone   || '').replace(/[^\d\s\+\-\(\)]/g, '').slice(0, 20);
+  const safeRef     = String(orderRef|| '').replace(/[^A-Z0-9\-]/g, '').slice(0, 12);
+
+  const ref      = safeRef || ('AX-??????');
+  const fullName = [safeName, safeSurname].filter(Boolean).join(' ');
 
   // ── Save pending order ───────────────────────────────────────────────────
   await saveOrder({
-    ref, email, name:fullName, phone:phone||'',
+    ref, email, name:fullName, phone:safePhone||'',
     plan, amount, method, deviceId:deviceId||'',
     createdAt: new Date().toISOString(),
     status: 'pending',   // pending → fulfilled
@@ -73,9 +105,9 @@ exports.handler = async (event) => {
   const eAmount   = escHtml(amount);
   const eMethod   = escHtml(method);
   const eEmail    = escHtml(email);
-  const eName     = escHtml(name);
-  const eSurname  = escHtml(surname);
-  const ePhone    = escHtml(phone);
+  const eName     = escHtml(safeName);
+  const eSurname  = escHtml(safeSurname);
+  const ePhone    = escHtml(safePhone);
   const eDeviceId = escHtml(deviceId);
   const eFullName = escHtml(fullName);
   const greeting  = eFullName

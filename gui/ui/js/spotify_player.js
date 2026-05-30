@@ -3,7 +3,15 @@ var _spCurrentUri   = '';
 var _spIsPlaying    = false;
 var _spShuffle      = false;
 var _spPollTimer    = null;
+var _spIdleCount    = 0;
 var _spFavorites    = JSON.parse(localStorage.getItem('axis_sp_fav') || '[]');
+
+window.addEventListener('beforeunload', function() {
+  if (typeof _spPollTimer !== 'undefined' && _spPollTimer) {
+    clearInterval(_spPollTimer);
+    _spPollTimer = null;
+  }
+});
 
 // ── Ініціалізація ────────────────────────────────────────────────────────────
 function initMusicPage() {
@@ -23,6 +31,17 @@ function onMusicPageHide() {
 
 // ── Оновити поточний трек ────────────────────────────────────────────────────
 function spRefresh() {
+  if (!_spIsPlaying) {
+    _spIdleCount++;
+    if (_spIdleCount > 12) { // ~1 minute idle at 5 s interval
+      clearInterval(_spPollTimer);
+      _spPollTimer = null;
+      _spIdleCount = 0;
+      return;
+    }
+  } else {
+    _spIdleCount = 0;
+  }
   pyCall('spotify_action', JSON.stringify({action: 'current'}));
 }
 

@@ -812,6 +812,15 @@ function addChatMsg(type, text, sender){
   }
 
   body.appendChild(div);
+
+  // Trim oldest DOM nodes to prevent unbounded growth after long sessions
+  var MAX_DOM_MSGS = 150;
+  if (body.children.length > MAX_DOM_MSGS) {
+    while (body.children.length > MAX_DOM_MSGS) {
+      body.removeChild(body.firstChild);
+    }
+  }
+
   scrollChat();
 }
 function scrollChat(){ var b=R('chatBody'); if(b) b.scrollTop=b.scrollHeight; }

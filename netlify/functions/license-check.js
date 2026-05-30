@@ -37,6 +37,12 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ valid: false, error: 'Ключ відкликано' }) };
   }
 
+  // Require valid deviceId for non-lifetime plans
+  if (lic.plan !== 'lifetime' && !deviceId) {
+    return { statusCode: 200, headers: CORS,
+      body: JSON.stringify({ valid: false, error: 'Ідентифікатор пристрою обовʼязковий' }) };
+  }
+
   // First activation — bind to device
   if (lic.status === 'pending') {
     lic.status            = 'active';
