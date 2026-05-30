@@ -2133,7 +2133,12 @@ function appendEscalate(){
         <div class="order-success">
           <div class="order-success-ico">🎉</div>
           <h4>Дякуємо за замовлення<span id="orderConfirmName"></span>!</h4>
-          <p>Ми отримали ваш запит. Надішлемо ключ ліцензії на <strong id="orderConfirmEmail"></strong> протягом <strong>1–24 годин</strong> після підтвердження оплати.</p>
+          <p>Замовлення зареєстровано. Ключ ліцензії надішлемо на <strong id="orderConfirmEmail"></strong> після підтвердження оплати.</p>
+          <div style="background:rgba(0,212,255,.07);border:1.5px solid rgba(0,212,255,.3);border-radius:10px;padding:10px 14px;margin:10px 0;text-align:left;">
+            <div style="font-size:11px;color:#8b949e;margin-bottom:3px;">Ваш код замовлення:</div>
+            <div style="font-family:monospace;font-size:18px;font-weight:900;color:#00d4ff;letter-spacing:.1em;" id="orderConfirmRef">—</div>
+            <div style="font-size:11px;color:#8b949e;margin-top:4px;">Переконайтесь що вказали цей код у призначенні платежу</div>
+          </div>
           <p>Хочеш швидше? Напиши нам — відповімо одразу.</p>
           <a href="https://t.me/Helgaslopp" target="_blank" class="order-tg-link">
             <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-2.04 9.604c-.148.658-.54.818-1.092.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.604.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.91.617z"/></svg>
@@ -2150,7 +2155,7 @@ function appendEscalate(){
   <input type="hidden" name="form-name" value="axis-order">
   <input name="plan"><input name="amount"><input name="email">
   <input name="payment_method"><input name="name"><input name="surname">
-  <input name="phone"><input name="device_id"><input name="bot-field">
+  <input name="phone"><input name="device_id"><input name="order_ref"><input name="bot-field">
 </form>
 
 <script>
@@ -2162,32 +2167,37 @@ const PAYPAL_EMAIL = 'aksutinvova4@gmail.com';
 const MONO_CARD    = '4441 1110 6712 2550';
 
 // ── Device Fingerprint (anti-fraud) ──────────────────────────────────────────
-// Generates a short hex ID from browser/OS characteristics.
-// Sent with every order so the owner can tie the license to a specific device.
 function genDeviceId() {
   const raw = [
     navigator.userAgent || '',
     screen.width + 'x' + screen.height + '@' + (screen.colorDepth || 0),
     (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : ''),
-    navigator.language || '',
-    navigator.platform || '',
-    String(navigator.hardwareConcurrency || 0),
-    String(navigator.deviceMemory || 0)
+    navigator.language || '', navigator.platform || '',
+    String(navigator.hardwareConcurrency || 0), String(navigator.deviceMemory || 0)
   ].join('|');
   let h = 5381;
-  for (let i = 0; i < raw.length; i++) {
-    h = (Math.imul(h, 33) ^ raw.charCodeAt(i)) >>> 0;
-  }
+  for (let i = 0; i < raw.length; i++) h = (Math.imul(h, 33) ^ raw.charCodeAt(i)) >>> 0;
   return h.toString(16).toUpperCase().padStart(8, '0');
 }
 let _oDeviceId = '';
 document.addEventListener('DOMContentLoaded', function() { _oDeviceId = genDeviceId(); });
 
-let _oPlan = null, _oPayMethod = null;
+// ── Order Reference — унікальний код для ідентифікації платежу ───────────────
+// Покупець пише його в призначенні платежу. Власник бачить його в банку
+// і натискає "Надіслати ключ" в адмін-панелі.
+const REF_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function genOrderRef() {
+  let s = 'AX-';
+  for (let i = 0; i < 6; i++) s += REF_CHARS[Math.floor(Math.random() * REF_CHARS.length)];
+  return s; // e.g. AX-K3M7P2
+}
+
+let _oPlan = null, _oPayMethod = null, _oRef = '';
 
 function openOrder(plan) {
   _oPlan = plan || null;
   _oPayMethod = null;
+  _oRef = '';
   document.getElementById('orderOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   if (plan) {
@@ -2251,11 +2261,26 @@ function qrUrl(data) {
 }
 function selectPayMethod(method) {
   _oPayMethod = method;
-  const price = O_PRICES[_oPlan]||'$?';
-  const priceNum = parseFloat(price.replace('$',''))||0;
-  const uah = Math.round(priceNum*41);
+  // Generate order reference once per payment session
+  if (!_oRef) _oRef = genOrderRef();
+
+  const price    = O_PRICES[_oPlan] || '$?';
+  const priceNum = parseFloat(price.replace('$','')) || 0;
+  const uah      = Math.round(priceNum * 41);
+  const ref      = _oRef; // e.g. AX-K3M7P2
+
+  // Reference box — shown for all payment methods
+  const refBox = `
+    <div style="background:rgba(0,212,255,.07);border:1.5px solid rgba(0,212,255,.35);border-radius:10px;padding:12px 16px;margin:14px 0 6px;">
+      <div style="font-size:11px;color:#8b949e;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em;">📋 Код замовлення — вкажіть у призначенні платежу</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-family:monospace;font-size:20px;font-weight:900;color:#00d4ff;letter-spacing:.12em;">${ref}</span>
+        <button class="order-copy-btn" onclick="copyVal('${ref}',this)" style="font-size:12px;padding:4px 12px;">Копіювати</button>
+      </div>
+    </div>`;
+
   let html = '';
-  if (method==='usdt') {
+  if (method === 'usdt') {
     html = `<div class="order-qr-wrap">
       <div class="order-amount-badge">💎 ${price} USDT TRC20</div>
       <img src="${qrUrl(USDT_ADDR)}" class="order-qr-img" alt="USDT QR" loading="lazy">
@@ -2266,8 +2291,11 @@ function selectPayMethod(method) {
       <button class="order-copy-btn" onclick="copyVal('${USDT_ADDR}',this)">Копіювати</button>
     </div>
     <div class="order-warning">⚠️ Відправляй тільки <strong>USDT у мережі TRC20</strong>. Інші мережі — кошти втрачаються.</div>
-    <p class="order-note">Відправ точно <strong>${price} USDT</strong> і натисни "Я оплатив"</p>`;
-  } else if (method==='paypal') {
+    ${refBox}
+    <p class="order-note" style="margin-top:4px;">Відправ точно <strong>${price} USDT</strong>, потім натисни "Я оплатив"</p>`;
+
+  } else if (method === 'paypal') {
+    const payRef = `AXIS ${ref}`;
     html = `<div class="order-qr-wrap">
       <div class="order-amount-badge">🅿 ${price} USD</div>
       <img src="${qrUrl('https://paypal.me/'+PAYPAL_EMAIL.split('@')[0]+'/'+priceNum)}" class="order-qr-img" alt="PayPal QR" loading="lazy">
@@ -2277,8 +2305,11 @@ function selectPayMethod(method) {
       <span class="order-addr-txt">${PAYPAL_EMAIL}</span>
       <button class="order-copy-btn" onclick="copyVal('${PAYPAL_EMAIL}',this)">Копіювати</button>
     </div>
-    <p class="order-note">Відправ <strong>${price} USD</strong> через PayPal на вказаний email.<br>В коментарі напиши: <strong>AXIS OS ${_oPlan}</strong></p>`;
-  } else if (method==='mono') {
+    ${refBox}
+    <p class="order-note" style="margin-top:4px;">Відправ <strong>${price} USD</strong> і в полі <em>Примітка / Note</em> вкажи: <strong style="color:#00d4ff;">AXIS ${ref}</strong></p>`;
+
+  } else if (method === 'mono') {
+    const payRef = `AXIS ${ref}`;
     html = `<div class="order-qr-wrap">
       <div class="order-amount-badge">🏦 ~${uah} UAH</div>
       <img src="${qrUrl(MONO_CARD.replace(/\s/g,''))}" class="order-qr-img" alt="Monobank QR" loading="lazy">
@@ -2288,8 +2319,11 @@ function selectPayMethod(method) {
       <span class="order-addr-txt" style="font-size:15px;letter-spacing:.05em;">${MONO_CARD}</span>
       <button class="order-copy-btn" onclick="copyVal('${MONO_CARD.replace(/\s/g,'')}',this)">Копіювати</button>
     </div>
-    <p class="order-note">Переказ за курсом НБУ (~${uah} UAH = ${price}).<br>В призначенні: <strong>AXIS OS ${_oPlan}</strong></p>`;
+    ${refBox}
+    <p class="order-note" style="margin-top:4px;">Переказ ~${uah} UAH. У полі <strong>Призначення платежу</strong> вкажи: <strong style="color:#00d4ff;">AXIS ${ref}</strong>
+    <button class="order-copy-btn" onclick="copyVal('AXIS ${ref}',this)" style="margin-left:6px;font-size:12px;">Копіювати</button></p>`;
   }
+
   document.getElementById('orderPayDetails').innerHTML = html;
   renderOStep(4);
 }
@@ -2314,28 +2348,26 @@ async function confirmPayment() {
   const mNames   = {usdt:'USDT TRC20', paypal:'PayPal', mono:'Monobank'};
   const method   = mNames[_oPayMethod]||_oPayMethod||'';
   const deviceId = _oDeviceId || genDeviceId();
+  const orderRef = _oRef || genOrderRef();
 
-  // 1. Netlify Forms — сповіщення власнику (включає device ID для захисту від шахраїв)
+  // 1. Netlify Forms — сповіщення власнику
   try {
     const fd = new FormData();
     fd.append('form-name','axis-order');
-    fd.append('plan', planName);
-    fd.append('amount', amount);
-    fd.append('email', email);
-    fd.append('payment_method', method);
-    fd.append('name', name);
-    fd.append('surname', surname);
-    fd.append('phone', phone);
-    fd.append('device_id', deviceId);
-    await fetch('/',{method:'POST',body:fd});
+    fd.append('plan', planName); fd.append('amount', amount);
+    fd.append('email', email);   fd.append('payment_method', method);
+    fd.append('name', name);     fd.append('surname', surname);
+    fd.append('phone', phone);   fd.append('device_id', deviceId);
+    fd.append('order_ref', orderRef);
+    await fetch('/', {method:'POST', body:fd});
   } catch(e){}
 
-  // 2. Email підтвердження покупцю через Netlify function
+  // 2. Зберегти замовлення + надіслати підтвердження (без ключа)
   try {
-    await fetch('/.netlify/functions/order-confirm',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, plan:planName, amount, method, name, surname, phone, deviceId})
+    await fetch('/.netlify/functions/order-confirm', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, plan:planName, amount, method, name, surname, phone, deviceId, orderRef})
     });
   } catch(e){}
 
@@ -2343,6 +2375,9 @@ async function confirmPayment() {
   document.getElementById('orderConfirmEmail').textContent = email;
   const nameEl = document.getElementById('orderConfirmName');
   if (nameEl) nameEl.textContent = fullName ? ', ' + fullName : '';
+  // Show order reference on success screen
+  const refEl = document.getElementById('orderConfirmRef');
+  if (refEl) refEl.textContent = orderRef;
   renderOStep(5);
 }
 </script>

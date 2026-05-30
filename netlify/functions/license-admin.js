@@ -29,7 +29,10 @@ function generateKey() {
 }
 
 async function getDb(store) {
-  return (await store.get('db', { type: 'json' })) || { licenses: {} };
+  const db = (await store.get('db', { type: 'json' })) || {};
+  if (!db.licenses) db.licenses = {};
+  if (!db.orders)   db.orders   = {};
+  return db;
 }
 async function saveDb(store, db) {
   await store.setJSON('db', db);
@@ -52,13 +55,12 @@ exports.handler = async (event) => {
 
   const store = getStore('axis-licenses');
 
-  // ── GET: list all licenses ──────────────────────────────────────────────
+  // ── GET: list all licenses + pending orders ────────────────────────────
   if (event.httpMethod === 'GET') {
     const db = await getDb(store);
-    const list = Object.values(db.licenses).sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-    );
-    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, licenses: list }) };
+    const licenses = Object.values(db.licenses).sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    const orders   = Object.values(db.orders).sort((a,b)   => new Date(b.createdAt)-new Date(a.createdAt));
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, licenses, orders }) };
   }
 
   let body = {};
@@ -106,6 +108,95 @@ exports.handler = async (event) => {
     delete db.licenses[key].revokedAt;
     await saveDb(store, db);
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
+  }
+
+  // ── POST fulfill — generate key + send to buyer + mark order done ─────
+  // Called when owner clicks "Send key" next to a pending order in admin panel
+  if (action === 'fulfill') {
+    const { ref } = body;
+    const db      = await getDb(store);
+    const order   = db.orders[ref];
+    if (!order) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Order not found' }) };
+    if (order.status === 'fulfilled') return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, note: 'already fulfilled', key: order.licenseKey }) };
+
+    const gmailUser  = process.env.GMAIL_USER || '';
+    const gmailPass  = process.env.GMAIL_PASS || '';
+    if (!gmailPass) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: false, error: 'GMAIL_PASS not set' }) };
+
+    // Generate the license key
+    const key      = generateKey();
+    const planSlug = (order.plan||'').toLowerCase().includes('lifetime') ? 'lifetime'
+                   : (order.plan||'').toLowerCase().includes('річн')    ? 'yearly' : 'monthly';
+
+    // Save license
+    db.licenses[key] = {
+      key, plan: planSlug, email: order.email, name: order.name,
+      phone: order.phone||'', deviceId: order.deviceId||'',
+      note: `Fulfilled order ${ref}`,
+      createdAt: new Date().toISOString(), status: 'active',
+      activatedAt: null, activatedDeviceId: null,
+      sentAt: new Date().toISOString(), sentTo: order.email,
+    };
+    // Mark order as fulfilled
+    db.orders[ref].status     = 'fulfilled';
+    db.orders[ref].licenseKey = key;
+    db.orders[ref].fulfilledAt= new Date().toISOString();
+    await saveDb(store, db);
+
+    // Send key email to buyer
+    const eKey  = escHtml(key);
+    const eRef  = escHtml(ref);
+    const eName = escHtml(order.name || '');
+    const ePlan = escHtml(order.plan || '');
+    const greet = eName ? `Привіт, <strong>${eName}</strong>!` : 'Вітаємо!';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{font-family:'Segoe UI',Arial,sans-serif;background:#080c14;color:#e6edf3;margin:0;padding:20px;}
+.wrap{max-width:520px;margin:0 auto;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:16px;overflow:hidden;}
+.hdr{background:linear-gradient(135deg,#00d4ff,#7c3aed);padding:24px 32px;text-align:center;}
+.hdr h1{margin:0;font-size:22px;font-weight:900;color:#000;}
+.body{padding:28px 32px;}
+.badge{display:inline-block;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:#00d4ff;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:16px;}
+h2{font-size:20px;font-weight:800;margin:0 0 12px;}
+p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
+.keybox{background:#161b22;border:2px solid rgba(0,212,255,.4);border-radius:12px;padding:18px 24px;text-align:center;margin:20px 0;}
+.keytext{font-family:monospace;font-size:22px;font-weight:900;color:#00d4ff;letter-spacing:.15em;word-break:break-all;}
+.steps{background:#161b22;border-radius:10px;padding:14px 20px;margin:12px 0;font-size:13px;color:#8b949e;line-height:2;}
+.cta{display:block;text-align:center;background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#000;font-weight:800;padding:13px;border-radius:10px;text-decoration:none;margin:20px 0 0;font-size:15px;}
+.foot{text-align:center;padding:14px 32px;font-size:12px;color:#484f58;border-top:1px solid rgba(255,255,255,.06);}
+</style></head><body>
+<div class="wrap">
+  <div class="hdr"><h1>⬡ AXIS OS</h1></div>
+  <div class="body">
+    <div class="badge">🔑 Ваш ліцензійний ключ</div>
+    <h2>Оплату підтверджено!</h2>
+    <p>${greet} Дякуємо! Ваш ліцензійний ключ для плану <strong style="color:#e6edf3;">${ePlan}</strong>:</p>
+    <div class="keybox">
+      <div style="font-size:11px;color:#484f58;margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">Ліцензійний ключ</div>
+      <div class="keytext">${eKey}</div>
+    </div>
+    <div class="steps">
+      📌 <strong style="color:#e6edf3;">Як активувати:</strong><br>
+      1. Відкрийте AXIS OS<br>
+      2. Натисніть <strong style="color:#e6edf3;">Налаштування → 🔑 Ліцензія</strong><br>
+      3. Вставте ключ і натисніть <strong style="color:#e6edf3;">Активувати</strong>
+    </div>
+    <p style="font-size:12px;">🔒 Ключ прив'язується до вашого пристрою при першій активації.<br>Замовлення: <strong style="color:#e6edf3;">${eRef}</strong></p>
+    <a href="https://t.me/Helgaslopp" class="cta">Потрібна допомога? @Helgaslopp</a>
+  </div>
+  <div class="foot">AXIS OS &mdash; <a href="https://t.me/Helgaslopp" style="color:#00d4ff;text-decoration:none;">@Helgaslopp</a></div>
+</div></body></html>`;
+
+    const transporter = nodemailer.createTransport({ service:'gmail', auth:{ user:gmailUser, pass:gmailPass } });
+    await transporter.sendMail({
+      from: `"AXIS OS" <${gmailUser}>`,
+      to:   order.email,
+      subject: `🔑 AXIS OS — Ваш ліцензійний ключ (${order.plan})`,
+      html,
+    });
+
+    console.log(`[Fulfill] Key ${key} sent to ${order.email} for order ${ref}`);
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, key }) };
   }
 
   // ── POST send (email key to buyer) ──────────────────────────────────────
