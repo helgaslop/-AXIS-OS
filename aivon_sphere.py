@@ -2518,7 +2518,7 @@ def load_config():
         "voice": "onyx",
         "language": "uk-UA",
         "tts_enabled": True,
-        "tts_provider": "auto",
+        "tts_provider": "edge",   # edge-tts безкоштовний — клієнт не платить за TTS
         "edge_voice": "uk-UA-PolinaNeural",
         "ai_provider": "openai",
         "dialog_provider": "gemini",
@@ -3343,17 +3343,24 @@ class _DialogThread(QThread):
 
 
 class _DialogTTSThread(QThread):
-    """Швидкий OpenAI TTS для діалогу — тільки голос, без затримок"""
+    """TTS для діалогу — поважає tts_provider з конфігу.
+    За замовчуванням edge-tts (безкоштовний), OpenAI тільки якщо явно вибраний."""
     done = pyqtSignal()
-    
+
     def __init__(self, key, text, config, voice_override=None):
         super().__init__()
-        self.key = key
-        self.text = text[:500]
-        self.voice = voice_override or config.get("voice", "onyx")
-        self.speed = config.get("tts_speed", 1.15)
-    
+        self.key      = key
+        self.text     = text[:500]
+        self.config   = config
+        self.provider = config.get("tts_provider", "edge")
+        self.voice    = voice_override or config.get("voice", "onyx")
+        self.speed    = config.get("tts_speed", 1.15)
+
     def run(self):
+        # Безкоштовний edge-tts якщо provider != "openai"
+        if self.provider != "openai":
+            self._run_edge_tts()
+            return
         try:
             import requests, tempfile
             r = requests.post("https://api.openai.com/v1/audio/speech",
@@ -3361,6 +3368,10 @@ class _DialogTTSThread(QThread):
                 json={"model": "tts-1", "input": self.text, "voice": self.voice,
                       "speed": self.speed, "response_format": "mp3"},
                 timeout=10)
+            if r.status_code != 200:
+                print(f"[DialogTTS] OpenAI error {r.status_code} — fallback до edge-tts")
+                self._run_edge_tts()
+                return
             if r.status_code == 200:
                 tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
                 tmp.write(r.content)
@@ -3383,10 +3394,43 @@ class _DialogTTSThread(QThread):
                     os.remove(tmp.name)
                 except Exception:
                     pass
-            else:
-                print(f"[Dialog TTS] HTTP {r.status_code}")
         except Exception as e:
-            print(f"[Dialog TTS] error: {e}")
+            print(f"[Dialog TTS] OpenAI error: {e} — fallback до edge-tts")
+            self._run_edge_tts()
+            return
+        self.done.emit()
+
+    def _run_edge_tts(self):
+        """Fallback на безкоштовний edge-tts."""
+        try:
+            import asyncio, tempfile, os as _os
+            import edge_tts
+            voice    = self.config.get("edge_voice", "uk-UA-PolinaNeural")
+            speed    = float(self.config.get("tts_speed", 1.0))
+            delta    = speed - 1.0
+            rate_str = f"+{int(delta*100)}%" if delta >= 0 else f"{int(delta*100)}%"
+            tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            tmp.close()
+            async def _gen():
+                c = edge_tts.Communicate(self.text, voice, rate=rate_str)
+                await c.save(tmp.name)
+            asyncio.run(_gen())
+            try:
+                import pygame
+                if not pygame.mixer.get_init():
+                    pygame.mixer.init(frequency=24000)
+                pygame.mixer.music.load(tmp.name)
+                pygame.mixer.music.play()
+                while pygame.mixer.music.get_busy():
+                    time.sleep(0.05)
+            except Exception:
+                pass
+            try:
+                _os.remove(tmp.name)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"[Dialog TTS] edge-tts error: {e}")
         self.done.emit()
 
 
@@ -4758,32 +4802,31 @@ class AIThread(QThread):
 
     # Спільна історія діалогу (зберігається між викликами)
     _history = []
-    MAX_HISTORY = 20  # максимум пар повідомлень
+    MAX_HISTORY = 8   # 8 пар = 16 повідомлень — достатньо для контексту, економія токенів
 
-    # Ключові слова що сигналізують складне питання → smart model
+    # Лише справді складні запити → дорога модель
+    # Прості питання, команди, короткі фрази — завжди gpt-4o-mini
     _SMART_KEYWORDS = [
-        "розкажи", "поясни", "опиши", "проаналізуй", "порівняй",
-        "що таке", "як працює", "чому", "навіщо", "яка різниця",
-        "напиши", "склади", "придумай", "вигадай", "запропонуй",
-        "допоможи", "порада", "думаєш", "вважаєш", "твоя думка",
-        "розбери", "детально", "докладно", "розгорни",
-        "tell me", "explain", "describe", "analyze", "compare",
-        "what is", "how does", "why", "write", "create", "suggest",
+        "проаналізуй", "порівняй", "яка різниця між",
+        "напиши код", "напиши програму", "склади звіт", "склади план",
+        "детально розбери", "докладно поясни",
+        "analyze", "compare the difference", "write code", "write a program",
     ]
 
     @classmethod
     def pick_model(cls, msg: str, config: dict) -> str:
-        """Обирає модель: gpt-5.5 для складних питань, gpt-4o-mini для простих."""
+        """Обирає модель: gpt-4o тільки для справді складних, gpt-4o-mini для решти.
+        Економія: gpt-4o-mini коштує ~15x дешевше за gpt-4o."""
         lower = msg.lower()
         words = lower.split()
-        # Явно задана модель в конфізі → використовуємо її
+        # Явно задана модель в конфігу → використовуємо її
         forced = config.get("openai_model", "")
         if forced:
             return forced
-        # Довгий запит або ключові слова → розумна модель
-        if len(words) > 12 or any(k in lower for k in cls._SMART_KEYWORDS):
-            return "gpt-5.5-2026-04-23"
-        # Коротка команда → швидка дешева модель
+        # Тільки явно складні запити (довгі І ключові слова) → gpt-4o
+        if len(words) > 25 and any(k in lower for k in cls._SMART_KEYWORDS):
+            return "gpt-4o"
+        # Все інше → швидка дешева модель
         return "gpt-4o-mini"
 
     def __init__(self, config: dict, msg: str, system_override: str = ""):
@@ -11001,7 +11044,11 @@ $w.Stop()
                                 files={"file": ("voice.ogg", audio_f, "audio/ogg")},
                                 data={"model": "whisper-1", "language": "uk"},
                                 timeout=30)
-                        transcribed = r.json().get("text", "").strip()
+                        if r.status_code == 200:
+                            transcribed = r.json().get("text", "").strip()
+                        else:
+                            err = r.json().get("error", {}).get("message", r.status_code)
+                            print(f"[TG Voice] Whisper HTTP {r.status_code}: {err}")
                     except Exception as e:
                         print(f"[TG Voice] OpenAI Whisper error: {e}")
 
@@ -11139,8 +11186,8 @@ $w.Stop()
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                 json={
-                    "model": "gpt-4o",
-                    "max_tokens": 250,
+                    "model": "gpt-4o-mini",   # vision підтримується, ~15x дешевше gpt-4o
+                    "max_tokens": 200,
                     "messages": [{
                         "role": "user",
                         "content": [
@@ -11154,7 +11201,9 @@ $w.Stop()
                 timeout=20,
             )
             if r.status_code == 200:
-                self._respond_signal.emit(r.json()["choices"][0]["message"]["content"].strip())
+                choices = r.json().get("choices", [])
+                result  = choices[0]["message"]["content"].strip() if choices else "⚠ Порожня відповідь"
+                self._respond_signal.emit(result)
             else:
                 self._respond_signal.emit(f"⚠ GPT-4V: {r.status_code}")
         except ImportError:
@@ -14795,11 +14844,8 @@ $w.Stop()
                 threading.Thread(target=self._openai_tts, args=(text, oai_key),  daemon=True).start()
             elif provider == "openai" and not oai_key:
                 threading.Thread(target=self._edge_tts,   args=(text,),          daemon=True).start()
-            else:  # auto: OpenAI якщо є ключ, інакше edge-tts
-                if oai_key:
-                    threading.Thread(target=self._openai_tts, args=(text, oai_key), daemon=True).start()
-                else:
-                    threading.Thread(target=self._edge_tts,   args=(text,),         daemon=True).start()
+            else:  # auto → завжди edge-tts (безкоштовний), економить токени клієнта
+                threading.Thread(target=self._edge_tts, args=(text,), daemon=True).start()
 
     def _edge_tts(self, text):
         """edge-tts — безкоштовний Microsoft Neural TTS (підтримує українську)"""

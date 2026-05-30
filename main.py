@@ -17,7 +17,21 @@ def load_config() -> dict:
     try:
         with open(CONFIG_FILE, encoding="utf-8") as f:
             cfg = json.load(f)
-    except Exception:
+    except FileNotFoundError:
+        cfg = {}   # перший запуск — норма
+    except json.JSONDecodeError as e:
+        print(f"[AXIS] ⚠ config.json пошкоджений ({e}) — використовуємо налаштування за замовчуванням")
+        # Зберігаємо резервну копію перед скиданням
+        try:
+            import shutil, time
+            backup = str(CONFIG_FILE) + f".bak.{int(time.time())}"
+            shutil.copy2(CONFIG_FILE, backup)
+            print(f"[AXIS] Резервну копію збережено: {backup}")
+        except Exception:
+            pass
+        cfg = {}
+    except Exception as e:
+        print(f"[AXIS] ⚠ Не вдалось завантажити config.json: {e}")
         cfg = {}
     # One-time migration: move any plaintext API keys into Credential Manager
     try:
