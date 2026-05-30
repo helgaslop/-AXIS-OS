@@ -579,7 +579,11 @@ function testTtsVoice() {
 }
 
 // ═══ LICENSE ══════════════════════════════════════════════════════════════════
-var LICENSE_API = 'https://axis-os.netlify.app/.netlify/functions/license-check';
+// URL can be overridden in config via license_api_url key
+var LICENSE_API_DEFAULT = 'https://helgaslop-axis-os.netlify.app/.netlify/functions/license-check';
+var LICENSE_API = (typeof _savedCfg !== 'undefined' && _savedCfg && _savedCfg.license_api_url)
+  ? _savedCfg.license_api_url
+  : LICENSE_API_DEFAULT;
 
 // Generate same device fingerprint as the website order form
 function _licDeviceId() {
@@ -606,7 +610,11 @@ function checkLicenseStatus() {
   var msg  = R('lic-msg');
   if (!ico) return;
 
-  var saved = (typeof _savedCfg !== 'undefined' && _savedCfg) ? (_savedCfg.license_key || '') : '';
+  // Refresh LICENSE_API in case config loaded after this variable was initialized
+  if (typeof _savedCfg === 'object' && _savedCfg && _savedCfg.license_api_url) {
+    LICENSE_API = _savedCfg.license_api_url;
+  }
+  var saved = (typeof _savedCfg === 'object' && _savedCfg !== null) ? (_savedCfg.license_key || '') : '';
   if (!saved) {
     ico.textContent = '⚠️'; txt.textContent = 'Ліцензія не активована';
     sub.textContent = 'Введіть ключ нижче щоб активувати';

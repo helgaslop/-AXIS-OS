@@ -128,20 +128,15 @@ exports.handler = async (event) => {
     const planSlug = (order.plan||'').toLowerCase().includes('lifetime') ? 'lifetime'
                    : (order.plan||'').toLowerCase().includes('річн')    ? 'yearly' : 'monthly';
 
-    // Save license
-    db.licenses[key] = {
+    // Prepare license object — save to DB only AFTER email is sent successfully
+    const licenseObj = {
       key, plan: planSlug, email: order.email, name: order.name,
       phone: order.phone||'', deviceId: order.deviceId||'',
       note: `Fulfilled order ${ref}`,
       createdAt: new Date().toISOString(), status: 'active',
       activatedAt: null, activatedDeviceId: null,
-      sentAt: new Date().toISOString(), sentTo: order.email,
+      sentAt: null, sentTo: order.email,
     };
-    // Mark order as fulfilled
-    db.orders[ref].status     = 'fulfilled';
-    db.orders[ref].licenseKey = key;
-    db.orders[ref].fulfilledAt= new Date().toISOString();
-    await saveDb(store, db);
 
     // Send key email to buyer
     const eKey  = escHtml(key);
@@ -194,6 +189,14 @@ p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
       subject: `🔑 AXIS OS — Ваш ліцензійний ключ (${order.plan})`,
       html,
     });
+
+    // Email sent successfully — NOW save license and mark order fulfilled
+    licenseObj.sentAt            = new Date().toISOString();
+    db.licenses[key]             = licenseObj;
+    db.orders[ref].status        = 'fulfilled';
+    db.orders[ref].licenseKey    = key;
+    db.orders[ref].fulfilledAt   = new Date().toISOString();
+    await saveDb(store, db);
 
     console.log(`[Fulfill] Key ${key} sent to ${order.email} for order ${ref}`);
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, key }) };

@@ -2124,7 +2124,7 @@ function appendEscalate(){
       <!-- Step 4: Payment details -->
       <div id="ostep-4" style="display:none;">
         <div id="orderPayDetails"></div>
-        <button class="order-btn-primary" onclick="confirmPayment()">✅ Я оплатив</button>
+        <button class="order-btn-primary" id="confirmBtn" onclick="confirmPayment()">✅ Я оплатив</button>
         <button class="order-btn-back" onclick="orderGoStep(3)">← Назад</button>
       </div>
 
@@ -2266,7 +2266,9 @@ function selectPayMethod(method) {
 
   const price    = O_PRICES[_oPlan] || '$?';
   const priceNum = parseFloat(price.replace('$','')) || 0;
-  const uah      = Math.round(priceNum * 41);
+  // UAH rate is approximate — buyer pays current bank rate
+  const UAH_RATE = 41; // оновлюй при значних змінах курсу
+  const uah      = Math.round(priceNum * UAH_RATE);
   const ref      = _oRef; // e.g. AX-K3M7P2
 
   // Reference box — shown for all payment methods
@@ -2339,6 +2341,8 @@ function copyVal(text, btn) {
   });
 }
 async function confirmPayment() {
+  const btn = document.getElementById('confirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Надсилаємо...'; }
   const email    = (document.getElementById('orderEmailInput').value||'').trim();
   const name     = (document.getElementById('orderNameInput').value||'').trim();
   const surname  = (document.getElementById('orderSurnameInput').value||'').trim();
@@ -2375,9 +2379,9 @@ async function confirmPayment() {
   document.getElementById('orderConfirmEmail').textContent = email;
   const nameEl = document.getElementById('orderConfirmName');
   if (nameEl) nameEl.textContent = fullName ? ', ' + fullName : '';
-  // Show order reference on success screen
   const refEl = document.getElementById('orderConfirmRef');
   if (refEl) refEl.textContent = orderRef;
+  if (btn) { btn.disabled = false; btn.textContent = '✅ Я оплатив'; }
   renderOStep(5);
 }
 </script>
