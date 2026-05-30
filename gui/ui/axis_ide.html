@@ -2314,10 +2314,10 @@ function _appendAgentMsg(role, content, id) {
   copyBtn.textContent = '📋';
   copyBtn.onclick = function() {
     var raw = body.dataset.raw || body.textContent;
-    navigator.clipboard.writeText(raw).then(function() {
-      copyBtn.textContent = '✓';
-      setTimeout(function() { copyBtn.textContent = '📋'; }, 1500);
-    });
+    if (typeof _copyText === 'function') { _copyText(raw); }
+    else { try { var ta=document.createElement('textarea');ta.value=raw;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); } catch(e){} }
+    copyBtn.textContent = '✓';
+    setTimeout(function() { copyBtn.textContent = '📋'; }, 1500);
   };
   actions.appendChild(copyBtn);
   el.appendChild(actions);
@@ -2647,7 +2647,10 @@ function _mdInline(text) {
 
 function copyCode(btn) {
   var pre = btn.closest('.code-header').nextElementSibling;
-  if (pre) navigator.clipboard.writeText(pre.textContent);
+  if (pre) {
+    if (typeof _copyText === 'function') _copyText(pre.textContent, '✓ Скопійовано');
+    else { try { var ta=document.createElement('textarea');ta.value=pre.textContent;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); } catch(e){} }
+  }
   btn.textContent = '✓';
   setTimeout(function() { btn.textContent = 'Копіювати'; }, 1500);
 }

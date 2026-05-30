@@ -294,6 +294,19 @@ class AgentsHandlerMixin:
         JS sends: {request: str, context?: dict}
         Starts streaming AI in background thread.
         """
+        # ── Trial license check ───────────────────────────────────────────────
+        try:
+            from core.license import LicenseManager
+            from core.paths import USER_DATA_DIR
+            lic = LicenseManager(USER_DATA_DIR)
+            guard = lic.check("agents")
+            if not guard["ok"]:
+                self._run_js(f"window._chatError({json.dumps(guard['msg'])})")
+                return
+        except Exception as _le:
+            print(f"[License] check failed: {_le}", flush=True)
+        # ─────────────────────────────────────────────────────────────────────
+
         # Auto-fill from main IDE config if no dedicated agent key
         if not self._ai_config.get("api_key"):
             main = getattr(self, "_ide_config", {})
@@ -310,6 +323,8 @@ class AgentsHandlerMixin:
                     keys = {}
             if not isinstance(keys, dict):
                 keys = {}
+            # Merge with Credential Manager keys
+            keys = self._get_api_keys() | keys  # cfg has highest priority here
 
             key = keys.get(prov) or keys.get("anthropic") or keys.get("openai") or ""
 

@@ -16,9 +16,23 @@ def load_config() -> dict:
     migrate_data()
     try:
         with open(CONFIG_FILE, encoding="utf-8") as f:
-            return json.load(f)
+            cfg = json.load(f)
     except Exception:
-        return {}
+        cfg = {}
+    # One-time migration: move any plaintext API keys into Credential Manager
+    try:
+        from core.secrets import migrate_from_config
+        api_keys = cfg.get("api_keys", {})
+        if any(v for v in api_keys.values() if isinstance(v, str) and v):
+            moved = migrate_from_config(api_keys)
+            if moved:
+                import json as _j
+                with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                    _j.dump(cfg, f, ensure_ascii=False, indent=2)
+                print(f"[AXIS] Migrated {moved} API key(s) to Windows Credential Manager")
+    except Exception as e:
+        print(f"[AXIS] Secrets migration skipped: {e}")
+    return cfg
 
 
 def main():

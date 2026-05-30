@@ -402,8 +402,8 @@ function clipPaste(i) {
 function clipCopy(i) {
   var item = _clipHistory[i]; if (!item) return;
   pyCall('set_clipboard', JSON.stringify({text: item.text}));
-  if (navigator.clipboard) navigator.clipboard.writeText(item.text).catch(function(){});
-  showToast('📋 Скопійовано');
+  if (typeof _copyText === 'function') _copyText(item.text, '📋 Скопійовано');
+  else showToast('📋 Скопійовано');
 }
 
 function clipDelete(i) {

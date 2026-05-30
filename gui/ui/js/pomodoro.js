@@ -239,11 +239,50 @@
     }
   };
 
+  // ── Public status getter ──────────────────────────────────────────────────────
+  window.pomGetStatus = function () {
+    return {
+      mode: _mode, running: _running, remaining: _remaining,
+      session: _session, todayCount: _todayCount, todayMinutes: _todayMinutes
+    };
+  };
+
   // Register axisPush handler
   var _origPush = window.axisPush;
   window.axisPush = function (type, jsonStr) {
     if (type === 'pomodoro_stats') {
       try { handlePomodoroStats(JSON.parse(jsonStr)); } catch(e){}
+      return;
+    }
+    // ── Voice commands from Sphere ────────────────────────────────────────────
+    if (type === 'pomodoro_voice_cmd') {
+      try {
+        var d = JSON.parse(jsonStr);
+        var act = d.action;
+        if (act === 'start') {
+          if (!_running) { _setMode('work'); _startTimer(); }
+          showToast('🍅 Помодоро запущено!');
+        } else if (act === 'pause') {
+          if (_running) _pauseTimer();
+          showToast('⏸ Помодоро на паузі');
+        } else if (act === 'stop') {
+          _resetTimer();
+          showToast('🔄 Помодоро скинуто');
+        } else if (act === 'break_short') {
+          _pauseTimer(); _setMode('short'); _startTimer();
+          showToast('☕ Коротка перерва запущена');
+        } else if (act === 'break_long') {
+          _pauseTimer(); _setMode('long'); _startTimer();
+          showToast('🛋 Довга перерва запущена');
+        } else if (act === 'status') {
+          var st = window.pomGetStatus();
+          var modeLabel = st.mode === 'work' ? '🍅 Робота' : st.mode === 'short' ? '☕ Перерва' : '🛋 Довга перерва';
+          var mins = Math.floor(st.remaining / 60);
+          var secs = st.remaining % 60;
+          var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+          showToast(modeLabel + ' · ' + timeStr + (st.running ? ' ▶' : ' ⏸'));
+        }
+      } catch(e){}
       return;
     }
     _origPush && _origPush(type, jsonStr);

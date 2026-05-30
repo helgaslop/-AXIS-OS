@@ -4,9 +4,56 @@ AIVON - Voice Assistant Sphere
 Працює 24/7 в треї, слухає команди підряд
 Читає команди з data/commands.json
 Читає налаштування з data/config.json
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ПЛАН РОЗБИВКИ НА МОДУЛІ  (папка sphere/)                                   ║
+║  Кожна секція помічена: # ┌─ MODULE: sphere/xxx.py ──────┐                 ║
+║                          # └─────────────────────────────┘                 ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  sphere/utils.py        → рядки 114–714    (утиліти, Steam, memory utils)  ║
+║  sphere/config.py       → рядки 2463–2636  (конфіги)                        ║
+║  sphere/sound.py        → рядки 715–839    (JarvisSound)                   ║
+║  sphere/launcher.py     → рядки 840–1151   (AppLauncher)                   ║
+║  sphere/telegram_bot.py → рядки 1152–2132  (TelegramBotThread)             ║
+║  sphere/memory.py       → рядки 2133–2268  (MemoryThread) + методи         ║
+║  sphere/network.py      → рядки 2328–2462  (Weather/Search threads)        ║
+║  sphere/automation.py   → рядки 2637–3160 + 5540–5774 (Macro/Automation)  ║
+║  sphere/ai.py           → рядки 3161–3355 + 4681–5287 (Dialog/AIThread)   ║
+║  sphere/audio.py        → рядки 3356–3968 + 5451–5539 (STT/Voice/Wake)    ║
+║  sphere/media.py        → рядки 3969–4494  (Spotify, SearchThread)         ║
+║  sphere/ui.py           → рядки 5775+      (AivonSphere QWidget)           ║
+║  sphere/tts.py          → методи 14565–14914 (TTS engines + queue)         ║
+║  sphere/system.py       → методи 11472–11700 + 13413–13900 (System ctrl)  ║
+║  sphere/productivity.py → методи 12428–14047 (Notes/Todo/Habits/Focus)    ║
+║  sphere/commands.py     → методи 8149–9004  (_handle_jarvis_commands)      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 """
 
 import sys
+import os as _os_utf8
+# ── UTF-8 stdout so Panel can stream logs without encoding errors ─────────────
+# Must be BEFORE any print() with non-ASCII / box-drawing characters
+_os_utf8.environ.setdefault("PYTHONIOENCODING", "utf-8")
+_os_utf8.environ.setdefault("PYTHONUTF8", "1")
+try:
+    sys.stdout.reconfigure(encoding="utf-8", line_buffering=True)
+    sys.stderr.reconfigure(encoding="utf-8", line_buffering=True)
+except Exception:
+    pass
+import warnings
+import logging
+# ── Придушуємо попередження про CUDA DLL (cublas64_12.dll тощо) ──────────────
+warnings.filterwarnings("ignore", message=".*cublas.*")
+warnings.filterwarnings("ignore", message=".*cublasLt.*")
+warnings.filterwarnings("ignore", message=".*cudnn.*")
+warnings.filterwarnings("ignore", message=".*CUDA.*")
+logging.getLogger("faster_whisper").setLevel(logging.ERROR)
+logging.getLogger("ctranslate2").setLevel(logging.ERROR)
+# Блокуємо stderr-вивід від ctranslate2 / torch про відсутні DLL
+import os as _os_early
+_os_early.environ.setdefault("CT2_VERBOSE", "0")
+_os_early.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
+
 try:
     import audioop
 except ImportError:
@@ -26,7 +73,13 @@ import subprocess
 import webbrowser
 
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Keywords that trigger the Spotify inline menu in Telegram
+_TG_MUSIC_KW = frozenset((
+    "музика", "спотіфай", "spotify", "музику", "плейлист",
+    "плейлісти", "включи музику", "відкрий музику",
+))
 from pathlib import Path
 
 
@@ -43,11 +96,10 @@ try:
     _PYTTSX3_OK = True
 except ImportError:
     _PYTTSX3_OK = False
-    print("[AIVON] pyttsx3 не встановлено — fallback TTS вимкнено")
 
 import threading
 import speech_recognition as sr
-from PyQt6.QtWidgets import QApplication, QWidget, QMenu, QSystemTrayIcon
+from PyQt6.QtWidgets import QApplication, QWidget, QMenu, QSystemTrayIcon, QLineEdit
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QUrl, QFileSystemWatcher
 from PyQt6.QtGui import QPainter, QColor, QBrush, QRadialGradient, QPen, QFont, QIcon, QPixmap
 try:
@@ -75,9 +127,54 @@ except ImportError:
 # Optional: requests (needed for Telegram bot)
 try:
     import requests as _requests
+    import urllib3 as _urllib3
+    _urllib3.disable_warnings(_urllib3.exceptions.InsecureRequestWarning)
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
+
+
+# ┌─ MODULE: sphere/utils.py ─────────────────────────────────────────────────┐
+# │  Утиліти: мікрофон, пошук файлів/процесів, Steam, watch history, wake-lists │
+# └────────────────────────────────────────────────────────────────────────────┘
+# ─── PyAudio mic helper ─────────────────────────────────────────────────────
+import struct as _struct
+
+def _open_mic_stream(pa, rate: int, chunk_frames: int):
+    """Open the default input stream with auto-detected channel count.
+
+    Returns (stream, channels).  Tries mono first, then stereo.
+    Raises RuntimeError if the mic cannot be opened.
+    """
+    for channels in (1, 2):
+        try:
+            import pyaudio
+            stream = pa.open(
+                format=pyaudio.paInt16,
+                channels=channels,
+                rate=rate,
+                input=True,
+                frames_per_buffer=chunk_frames,
+            )
+            return stream, channels
+        except Exception:
+            continue
+    raise RuntimeError("Cannot open microphone input stream")
+
+
+def _to_mono(pcm_bytes: bytes, channels: int) -> bytes:
+    """Convert interleaved stereo PCM-16 to mono by averaging channels.
+    If already mono, returns unchanged.
+    """
+    if channels == 1:
+        return pcm_bytes
+    n = len(pcm_bytes) // 2          # total int16 samples
+    samples = _struct.unpack(f"{n}h", pcm_bytes)
+    mono = [
+        (samples[i] + samples[i + 1]) // 2
+        for i in range(0, n, 2)
+    ]
+    return _struct.pack(f"{len(mono)}h", *mono)
 
 
 # ─── PC Context helper ──────────────────────────────────────────────────────
@@ -496,6 +593,9 @@ def _open_video_fullscreen(path_or_url: str):
         subprocess.Popen(p, shell=True, creationflags=_NO_WINDOW)
 
 
+# ┌─ MODULE: sphere/sound.py + sphere/launcher.py ────────────────────────────┐
+# │  JarvisSound (715-839), AppLauncher (840-1151), WorkMonitorThread (572-661)  │
+# └────────────────────────────────────────────────────────────────────────────┘
 # ─── Work Session Monitor ────────────────────────────────────────────────────
 
 class WorkMonitorThread(QThread):
@@ -818,8 +918,115 @@ class AppLauncher:
         "калькулятор": ["calc", "calculator"],
         "провідник": ["explorer"],
         "термінал": ["cmd", "powershell", "terminal"],
+        "відеоплеєр": ["vlc", "mediaplayer"],
+        "ноутбук": ["onenote", "notepad", "notion"],
+        "студія": ["visual studio", "vs", "devenv"],
     }
-    
+
+    # Веб-додатки — відкриваються у браузері
+    WEB_APPS = {
+        # ── AI асистенти ──────────────────────────────────────
+        "клод": "https://claude.ai",
+        "claude": "https://claude.ai",
+        "гпт": "https://chat.openai.com",
+        "chatgpt": "https://chat.openai.com",
+        "чат гпт": "https://chat.openai.com",
+        "чатгпт": "https://chat.openai.com",
+        "chat gpt": "https://chat.openai.com",
+        "опенаі": "https://chat.openai.com",
+        "openai": "https://chat.openai.com",
+        "джемінай": "https://gemini.google.com",
+        "джемін": "https://gemini.google.com",
+        "gemini": "https://gemini.google.com",
+        "барад": "https://gemini.google.com",
+        "перплексіті": "https://perplexity.ai",
+        "perplexity": "https://perplexity.ai",
+        "кобот": "https://copilot.microsoft.com",
+        "copilot": "https://copilot.microsoft.com",
+        "коупілот": "https://copilot.microsoft.com",
+        "міджорні": "https://midjourney.com",
+        "midjourney": "https://midjourney.com",
+        "ллама": "https://llama.meta.com",
+        "llama": "https://llama.meta.com",
+        "гроук": "https://grok.x.ai",
+        "grok": "https://grok.x.ai",
+        # ── Відео / Музика ────────────────────────────────────
+        "ютуб": "https://youtube.com",
+        "youtube": "https://youtube.com",
+        "нетфлікс": "https://netflix.com",
+        "netflix": "https://netflix.com",
+        "кінопоіск": "https://kinopoisk.ru",
+        "кінопошук": "https://kinopoisk.ru",
+        "tвіч": "https://twitch.tv",
+        "twitch": "https://twitch.tv",
+        "спотіфай": "https://open.spotify.com",
+        "дізер": "https://deezer.com",
+        "deezer": "https://deezer.com",
+        # ── Соцмережі ─────────────────────────────────────────
+        "твіттер": "https://twitter.com",
+        "twitter": "https://twitter.com",
+        "іксі": "https://x.com",
+        "інстаграм": "https://instagram.com",
+        "instagram": "https://instagram.com",
+        "фейсбук": "https://facebook.com",
+        "facebook": "https://facebook.com",
+        "редіт": "https://reddit.com",
+        "reddit": "https://reddit.com",
+        "тікток": "https://tiktok.com",
+        "tiktok": "https://tiktok.com",
+        "лінкедін": "https://linkedin.com",
+        "linkedin": "https://linkedin.com",
+        # ── Продуктивність ────────────────────────────────────
+        "ноушн": "https://notion.so",
+        "notion": "https://notion.so",
+        "трелло": "https://trello.com",
+        "trello": "https://trello.com",
+        "ноушн ai": "https://notion.so",
+        "гугл докс": "https://docs.google.com",
+        "google docs": "https://docs.google.com",
+        "гугл диск": "https://drive.google.com",
+        "google drive": "https://drive.google.com",
+        "гугл таблиці": "https://sheets.google.com",
+        "google sheets": "https://sheets.google.com",
+        "гугл": "https://google.com",
+        "google": "https://google.com",
+        "ґмейл": "https://gmail.com",
+        "gmail": "https://gmail.com",
+        "гмейл": "https://gmail.com",
+        "фігма": "https://figma.com",
+        "figma": "https://figma.com",
+        "канва": "https://canva.com",
+        "canva": "https://canva.com",
+        # ── Розробка ──────────────────────────────────────────
+        "гітхаб": "https://github.com",
+        "github": "https://github.com",
+        "стековерфлов": "https://stackoverflow.com",
+        "stackoverflow": "https://stackoverflow.com",
+        "версел": "https://vercel.com",
+        "vercel": "https://vercel.com",
+        "хероку": "https://heroku.com",
+        "heroku": "https://heroku.com",
+        # ── Месенджери ────────────────────────────────────────
+        "вотсап": "https://web.whatsapp.com",
+        "whatsapp": "https://web.whatsapp.com",
+        # ── Новини / Пошук ────────────────────────────────────
+        "бінг": "https://bing.com",
+        "bing": "https://bing.com",
+        "вікіпедія": "https://uk.wikipedia.org",
+        "wikipedia": "https://en.wikipedia.org",
+        "хабр": "https://habr.com",
+        "habr": "https://habr.com",
+        "медіум": "https://medium.com",
+        "medium": "https://medium.com",
+        # ── Магазини ─────────────────────────────────────────
+        "прайм": "https://amazon.com",
+        "amazon": "https://amazon.com",
+        "алі": "https://aliexpress.com",
+        "aliexpress": "https://aliexpress.com",
+        "розетка": "https://rozetka.com.ua",
+        "olx": "https://olx.ua",
+    }
+
     def __init__(self):
         self.cache_file = USER_DATA_DIR / "app_cache.json"
         self.apps = {}
@@ -871,36 +1078,86 @@ class AppLauncher:
         return len(self.apps)
     
     def find(self, query):
-        """Знайти додаток за запитом (підтримує прізвиська)"""
+        """Знайти додаток за запитом (підтримує прізвиська, веб-додатки, fuzzy)."""
+        from difflib import SequenceMatcher
         q = query.lower().strip()
-        
-        # 1. Точний збіг
+        if not q:
+            return None
+
+        # 1. Точний збіг серед встановлених
         if q in self.apps:
             return self.apps[q]
-        
-        # 2. Перевірити прізвиська
+
+        # 2. Точний збіг у веб-додатках
+        if q in self.WEB_APPS:
+            return self.WEB_APPS[q]
+
+        # 3. Прізвиська → встановлені
         for alias, targets in self.ALIASES.items():
             if alias in q or q in alias:
                 for target in targets:
                     for name, path in self.apps.items():
                         if target in name:
                             return path
-        
-        # 3. Часткове входження
+
+        # 4. Часткове входження у веб-додатках
+        for name, url in self.WEB_APPS.items():
+            if q in name or name in q:
+                return url
+
+        # 5. Часткове входження серед встановлених
         for name, path in self.apps.items():
             if q in name or name in q:
                 return path
-        
-        # 4. Системні команди
+
+        # 6. Системні команди
         sys_cmds = {
             "блокнот": "notepad", "калькулятор": "calc",
             "провідник": "explorer", "діспетчер": "taskmgr",
             "пейнт": "mspaint", "термінал": "cmd",
+            "диспетчер задач": "taskmgr",
         }
         if q in sys_cmds:
             return sys_cmds[q]
-        
+
+        # 7. Fuzzy match серед встановлених (поріг 0.55)
+        best_score, best_path = 0.0, None
+        for name, path in self.apps.items():
+            score = SequenceMatcher(None, q, name).ratio()
+            if score > best_score:
+                best_score, best_path = score, path
+        if best_score >= 0.55:
+            return best_path
+
+        # 8. Fuzzy match серед веб-додатків (поріг 0.6)
+        best_score, best_url = 0.0, None
+        for name, url in self.WEB_APPS.items():
+            score = SequenceMatcher(None, q, name).ratio()
+            if score > best_score:
+                best_score, best_url = score, url
+        if best_score >= 0.6:
+            return best_url
+
         return None
+
+    def find_multi(self, phrase: str) -> list:
+        """Розбирає фразу, виділяє назви додатків і повертає список (name, path)."""
+        # Роздільники між кількома додатками
+        separators = [" і ", " та ", " and ", " й ", ", ", " + "]
+        parts = [phrase]
+        for sep in separators:
+            new_parts = []
+            for p in parts:
+                new_parts.extend(p.split(sep))
+            parts = new_parts
+        parts = [p.strip() for p in parts if p.strip()]
+
+        results = []
+        for part in parts:
+            path = self.find(part)
+            if path:
+                results.append((part, path))
+        return results
     
     def launch(self, path):
         """Запустити додаток"""
@@ -921,6 +1178,9 @@ class AppLauncher:
 # TELEGRAM BOT — remote control via Telegram messages
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/telegram_bot.py ───────────────────────────────────────────┐
+# │  TelegramBotThread: фоновий бот, inline кнопки, фото/голос, опитування API  │
+# └────────────────────────────────────────────────────────────────────────────┘
 class TelegramBotThread(QThread):
     """Telegram бот — слухає повідомлення і передає їх сфері як команди.
     Використовує long-polling (не потрібен webhook/публічний IP).
@@ -930,17 +1190,150 @@ class TelegramBotThread(QThread):
 
     _POLL_TIMEOUT = 25  # секунди long-poll
 
+    # ── Тематичні смарт-меню ─────────────────────────────────────────────────
+    # Кожна тема → inline keyboard. "__wait__:key" = чекаємо текстовий ввід.
+    TOPIC_MENUS: dict = {
+        "notes": {
+            "title": "📝  <b>Нотатки</b>",
+            "rows": [
+                [("📋 Мої нотатки",     "мої нотатки"),
+                 ("🗑 Очистити всі",    "видали всі нотатки")],
+                [("✏️ Записати нотатку","__wait__:add_note")],
+            ],
+        },
+        "music": {
+            "title": "🎵  <b>Музика / Spotify</b>",
+            "rows": [
+                [("▶️ Грати",           "включи музику"),
+                 ("⏸ Пауза",           "пауза")],
+                [("⏭ Наступний",       "наступний трек"),
+                 ("⏮ Попередній",      "попередній трек")],
+                [("❤️ Улюблені треки", "улюблені треки"),
+                 ("🔀 Перемішати",     "перемішати spotify")],
+                [("🎵 Зараз грає",     "що зараз грає"),
+                 ("🔍 Знайти пісню",   "__wait__:spotify_search")],
+                [("📋 Мої плейлісти", "__submenu__:spotify_playlists"),
+                 ("🕐 Нещодавні",      "__submenu__:spotify_recent")],
+            ],
+        },
+        "tasks": {
+            "title": "✅  <b>Завдання / To-Do</b>",
+            "rows": [
+                [("📋 Мої задачі",      "мої задачі"),
+                 ("✅ Виконати",        "завдання виконано")],
+                [("➕ Нове завдання",   "__wait__:add_task")],
+            ],
+        },
+        "habits": {
+            "title": "🏆  <b>Звички</b>",
+            "rows": [
+                [("📊 Прогрес",         "мій прогрес звичок"),
+                 ("📋 Список",          "мої звички")],
+                [("✅ Відмітити",       "__wait__:mark_habit")],
+            ],
+        },
+        "news": {
+            "title": "📰  <b>Новини</b>",
+            "rows": [
+                [("🖥 Технології",      "новини tech"),
+                 ("🌍 Світ",           "новини світу")],
+                [("🇺🇦 Україна",       "новини україна")],
+            ],
+        },
+        "reminders": {
+            "title": "⏰  <b>Нагадування</b>",
+            "rows": [
+                [("📋 Мої нагадування", "/reminders"),
+                 ("❌ Видалити",        "видали нагадування")],
+                [("⏰ Нагадати о...",   "__wait__:add_reminder")],
+            ],
+        },
+        "weather": {
+            "title": "🌤  <b>Погода</b>",
+            "rows": [
+                [("🌤 Зараз",           "яка погода"),
+                 ("📅 На тиждень",      "прогноз погоди на тиждень")],
+                [("🌆 Змінити місто",   "__wait__:set_city")],
+            ],
+        },
+        "alarms": {
+            "title": "⏰  <b>Будильники</b>",
+            "rows": [
+                [("📋 Мої будильники", "мої будильники"),
+                 ("❌ Скасувати",      "скасуй будильник")],
+                [("⏰ Новий будильник", "__wait__:add_alarm")],
+            ],
+        },
+        "focus": {
+            "title": "🎯  <b>Фокус-режим</b>",
+            "rows": [
+                [("🎯 25 хвилин",  "увімкни фокус на 25 хвилин"),
+                 ("⏱ 50 хвилин",  "увімкни фокус на 50 хвилин")],
+                [("🔥 90 хвилин",  "увімкни фокус на 90 хвилин"),
+                 ("❌ Вимкнути",   "вимкни фокус")],
+            ],
+        },
+        "system2": {
+            "title": "🖥  <b>Система+</b>",
+            "rows": [
+                [("🔋 Заряд",       "скільки заряду"),
+                 ("🌐 Інтернет",    "швидкість інтернету")],
+                [("📡 WiFi",        "хто в мережі"),
+                 ("💤 Вимкнути",    "__wait__:shutdown_timer")],
+                [("📸 Скрін в TG",  "зроби скрін і відправ")],
+            ],
+        },
+        "pomodoro": {
+            "title": "🍅  <b>Помодоро</b>",
+            "rows": [
+                [("▶️ Старт",        "старт помодоро"),
+                 ("⏸ Пауза",        "пауза помодоро")],
+                [("🔄 Скинути",      "скинь помодоро"),
+                 ("☕ Перерва",      "перерва помодоро")],
+                [("📊 Статус",       "скільки помодоро"),
+                 ("🎯 Фокус 25хв",  "увімкни фокус на 25 хвилин")],
+            ],
+        },
+    }
+
+    # Підказки для стану "очікування тексту"
+    _WAIT_PROMPTS: dict = {
+        "add_note":       "✏️  Напиши текст нотатки — збережу одразу:",
+        "add_task":       "✅  Напиши завдання — додам до списку:",
+        "add_reminder":   "⏰  Напиши нагадування:\n<i>Напр: о 15:00 зателефонувати Олені</i>",
+        "spotify_search": "🔍  Що шукати в Spotify?\n<i>Напр: Imagine Dragons Believer</i>",
+        "mark_habit":     "🏆  Яку звичку відмітити? Напиши назву:",
+        "set_city":       "🌆  Напиши місто для погоди (укр або англ):",
+        "add_alarm":      "⏰  Введи час будильника (напр: 7:30 або 08:00):",
+        "shutdown_timer": "💤  Через скільки вимкнути ПК?\n<i>Напр: 30 секунд / 10 хвилин / 2 години</i>",
+    }
+    # Префікси для перетворення тексту у голосову команду
+    _WAIT_PREFIXES: dict = {
+        "add_note":       "запиши нотатку",
+        "add_task":       "додай завдання",
+        "add_reminder":   "нагадай",
+        "spotify_search": "spotify знайди",
+        "mark_habit":     "відмітити звичку",
+        "set_city":       "змінити місто погоди на",
+        "add_alarm":      "постав будильник на",
+        "shutdown_timer": "вимкни через",
+    }
+
     def __init__(self, token: str, allowed_ids=None, custom_commands=None, parent=None):
         super().__init__(parent)
         self.token            = token.strip()
         self.allowed_ids      = [str(x).strip() for x in (allowed_ids or [])] if allowed_ids else []
         self._custom_commands = list(custom_commands or [])
         self._running         = True
+        # chat_id → pending wait key (очікуємо текстовий ввід від користувача)
+        self._tg_pending: dict[str, str] = {}
         self._offset          = 0
         self._sess            = None
         # Callback map: short_id → action_text (для inline кнопок)
         self._cb_map: dict[str, str] = {}
         self._cb_counter = 0
+        # Offline message queue: list of (chat_id, text) tuples
+        self._msg_queue: list = []
 
     def update_commands(self, custom_commands: list):
         """Оновити список кастомних команд (live, без рестарту)."""
@@ -1009,6 +1402,10 @@ class TelegramBotThread(QThread):
         # Реєструємо команди в меню '/' бота
         self._register_bot_menu()
 
+        _backoff = 5          # current wait seconds after network error
+        _backoff_max = 60     # cap at 60 s
+        _was_offline = False  # track state so we only log once per outage
+
         while self._running:
             try:
                 resp = self._sess.get(
@@ -1016,6 +1413,20 @@ class TelegramBotThread(QThread):
                     params={"offset": self._offset, "timeout": self._POLL_TIMEOUT},
                     timeout=self._POLL_TIMEOUT + 5
                 )
+                # ── successful response → reset backoff + drain queued msgs ──
+                if _was_offline:
+                    print("[Telegram] ✅ з'єднання відновлено")
+                    self.status_changed.emit("online")
+                    _was_offline = False
+                    # Send any messages that were queued while offline
+                    if self._msg_queue:
+                        queued = self._msg_queue[:]
+                        self._msg_queue.clear()
+                        for q_cid, q_txt, q_mkp in queued:
+                            self.send_message(q_cid, q_txt, reply_markup=q_mkp)
+                        print(f"[Telegram] 📬 черга відправлена: {len(queued)} повідом.")
+                _backoff = 5
+
                 if not resp.ok:
                     time.sleep(3)
                     continue
@@ -1026,10 +1437,33 @@ class TelegramBotThread(QThread):
                     except Exception as e:
                         print(f"[Telegram] ❌ _process_update error: {e}")
                         import traceback; traceback.print_exc()
+
             except Exception as e:
-                if self._running:
+                if not self._running:
+                    break
+                err_str = str(e)
+                # Detect network / DNS failures
+                _net_keywords = ("getaddrinfo", "NameResolution", "ConnectionError",
+                                 "ConnectTimeout", "ReadTimeout", "Max retries",
+                                 "RemoteDisconnected", "ConnectionReset")
+                is_net_err = any(k in err_str for k in _net_keywords)
+
+                if is_net_err:
+                    if not _was_offline:
+                        # First failure → log the full error once
+                        print(f"[Telegram] ⚠️ мережа недоступна: {e}")
+                        self.status_changed.emit("offline (no network)")
+                        _was_offline = True
+                    else:
+                        # Subsequent failures → silent (no log spam)
+                        pass
+                else:
+                    # Non-network error → always log
                     print(f"[Telegram] ❌ polling error: {e}")
-                    time.sleep(5)
+
+                # Exponential backoff: 5 → 10 → 20 → 40 → 60 → 60 …
+                time.sleep(_backoff)
+                _backoff = min(_backoff * 2, _backoff_max)
 
         self.status_changed.emit("offline")
 
@@ -1068,7 +1502,7 @@ class TelegramBotThread(QThread):
             now = datetime.now().strftime("%H:%M:%S  %d.%m.%Y")
             lines = [
                 f"{self._HEADER}\n",
-                f"🖥️  <b>МОНІТОРИНГ СИСТЕМИ</b>",
+                "🖥️  <b>МОНІТОРИНГ СИСТЕМИ</b>",
                 f"🕐  <code>{now}</code>",
                 f"{self._DIVIDER}",
             ]
@@ -1138,11 +1572,24 @@ class TelegramBotThread(QThread):
             f"📟  <i>AXIS OS Security Gate</i>"
         )
 
+    @staticmethod
+    def _html_escape(s: str) -> str:
+        """Escape characters that break Telegram HTML parse mode."""
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     def _fmt_response(self, text: str) -> str:
-        """Обгортаємо відповідь сфери в красивий контейнер."""
+        """Обгортаємо відповідь сфери в красивий контейнер.
+        HTML-спецсимволи в тілі відповіді екрануємо, щоб Telegram не відхиляв.
+        """
         now = datetime.now().strftime("%H:%M")
         # Скорочуємо якщо дуже довге
-        body = text[:800] + ("…" if len(text) > 800 else "")
+        raw = text[:800] + ("…" if len(text) > 800 else "")
+        # Якщо текст вже містить HTML-теги (<b>, <i>, <code>…) — не екрануємо,
+        # інакше екрануємо небезпечні символи.
+        if re.search(r"<(b|i|code|pre|a)\b", raw, re.I):
+            body = raw   # вже розмічений HTML — залишаємо як є
+        else:
+            body = self._html_escape(raw)
         return (
             f"🔮  <b>AIVON</b>  ·  <code>{now}</code>\n"
             f"{self._DIVIDER}\n"
@@ -1181,6 +1628,36 @@ class TelegramBotThread(QThread):
             # Перевірка дозволів
             if self.allowed_ids and chat_id not in self.allowed_ids:
                 self._answer_cb(cq_id, "⛔ Немає доступу")
+                return
+
+            # Кнопка "очікування тексту" — запитуємо ввід
+            if action.startswith("__wait__:"):
+                wait_key = action[9:]
+                self._tg_pending[chat_id] = wait_key
+                prompt = self._WAIT_PROMPTS.get(wait_key, "Введи текст наступним повідомленням:")
+                self._answer_cb(cq_id, "✏️ Введи текст")
+                self.send_message(chat_id, prompt)
+                return
+
+            # Inline підменю Spotify (плейлісти, нещодавні)
+            if action.startswith("__submenu__:"):
+                sub = action[12:]
+                self._answer_cb(cq_id, "⏳ Завантажую...")
+                self._show_spotify_submenu(chat_id, sub)
+                return
+
+            # Пряме відтворення Spotify URI з кнопки
+            if action.startswith("__spotify_uri__:"):
+                uri = action[16:]
+                self._answer_cb(cq_id, "🎵 Запускаю...")
+                self._execute_spotify_uri(uri)
+                return
+
+            # Показати тематичне меню через callback
+            if action.startswith("__topic__:"):
+                topic = action[10:]
+                self._answer_cb(cq_id, "📋 Меню")
+                self._show_topic_menu(chat_id, topic)
                 return
 
             self._answer_cb(cq_id, "⚙️ Виконую...")
@@ -1232,6 +1709,31 @@ class TelegramBotThread(QThread):
             print(f"[Telegram] BLOCKED: {chat_id}")
             return
 
+        # ── Фото-повідомлення → Gemini Vision ────────────────────────────────
+        photos = msg.get("photo")
+        if photos and not raw_text:
+            file_id = photos[-1]["file_id"]
+            caption = msg.get("caption") or "Що на цьому фото? Опиши детально українською."
+            self.send_message(chat_id, "🖼 Аналізую фото...")
+            self.message_received.emit(f"__photo__:{file_id}:{caption}", chat_id)
+            return
+
+        # ── Голосове повідомлення → транскрипція ──────────────────────────────
+        voice = msg.get("voice")
+        if voice:
+            file_id = voice["file_id"]
+            self.send_message(chat_id, "🎤 Розпізнаю голосове...")
+            self.message_received.emit(f"__voice__:{file_id}", chat_id)
+            return
+
+        # ── Очікування тексту (після натискання __wait__ кнопки) ────────────
+        if chat_id in self._tg_pending and raw_text:
+            wait_key = self._tg_pending.pop(chat_id)
+            prefix = self._WAIT_PREFIXES.get(wait_key, "")
+            if prefix:
+                raw_text = f"{prefix} {raw_text}"
+                print(f"[Telegram] pending '{wait_key}' → '{raw_text[:60]}'")
+
         # ── Кастомна кнопка або звичайний текст ──────────────────────────────
         if raw_text:
             print(f"[Telegram] текстова кнопка: {raw_text!r} | cmds_count={len(self._custom_commands)}")
@@ -1240,8 +1742,14 @@ class TelegramBotThread(QThread):
                 ctype = cmd_cfg.get("type", "command")
                 print(f"[Telegram] матч: type={ctype!r}")
                 if ctype.startswith("submenu"):
-                    # Показуємо підменю (inline keyboard)
+                    # Показуємо підменю (inline keyboard) з динамічним вмістом
                     self._show_submenu(chat_id, cmd_cfg)
+                    return
+                elif ctype.startswith("topic_"):
+                    # Тематичне смарт-меню (notes, music, tasks, …)
+                    topic = ctype[6:]
+                    print(f"[Telegram] topic menu: {topic!r}")
+                    self._show_topic_menu(chat_id, topic)
                     return
                 else:
                     action = cmd_cfg.get("action", raw_text)
@@ -1273,16 +1781,38 @@ class TelegramBotThread(QThread):
 
     def send_message(self, chat_id: str, text: str, parse_mode: str = "HTML",
                      reply_markup: dict | None = None):
-        """Надіслати повідомлення в Telegram."""
+        """Надіслати повідомлення в Telegram.
+        Якщо HTML-парсинг Telegram відхиляє — повторюємо без parse_mode.
+        """
         if not HAS_REQUESTS or not self._sess:
             return
         try:
             payload = {"chat_id": chat_id, "text": text[:4096], "parse_mode": parse_mode}
             if reply_markup:
                 payload["reply_markup"] = reply_markup
-            self._sess.post(f"{self._base}/sendMessage", json=payload, timeout=10)
-        except Exception:
-            pass
+            r = self._sess.post(f"{self._base}/sendMessage", json=payload, timeout=10)
+            if not r.ok:
+                err_body = r.text[:200] if hasattr(r, 'text') else str(r.status_code)
+                print(f"[Telegram] sendMessage {r.status_code}: {err_body}")
+                # HTML parse error → retry as plain text
+                if r.status_code == 400 and parse_mode == "HTML":
+                    payload2 = {"chat_id": chat_id, "text": text[:4096]}
+                    if reply_markup:
+                        payload2["reply_markup"] = reply_markup
+                    r2 = self._sess.post(f"{self._base}/sendMessage", json=payload2, timeout=10)
+                    if not r2.ok:
+                        print(f"[Telegram] sendMessage plain fallback {r2.status_code}: {r2.text[:100]}")
+        except Exception as e:
+            err_str = str(e)
+            _net_kw = ("getaddrinfo", "NameResolution", "ConnectionError",
+                       "ConnectTimeout", "ReadTimeout", "Max retries",
+                       "RemoteDisconnected", "ConnectionReset")
+            if any(k in err_str for k in _net_kw):
+                # Queue the message for later delivery when network comes back
+                self._msg_queue.append((chat_id, text, reply_markup))
+                print(f"[Telegram] 📪 повідомлення в чергу ({len(self._msg_queue)} ч.)")
+            else:
+                print(f"[Telegram] sendMessage exception: {e}")
 
     def send_with_keyboard(self, chat_id: str, text: str,
                            buttons: list[list[str]], parse_mode: str = "HTML"):
@@ -1333,27 +1863,27 @@ class TelegramBotThread(QThread):
 
         if ctype == "submenu_steam":
             items = self._items_steam()
-            title = f"🎮  <b>Steam — Ігри</b>"
+            title = "🎮  <b>Steam — Ігри</b>"
             empty = "⚠️ Steam ігри не знайдено.\nПереконайся що Steam встановлено."
         elif ctype == "submenu_watch":
             items = self._items_watch()
-            title = f"🎬  <b>Відео / Серіали</b>"
+            title = "🎬  <b>Відео / Серіали</b>"
             empty = "⚠️ Немає збережених переглядів.\nСкажи сфері «включи фільм [назва]»."
         elif ctype == "submenu_volume":
             items = self._items_volume()
-            title = f"🔊  <b>Гучність</b>"
+            title = "🔊  <b>Гучність</b>"
             empty = ""
         elif ctype == "submenu_system":
             items = self._items_system()
-            title = f"🖥️  <b>Система</b>"
+            title = "🖥️  <b>Система</b>"
             empty = ""
         elif ctype == "submenu_apps":
             items = self._items_apps()
-            title = f"📂  <b>Програми</b>"
+            title = "📂  <b>Програми</b>"
             empty = "⚠️ Немає додатків у списку."
         elif ctype == "submenu_commands":
             items = self._items_user_commands()
-            title = f"📋  <b>Всі команди</b>"
+            title = "📋  <b>Всі команди</b>"
             empty = "⚠️ Немає збережених команд. Додай в панелі AXIS OS → Команди."
         else:  # submenu_custom
             raw = config.get("children", [])
@@ -1366,12 +1896,7 @@ class TelegramBotThread(QThread):
             self.send_message(chat_id, f"{title}\n\n{empty}")
             return
 
-        # Формуємо rows: по 2 кнопки в рядку
-        rows = []
-        for i in range(0, len(items), 2):
-            chunk = items[i:i+2]
-            rows.append([(lbl, self._cb(act)) for lbl, act in chunk])
-        # Кнопка «← Назад»
+        rows = self._build_item_rows(items)
         rows.append([("🏠  Головне меню", self._cb("__menu__"))])
 
         header = (
@@ -1444,6 +1969,120 @@ class TelegramBotThread(QThread):
         except Exception as e:
             print(f"[Telegram] _items_user_commands error: {e}")
             return []
+
+    # ── Тематичне смарт-меню ─────────────────────────────────────────────────
+    def _show_topic_menu(self, chat_id: str, topic: str):
+        """Показати смарт-меню для теми (notes, music, tasks, …)."""
+        cfg = self.TOPIC_MENUS.get(topic)
+        if not cfg:
+            self.send_message(chat_id, f"⚠️ Невідома тема: {topic}")
+            return
+        title_text = (
+            f"{self._HEADER}\n\n"
+            f"{cfg['title']}\n"
+            f"{self._DIVIDER}\n"
+            f"Обери дію:"
+        )
+        inline_rows = []
+        for row in cfg["rows"]:
+            inline_row = []
+            for label, action in row:
+                cb_id = self._cb(action)
+                inline_row.append({"text": label, "callback_data": cb_id})
+            inline_rows.append(inline_row)
+        inline_rows.append([{"text": "🏠 Головне меню", "callback_data": self._cb("__menu__")}])
+        if not HAS_REQUESTS or not self._sess:
+            return
+        try:
+            self._sess.post(f"{self._base}/sendMessage", json={
+                "chat_id": chat_id,
+                "text": title_text,
+                "parse_mode": "HTML",
+                "reply_markup": {"inline_keyboard": inline_rows},
+            }, timeout=10)
+        except Exception as e:
+            print(f"[Telegram] _show_topic_menu error: {e}")
+
+    # ── Shared row-builder: pairs items into 2-column inline rows ────────────
+    def _build_item_rows(self, items: list) -> list:
+        rows = []
+        for i in range(0, len(items), 2):
+            chunk = items[i:i+2]
+            rows.append([(lbl, self._cb(act)) for lbl, act in chunk])
+        return rows
+
+    # ── Spotify підменю (плейлісти / нещодавні) ──────────────────────────────
+    def _show_spotify_submenu(self, chat_id: str, sub: str):
+        """Показує inline-клавіатуру з плейлістами або нещодавніми треками Spotify."""
+        if sub == "spotify_playlists":
+            title  = "📋  <b>Мої плейлісти</b>"
+            items  = self._items_spotify_playlists()
+            empty  = "⚠️ Плейлісти не знайдено.\nПереконайся що Spotify підключено в панелі."
+        elif sub == "spotify_recent":
+            title  = "🕐  <b>Нещодавно слухав</b>"
+            items  = self._items_spotify_recent()
+            empty  = "⚠️ Немає нещодавніх треків."
+        else:
+            return
+
+        header = (
+            f"{self._HEADER}\n\n"
+            f"{title}\n"
+            f"{self._DIVIDER}\n"
+            f"Натисни — одразу заграє:"
+        )
+        if not items:
+            self.send_message(chat_id, f"{header}\n\n{empty}")
+            return
+
+        rows = self._build_item_rows(items)
+        rows.append([
+            ("🎵 Керування",    self._cb("__topic__:music")),
+            ("🏠 Головне меню", self._cb("__menu__")),
+        ])
+        self.send_inline_keyboard(chat_id, header, rows)
+
+    def _items_spotify_playlists(self) -> list:
+        """Плейлісти користувача через Spotify API."""
+        try:
+            self._ensure_spotify_ctrl()
+            sp = getattr(self.spotify_ctrl, "_sp", None) if self.spotify_ctrl else None
+            if not sp:
+                return []
+            result = [("❤️ Улюблені треки", "улюблені треки")]
+            playlists = sp.current_user_playlists(limit=24).get("items", [])
+            for pl in playlists:
+                name = pl.get("name", "")[:28]
+                uri  = pl.get("uri", "")
+                if name and uri:
+                    result.append((f"🎵 {name}", f"__spotify_uri__:{uri}"))
+            return result
+        except Exception as e:
+            print(f"[Telegram] _items_spotify_playlists error: {e}")
+            return [("❤️ Улюблені треки", "улюблені треки")]
+
+    def _items_spotify_recent(self) -> list:
+        """Нещодавно прослухані треки через Spotify API."""
+        result = []
+        try:
+            self._ensure_spotify_ctrl()
+            sp = getattr(self.spotify_ctrl, "_sp", None) if self.spotify_ctrl else None
+            if not sp:
+                return result
+            recent = sp.current_user_recently_played(limit=16).get("items", [])
+            seen = set()
+            for item in recent:
+                track  = item.get("track", {})
+                name   = track.get("name", "")
+                artist = (track.get("artists") or [{}])[0].get("name", "")
+                uri    = track.get("uri", "")
+                if uri and uri not in seen:
+                    seen.add(uri)
+                    label = f"🎵 {artist[:12]} — {name[:16]}"
+                    result.append((label, f"__spotify_uri__:{uri}"))
+        except Exception as e:
+            print(f"[Telegram] _items_spotify_recent error: {e}")
+        return result
 
     def set_bot_commands(self, commands: list[dict]):
         """Зареєструвати команди в меню '/' бота (з'являються при натисканні /).
@@ -1523,6 +2162,9 @@ class TelegramBotThread(QThread):
 # MEMORY — OpenAI Assistants API (persistent threads)
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/memory.py ─────────────────────────────────────────────────┐
+# │  MemoryThread: асинхронне збереження/пошук фактів у пам'яті                 │
+# └────────────────────────────────────────────────────────────────────────────┘
 class MemoryThread(threading.Thread):
     """OpenAI Assistants — пам'ять через threads"""
     
@@ -1580,27 +2222,74 @@ class MemoryThread(threading.Thread):
             messages.extend(MemoryThread._chat_history[-self._MAX_HISTORY:])
             messages.append({"role": "user", "content": self.message})
             
-            # Прямий Chat Completions API — швидше ніж Responses API
+            import json as _j
+            # Inject owner profile into system instructions
+            system = self.ASSISTANT_INSTRUCTIONS
+            try:
+                owner = AIThread._load_owner_context()
+                if owner:
+                    system += f"\n\n[Профіль власника]\n{owner}"
+            except Exception:
+                pass
+
+            # Inject long-term conversation memory context
+            try:
+                from core.convo_memory import build_recall_context
+                extra_ctx = getattr(self, '_extra_context', None) or build_recall_context(self.message)
+                if extra_ctx:
+                    system += f"\n\n{extra_ctx}"
+                self._extra_context = None  # reset after use
+            except Exception:
+                pass
+
+            messages[0]["content"] = system  # replace system msg
+
+            # Chat Completions з function calling
             r = req.post("https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": "gpt-4o-mini", "max_tokens": 300,
-                      "messages": messages}, timeout=10)
-            
+                json={"model": "gpt-4o-mini", "max_tokens": 600,
+                      "messages": messages,
+                      "tools": AIThread.TOOLS, "tool_choice": "auto"}, timeout=15)
+
             if r.status_code != 200:
                 self.error_callback(f"HTTP {r.status_code}")
                 return
-            
-            text = r.json()["choices"][0]["message"]["content"].strip()
+
+            choice = r.json()["choices"][0]
+            msg    = choice["message"]
+            text   = (msg.get("content") or "").strip()
+
+            # ── Handle tool calls ─────────────────────────────────────────────
+            tool_calls = msg.get("tool_calls", [])
+            if tool_calls:
+                messages.append(msg)   # assistant msg з tool_calls
+                for tc in tool_calls:
+                    try:
+                        args = _j.loads(tc["function"]["arguments"])
+                    except Exception:
+                        args = {}
+                    print(f"[Memory] 🔧 {tc['function']['name']}({args})")
+                    result = AIThread._run_tool(tc["function"]["name"], args)
+                    print(f"[Memory] ✅ {result[:80]}")
+                    messages.append({"role": "tool", "content": result, "tool_call_id": tc["id"]})
+                # Second call with tool results
+                r2 = req.post("https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json={"model": "gpt-4o-mini", "max_tokens": 600, "messages": messages},
+                    timeout=15)
+                if r2.status_code == 200:
+                    text = (r2.json()["choices"][0]["message"].get("content") or "").strip()
+                else:
+                    self.error_callback(f"HTTP {r2.status_code}"); return
+
             if text:
-                # Зберігаємо в локальний буфер
                 MemoryThread._chat_history.append({"role": "user", "content": self.message})
                 MemoryThread._chat_history.append({"role": "assistant", "content": text})
-                # Обрізаємо буфер
                 if len(MemoryThread._chat_history) > self._MAX_HISTORY:
                     MemoryThread._chat_history = MemoryThread._chat_history[-self._MAX_HISTORY:]
                 self.callback(text)
                 return
-            
+
             self.error_callback("Порожня відповідь")
             
         except Exception as e:
@@ -1612,6 +2301,9 @@ class MemoryThread(threading.Thread):
 # PERPLEXITY SEARCH — Пошук з цитатами
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/network.py ────────────────────────────────────────────────┐
+# │  PerplexitySearchThread, WeatherThread, TavilySearchThread, SerperSearch     │
+# └────────────────────────────────────────────────────────────────────────────┘
 class PerplexitySearchThread(QThread):
     """Пошук через Perplexity sonar з цитатами та посиланнями"""
     response = pyqtSignal(str)
@@ -1806,6 +2498,9 @@ class SerperSearchThread(QThread):
 # CONFIG & COMMANDS
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/config.py ─────────────────────────────────────────────────┐
+# │  save_config, load_config, load_sphere_config, save_sphere_config, load_cmds │
+# └────────────────────────────────────────────────────────────────────────────┘
 def save_config(cfg):
     with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
         json.dump(cfg, f, ensure_ascii=False, indent=2)
@@ -1877,7 +2572,7 @@ def load_config():
             sphere = load_sphere_config()
             merged.update(sphere)
             return merged
-        except:
+        except Exception:
             pass
     # Створюємо файл з дефолтними значеннями
     save_config(default)
@@ -1964,7 +2659,7 @@ def load_commands():
         try:
             with open(COMMANDS_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except:
+        except Exception:
             pass
     # Створюємо файл з дефолтними командами
     with open(COMMANDS_FILE, 'w', encoding='utf-8') as f:
@@ -1980,6 +2675,9 @@ import ctypes
 from ctypes import wintypes
 import uuid as _uuid
 
+# ┌─ MODULE: sphere/automation.py ─────────────────────────────────────────────┐
+# │  Win32 INPUT structs, _send_input, MacroEngine, AutomationEngine             │
+# └────────────────────────────────────────────────────────────────────────────┘
 # ── Windows Input Simulation ──
 INPUT_MOUSE = 0
 INPUT_KEYBOARD = 1
@@ -2504,6 +3202,9 @@ VOICE_PROVIDER_NAMES = {
 # THREADS
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/ai.py ─────────────────────────────────────────────────────┐
+# │  _DialogThread, _DialogTTSThread: AI запити + TTS відповіді в фонових потоках│
+# └────────────────────────────────────────────────────────────────────────────┘
 class _DialogThread(QThread):
     """Multi-provider AI виклик для діалог режиму з пам'яттю"""
     result = pyqtSignal(str)
@@ -2619,7 +3320,11 @@ class _DialogThread(QThread):
         print(f"[Dialog] Gemini status={r.status_code}")
         if r.status_code == 200:
             data = r.json()
-            parts = data["candidates"][0]["content"]["parts"]
+            _cands = data.get("candidates") or []
+            if not _cands:
+                self.error.emit("Gemini: порожня відповідь (можливо SAFETY filter)")
+                return
+            parts = _cands[0].get("content", {}).get("parts", [])
             answer = ""
             for p in reversed(parts):
                 if p.get("text") and not p.get("thought"):
@@ -2676,7 +3381,7 @@ class _DialogTTSThread(QThread):
                             creationflags=_NO_WINDOW)
                 try:
                     os.remove(tmp.name)
-                except:
+                except Exception:
                     pass
             else:
                 print(f"[Dialog TTS] HTTP {r.status_code}")
@@ -2695,6 +3400,9 @@ try:
 except ImportError:
     HAS_WHISPER = False
 
+# ┌─ MODULE: sphere/audio.py ──────────────────────────────────────────────────┐
+# │  WhisperSTT, WhisperLoader, VoiceThread, InterruptMonitorThread, WakeWord    │
+# └────────────────────────────────────────────────────────────────────────────┘
 class WhisperSTT:
     """Singleton для офлайн STT через faster-whisper.
     Лінива ініціалізація — модель завантажується тільки при першому використанні.
@@ -2790,37 +3498,275 @@ class WhisperLoader(QThread):
 
 
 class VoiceThread(QThread):
-    """Розпізнавання голосу (Google STT або Whisper офлайн)."""
-    recognized = pyqtSignal(str)
-    recognized_with_conf = pyqtSignal(str, float)  # text, confidence 0..1
-    partial = pyqtSignal(str)
-    error = pyqtSignal(str)
-    started_signal = pyqtSignal()
-    stopped = pyqtSignal()
+    """Розпізнавання голосу.
+
+    Task 7: Streaming pyaudio + VAD (webrtcvad / Silero / energy-threshold).
+    Chunks of 30 ms → VAD per chunk → 550 ms silence after speech → stop.
+    Falls back to blocking speech_recognition if pyaudio unavailable.
+    """
+    recognized            = pyqtSignal(str)
+    recognized_with_conf  = pyqtSignal(str, float)   # text, confidence 0..1
+    recognized_with_audio = pyqtSignal(str, bytes)   # text, raw PCM-16 LE bytes @ 16kHz
+    partial               = pyqtSignal(str)
+    error                 = pyqtSignal(str)
+    started_signal        = pyqtSignal()
+    stopped               = pyqtSignal()
+
+    # VAD constants
+    _RATE           = 16000
+    _CHUNK_MS       = 30
+    _CHUNK_FRAMES   = _RATE * _CHUNK_MS // 1000   # 480 samples
+    _SILENCE_END    = 18   # ×30 ms = 540 ms silence → end of phrase
+    _MIN_SPEECH     = 3    # ×30 ms = 90 ms minimum speech to accept
+    _MAX_CHUNKS     = 500  # ×30 ms = 15 s hard limit
+    _PRE_ROLL       = 5    # keep N silent chunks before speech onset
 
     def __init__(self, lang: str = "uk-UA", config: dict | None = None):
         super().__init__()
-        self.lang   = lang
-        self.config = config or {}
+        self.lang        = lang
+        self.config      = config or {}
+        # Task 2: when set, stream raw PCM to bridge instead of STT
+        self.live_bridge = None   # LiveAudioBridge | None
 
+    def set_live_bridge(self, bridge) -> None:
+        """Task 2: attach a LiveAudioBridge; this thread streams PCM to it."""
+        self.live_bridge = bridge
+
+    # ── public entry point ────────────────────────────────────────────────────
     def run(self):
+        self.started_signal.emit()
+        # Task 2: live bridge mode skips STT entirely
+        if self.live_bridge is not None:
+            self._run_live_mode()
+            self.stopped.emit()
+            return
+        if self._run_streaming():
+            self.stopped.emit()
+            return
+        self._run_legacy()
+        self.stopped.emit()
+
+    # ── Task 2: live audio bridge streaming mode ──────────────────────────────
+    def _run_live_mode(self):
+        """Stream VAD-active PCM chunks directly to self.live_bridge.
+
+        Does NOT perform STT — the bridge handles AI communication.
+        Emits no text signals; bridge pushes audio to LiveAudioPlaybackThread.
+        """
+        try:
+            import pyaudio
+            from core.silero_vad import is_speech
+        except ImportError:
+            print("[VoiceThread/live] pyaudio or core.silero_vad missing")
+            return
+
+        bridge = self.live_bridge
+        pa       = pyaudio.PyAudio()
+        stream   = None
+        channels = 1
+        try:
+            stream, channels = _open_mic_stream(pa, self._RATE, self._CHUNK_FRAMES)
+            self.partial.emit("🎤 Live…")
+            in_speech    = False
+            silence_cnt  = 0
+            speech_cnt   = 0
+            ring: list[bytes] = []
+
+            while not self.isInterruptionRequested():
+                raw    = stream.read(self._CHUNK_FRAMES, exception_on_overflow=False)
+                chunk  = _to_mono(raw, channels)
+                voiced = is_speech(chunk, self._RATE)
+
+                if voiced:
+                    if not in_speech:
+                        in_speech = True
+                        # flush pre-roll to bridge
+                        for r in ring:
+                            bridge.send_audio_chunk(r)
+                        ring.clear()
+                    bridge.send_audio_chunk(chunk)
+                    speech_cnt  += 1
+                    silence_cnt  = 0
+                elif in_speech:
+                    silence_cnt += 1
+                    bridge.send_audio_chunk(chunk)
+                    if silence_cnt >= self._SILENCE_END:
+                        bridge.signal_speech_end()
+                        # reset for next utterance (bridge handles response)
+                        in_speech    = False
+                        speech_cnt   = 0
+                        silence_cnt  = 0
+                else:
+                    # pre-speech rolling buffer
+                    ring.append(chunk)
+                    if len(ring) > self._PRE_ROLL:
+                        ring.pop(0)
+        except Exception as e:
+            print(f"[VoiceThread/live] error: {e}")
+        finally:
+            if stream:
+                try: stream.stop_stream(); stream.close()
+                except Exception: pass
+            pa.terminate()
+
+    # ── Task 7: streaming VAD capture ────────────────────────────────────────
+    def _run_streaming(self) -> bool:
+        """Stream mic with VAD. Returns True if ran (even on no_speech)."""
+        try:
+            import pyaudio
+        except ImportError:
+            return False
+
+        try:
+            from core.silero_vad import is_speech
+        except Exception:
+            return False
+
+        pa       = pyaudio.PyAudio()
+        stream   = None
+        channels = 1
+        try:
+            stream, channels = _open_mic_stream(pa, self._RATE, self._CHUNK_FRAMES)
+            self.partial.emit("🎤 Слухаю...")
+
+            ring        = []   # pre-roll buffer (silent chunks before speech)
+            speech_buf  = []   # captured mono speech chunks
+            in_speech   = False
+            silence_cnt = 0
+            speech_cnt  = 0
+            total       = 0
+
+            while total < self._MAX_CHUNKS:
+                if self.isInterruptionRequested():
+                    break
+                raw    = stream.read(self._CHUNK_FRAMES, exception_on_overflow=False)
+                total += 1
+                mono   = _to_mono(raw, channels)
+                voiced = is_speech(mono, self._RATE)
+
+                if voiced:
+                    if not in_speech:
+                        in_speech = True
+                        speech_buf.extend(ring)  # prepend pre-roll
+                        ring.clear()
+                    speech_buf.append(mono)
+                    speech_cnt  += 1
+                    silence_cnt  = 0
+                elif in_speech:
+                    speech_buf.append(mono)
+                    silence_cnt += 1
+                    if silence_cnt >= self._SILENCE_END:
+                        break
+                else:
+                    ring.append(mono)
+                    if len(ring) > self._PRE_ROLL:
+                        ring.pop(0)
+        finally:
+            if stream:
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except Exception:
+                    pass
+            pa.terminate()
+
+        if speech_cnt < self._MIN_SPEECH:
+            self.error.emit("no_speech")
+            return True
+
+        audio_bytes = b"".join(speech_buf)
+        self._transcribe(audio_bytes)
+        return True
+
+    def _transcribe(self, audio_bytes: bytes):
+        """Transcribe raw 16-bit PCM bytes via Whisper or Google STT."""
+        use_whisper = (
+            self.config.get("stt_provider", "google") == "whisper"
+            and HAS_WHISPER
+            and WhisperSTT._instance is not None
+            and not self.config.get("_whisper_cuda_error", False)
+        )
+
+        text       = ""
+        confidence = 0.85
+
+        if use_whisper:
+            self.partial.emit("🧠 Whisper...")
+            try:
+                import speech_recognition as sr
+                audio_data = sr.AudioData(audio_bytes, self._RATE, 2)
+                text, confidence = WhisperSTT.recognize_with_conf(audio_data, self.lang)
+            except Exception as e:
+                err = str(e).lower()
+                if any(k in err for k in ("cublas", "cuda", "dll", "ctranslate", "cudnn")):
+                    self.config["_whisper_cuda_error"] = True
+                    self.config["stt_provider"] = "google"
+                    try:
+                        _cfg = load_config(); _cfg["stt_provider"] = "google"
+                        _cfg["_whisper_cuda_error"] = True; save_config(_cfg)
+                    except Exception:
+                        pass
+                    use_whisper = False
+                    self.partial.emit("⚡ Google STT (Whisper CUDA недоступний)")
+                else:
+                    self.error.emit(f"whisper: {str(e)[:40]}")
+                    return
+
+        if not use_whisper:
+            self.partial.emit("🔄 Розпізнаю...")
+            try:
+                import speech_recognition as sr
+                audio_data = sr.AudioData(audio_bytes, self._RATE, 2)
+                result = sr.Recognizer().recognize_google(
+                    audio_data, language=self.lang, show_all=True)
+                if isinstance(result, dict):
+                    alts = result.get("alternative", [])
+                    if alts:
+                        text       = alts[0].get("transcript", "")
+                        confidence = float(alts[0].get("confidence", 0.85))
+                else:
+                    text = str(result) if result else ""
+            except Exception:
+                try:
+                    import speech_recognition as sr
+                    audio_data = sr.AudioData(audio_bytes, self._RATE, 2)
+                    text       = sr.Recognizer().recognize_google(audio_data, language=self.lang)
+                    confidence = 0.85
+                except Exception:
+                    self.error.emit("no_speech")
+                    return
+
+        if not text:
+            self.error.emit("no_speech")
+            return
+
+        # Emit audio FIRST so voice filter runs before on_recognized
+        try:
+            self.recognized_with_audio.emit(text, audio_bytes)
+        except Exception:
+            pass
+        self.recognized.emit(text)
+        self.recognized_with_conf.emit(text, confidence)
+
+    # ── Legacy fallback (no pyaudio) ─────────────────────────────────────────
+    def _run_legacy(self):
         try:
             import speech_recognition as sr
         except ImportError:
             self.error.emit("SpeechRecognition not installed")
             return
 
-        self.started_signal.emit()
         r = sr.Recognizer()
-        r.energy_threshold       = 200
+        r.energy_threshold        = 200
         r.dynamic_energy_threshold = True
-        r.pause_threshold        = 0.8
-        r.non_speaking_duration  = 0.5
+        r.pause_threshold         = 0.8
+        r.non_speaking_duration   = 0.5
 
         use_whisper = (
             self.config.get("stt_provider", "google") == "whisper"
             and HAS_WHISPER
             and WhisperSTT._instance is not None
+            and not self.config.get("_whisper_cuda_error", False)
         )
 
         try:
@@ -2830,38 +3776,59 @@ class VoiceThread(QThread):
                 audio = r.listen(src, timeout=7, phrase_time_limit=12)
 
             confidence = 1.0
+            text       = ""
 
             if use_whisper:
-                self.partial.emit("🧠 Whisper розпізнає...")
-                text, confidence = WhisperSTT.recognize_with_conf(audio, self.lang)
-            else:
+                self.partial.emit("🧠 Whisper...")
+                try:
+                    text, confidence = WhisperSTT.recognize_with_conf(audio, self.lang)
+                except Exception as whisper_err:
+                    err_str = str(whisper_err).lower()
+                    if any(k in err_str for k in ("cublas", "cuda", "dll", "ctranslate", "cudnn")):
+                        self.config["_whisper_cuda_error"] = True
+                        self.config["stt_provider"] = "google"
+                        try:
+                            _cfg = load_config(); _cfg["stt_provider"] = "google"
+                            _cfg["_whisper_cuda_error"] = True; save_config(_cfg)
+                        except Exception:
+                            pass
+                        self.partial.emit("⚡ Google STT (Whisper CUDA недоступний)")
+                        use_whisper = False
+                        text = ""
+                    else:
+                        self.error.emit(f"whisper: {str(whisper_err)[:40]}")
+                        return
+
+            if not use_whisper:
                 self.partial.emit("🔄 Розпізнаю...")
-                # show_all=True дає нам confidence score
                 try:
                     result = r.recognize_google(audio, language=self.lang, show_all=True)
                     if isinstance(result, dict):
                         alts = result.get("alternative", [])
                         if alts:
-                            text = alts[0].get("transcript", "")
+                            text       = alts[0].get("transcript", "")
                             confidence = float(alts[0].get("confidence", 0.85))
                         else:
                             text = ""
                     else:
                         text = str(result) if result else ""
                 except Exception:
-                    text = r.recognize_google(audio, language=self.lang)
+                    try:
+                        text       = r.recognize_google(audio, language=self.lang)
+                        confidence = 0.85
+                    except sr.UnknownValueError:
+                        self.error.emit("no_speech")
+                        return
 
             if not text:
                 self.error.emit("no_speech")
                 return
 
-            # Авто-перемикання: якщо Google confidence низький і є Whisper — ретраємо
-            if not use_whisper and confidence < 0.55 and HAS_WHISPER and WhisperSTT._instance is not None:
-                self.partial.emit("🔄 Низька впевненість, перевіряю Whisper...")
-                wtext, wconf = WhisperSTT.recognize_with_conf(audio, self.lang)
-                if wtext and wconf > confidence:
-                    text, confidence = wtext, wconf
-
+            try:
+                audio_bytes = audio.get_raw_data(convert_rate=16000, convert_width=2)
+                self.recognized_with_audio.emit(text, audio_bytes)
+            except Exception:
+                pass
             self.recognized.emit(text)
             self.recognized_with_conf.emit(text, confidence)
 
@@ -2871,8 +3838,82 @@ class VoiceThread(QThread):
             self.error.emit("no_speech")
         except Exception as e:
             self.error.emit(str(e))
+
+
+# ═══════════════════════════════════════════════════════════
+# INTERRUPT MONITOR THREAD  (Task 8)
+# ═══════════════════════════════════════════════════════════
+
+class InterruptMonitorThread(QThread):
+    """Task 8: Monitors mic during TTS playback.
+
+    Opens a short-lived pyaudio stream, runs VAD on 30 ms chunks.
+    Emits `interrupted` when continuous speech detected while TTS is playing.
+    Immediately closes the stream before emitting so VoiceThread can open mic.
+    """
+    interrupted = pyqtSignal()  # TTS should stop; start listening
+
+    _RATE           = 16000
+    _CHUNK_MS       = 30
+    _CHUNK_FRAMES   = _RATE * _CHUNK_MS // 1000   # 480 samples
+    _SPEECH_CONFIRM = 4    # consecutive voiced chunks to confirm interrupt (~120 ms)
+    _MAX_SECONDS    = 30   # give up after 30 s of TTS (safety)
+
+    def __init__(self):
+        super().__init__()
+        self._active = True
+
+    def stop_monitor(self):
+        self._active = False
+        self.requestInterruption()
+
+    def run(self):
+        try:
+            import pyaudio
+            from core.silero_vad import is_speech
+        except ImportError:
+            return   # no pyaudio — interrupt not supported
+
+        pa       = pyaudio.PyAudio()
+        stream   = None
+        channels = 1
+        try:
+            stream, channels = _open_mic_stream(pa, self._RATE, self._CHUNK_FRAMES)
+            voiced_run   = 0
+            total_chunks = 0
+            limit        = self._MAX_SECONDS * 1000 // self._CHUNK_MS
+
+            while self._active and total_chunks < limit:
+                if self.isInterruptionRequested():
+                    break
+                raw = stream.read(self._CHUNK_FRAMES, exception_on_overflow=False)
+                total_chunks += 1
+                mono = _to_mono(raw, channels)
+
+                if is_speech(mono, self._RATE):
+                    voiced_run += 1
+                    if voiced_run >= self._SPEECH_CONFIRM:
+                        # Release mic BEFORE signalling so VoiceThread can open it
+                        stream.stop_stream()
+                        stream.close()
+                        stream = None
+                        pa.terminate()
+                        pa = None
+                        self.interrupted.emit()
+                        return
+                else:
+                    voiced_run = 0
+        except Exception as e:
+            print(f"[InterruptMonitor] error: {e}")
         finally:
-            self.stopped.emit()
+            if stream:
+                try:
+                    stream.stop_stream()
+                    stream.close()
+                except Exception:
+                    pass
+            if pa:
+                pa.terminate()
 
 
 class WakeWordThread(QThread):
@@ -2975,6 +4016,9 @@ class WakeWordThread(QThread):
 # SPOTIFY CONTROL  (spotipy + OAuth PKCE)
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/media.py ──────────────────────────────────────────────────┐
+# │  SpotifyController, SpotifyControlThread, SearchThread                       │
+# └────────────────────────────────────────────────────────────────────────────┘
 class SpotifyController:
     """
     Керування Spotify через офіційний Web API (spotipy).
@@ -2986,25 +4030,31 @@ class SpotifyController:
         "user-read-currently-playing "
         "user-read-playback-position"
     )
-    REDIRECT_URI = "http://127.0.0.1:8888/callback"
+    REDIRECT_URI = "http://127.0.0.1:8000/callback"
 
     def __init__(self, client_id: str = "", client_secret: str = ""):
         self._sp = None
         self._has_keys = bool(client_id and client_secret)
         if self._has_keys:
             try:
-                import spotipy
+                import os, spotipy
                 from spotipy.oauth2 import SpotifyOAuth
-                auth = SpotifyOAuth(
-                    client_id=client_id,
-                    client_secret=client_secret,
-                    redirect_uri=self.REDIRECT_URI,
-                    scope=self.SCOPE,
-                    cache_path=str(USER_DATA_DIR / ".spotify_token"),
-                    open_browser=True,
-                )
-                self._sp = spotipy.Spotify(auth_manager=auth)
-                print("[Spotify] Web API ініціалізовано ✓")
+                token_path = str(USER_DATA_DIR / ".spotify_token")
+                # Only activate Web API if there is already a cached token —
+                # never block the thread waiting for a browser OAuth flow.
+                if not os.path.exists(token_path):
+                    print("[Spotify] немає кешованого токена — використовую URI-fallback")
+                else:
+                    auth = SpotifyOAuth(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        redirect_uri=self.REDIRECT_URI,
+                        scope=self.SCOPE,
+                        cache_path=token_path,
+                        open_browser=False,
+                    )
+                    self._sp = spotipy.Spotify(auth_manager=auth)
+                    print("[Spotify] Web API ініціалізовано ✓")
             except ImportError:
                 print("[Spotify] spotipy не встановлено: pip install spotipy")
             except Exception as e:
@@ -3035,7 +4085,7 @@ class SpotifyController:
             import ctypes, ctypes.wintypes
             spotify_title = ""
             WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
-            def enum_cb(hwnd, lParam):
+            def enum_cb(hwnd, lParam):  # NOSONAR — WinAPI callback must always return True
                 nonlocal spotify_title
                 if not ctypes.windll.user32.IsWindowVisible(hwnd):
                     return True
@@ -3139,9 +4189,124 @@ class SpotifyController:
                 cur = (state or {}).get("shuffle_state", False)
                 self._sp.shuffle(not cur)
                 return "🔀 Шафл увімкнено" if not cur else "🔀 Шафл вимкнено"
-            except Exception as e:
-                return f"🔀 Помилка: {str(e)[:30]}"
-        return "🔀 Шафл недоступний без API ключів"
+            except Exception:
+                pass
+        # hotkey fallback: Ctrl+Shift+R у вікні Spotify
+        return self._spotify_hotkey("ctrl+shift+r", "🔀 Шафл")
+
+    def toggle_repeat(self) -> str:
+        if self._sp:
+            try:
+                state = self._sp.current_playback()
+                cur = (state or {}).get("repeat_state", "off")
+                nxt = {"off": "context", "context": "track", "track": "off"}[cur]
+                self._sp.repeat(nxt)
+                labels = {"off": "⏭ Повтор вимкнено", "context": "🔁 Повтор плейлисту", "track": "🔂 Повтор треку"}
+                return labels[nxt]
+            except Exception:
+                pass
+        return self._spotify_hotkey("ctrl+r", "🔁 Повтор")
+
+    def liked_songs(self) -> str:
+        """Запускає Liked Songs (Улюблені треки)."""
+        if self._sp:
+            try:
+                devs = (self._sp.devices() or {}).get("devices", [])
+                dev_id = next((d["id"] for d in devs if d.get("is_active")), None) or \
+                         (devs[0]["id"] if devs else None)
+                self._sp.start_playback(
+                    device_id=dev_id,
+                    context_uri="spotify:collection",
+                )
+                return "❤️ Граю улюблені треки"
+            except Exception:
+                pass
+        # URI fallback: відкриваємо колекцію і через 2 с надсилаємо WM_APPCOMMAND Play
+        try:
+            subprocess.Popen('start "" "spotify:collection"', shell=True,
+                             creationflags=_NO_WINDOW)
+            import threading as _t
+            def _press_play():
+                import time, ctypes, ctypes.wintypes
+                time.sleep(2.0)
+                WNDENUMPROC = ctypes.WINFUNCTYPE(
+                    ctypes.c_bool, ctypes.wintypes.HWND, ctypes.wintypes.LPARAM)
+                hwnd_box = [0]
+                def _cb(hwnd, _):
+                    cls = ctypes.create_unicode_buffer(256)
+                    ctypes.windll.user32.GetClassNameW(hwnd, cls, 256)
+                    if "Chrome_WidgetWin" in cls.value or "SpotifyMainWindow" in cls.value:
+                        ln  = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                        buf = ctypes.create_unicode_buffer(ln + 1)
+                        ctypes.windll.user32.GetWindowTextW(hwnd, buf, ln + 1)
+                        if "Spotify" in buf.value or not buf.value:
+                            hwnd_box[0] = hwnd
+                    return True
+                ctypes.windll.user32.EnumWindows(WNDENUMPROC(_cb), 0)
+                if hwnd_box[0]:
+                    WM_APPCOMMAND               = 0x0319
+                    APPCOMMAND_MEDIA_PLAY_PAUSE = 0x000E0000
+                    ctypes.windll.user32.PostMessageW(
+                        hwnd_box[0], WM_APPCOMMAND, 0, APPCOMMAND_MEDIA_PLAY_PAUSE)
+            _t.Thread(target=_press_play, daemon=True).start()
+        except Exception:
+            pass
+        return "❤️ Улюблені треки"
+
+    def seek_forward(self) -> str:
+        return self._spotify_hotkey("ctrl+right", "⏩ +15 сек")
+
+    def seek_back(self) -> str:
+        return self._spotify_hotkey("ctrl+left", "⏪ -15 сек")
+
+    def _spotify_hotkey(self, keys: str, label: str) -> str:
+        """Посилає гарячу клавішу у вікно Spotify."""
+        try:
+            import ctypes, ctypes.wintypes, time
+            # Знаходимо hwnd вікна Spotify
+            target_hwnd = ctypes.c_int(0)
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool,
+                                              ctypes.wintypes.HWND,
+                                              ctypes.wintypes.LPARAM)
+            def _cb(hwnd, _):  # NOSONAR — WinAPI callback must always return True
+                ln = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                if ln > 0:
+                    buf = ctypes.create_unicode_buffer(ln + 1)
+                    ctypes.windll.user32.GetWindowTextW(hwnd, buf, ln + 1)
+                    cls = ctypes.create_unicode_buffer(256)
+                    ctypes.windll.user32.GetClassNameW(hwnd, cls, 256)
+                    if cls.value == "Chrome_WidgetWin_0" and "Spotify" in buf.value:
+                        target_hwnd.value = hwnd
+                return True
+            ctypes.windll.user32.EnumWindows(WNDENUMPROC(_cb), 0)
+
+            hwnd = target_hwnd.value
+            if hwnd:
+                WM_KEYDOWN, WM_KEYUP = 0x0100, 0x0101
+                key_map = {
+                    "ctrl+right": (0x27, True), "ctrl+left": (0x25, True),
+                    "ctrl+r":     (0x52, True),  "ctrl+shift+r": (0x52, True, True),
+                    "space":      (0x20, False),
+                }
+                vk, use_ctrl, *extra_shift = key_map.get(keys, (0, False))
+                use_shift = bool(extra_shift and extra_shift[0])
+                if vk:
+                    VK_CTRL  = 0x11
+                    VK_SHIFT = 0x10
+                    if use_ctrl:
+                        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_CTRL, 0)
+                    if use_shift:
+                        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYDOWN, VK_SHIFT, 0)
+                    ctypes.windll.user32.PostMessageW(hwnd, WM_KEYDOWN, vk, 0)
+                    ctypes.windll.user32.PostMessageW(hwnd, WM_KEYUP,   vk, 0)
+                    if use_shift:
+                        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYUP, VK_SHIFT, 0)
+                    if use_ctrl:
+                        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYUP, VK_CTRL, 0)
+                    return label
+        except Exception:
+            pass
+        return label
 
     def current(self) -> str:
         if self._sp:
@@ -3166,19 +4331,26 @@ class SpotifyControlThread(QThread):
     # ── ключові слова для кожної команди ─────────────────
     _COMMANDS = {
         "pause":   ["паузу", "пауза", "зупинайся", "зупинись", "стоп музику", "pause"],
-        "resume":  ["продовжуй", "продовжай", "віднови", "грай", "resume", "продовжуємо"],
-        "next":    ["наступну", "наступна", "перемотай вперед", "next", "скип"],
-        "prev":    ["попередню", "попередня", "перемотай назад", "previous", "prev"],
-        "shuffle": ["шаф", "shuffle", "випадкова порядок", "випадковий порядок"],
-        "current": ["що грає", "яка песня", "хто грає", "what is playing", "яку песню"],
+        "resume":  ["продовжуй", "продовжай", "віднови", "resume", "продовжуємо"],
+        "next":    ["наступну", "наступна", "перемотай вперед", "next", "скип", "скіп", "далі"],
+        "prev":    ["попередню", "попередня", "перемотай назад", "previous", "prev", "назад пісню"],
+        "shuffle": ["шафл", "шаф", "shuffle", "випадковий порядок", "перемішай"],
+        "repeat":  ["повтор", "по колу", "repeat", "повторювати", "зациклити"],
+        "liked":   ["улюблені треки", "улюблені пісні", "лайкнуті", "мої треки",
+                    "улюблені", "любимые треки", "любимые песни", "избранное",
+                    "серце", "серця", "liked songs", "favorites"],
+        "seek_fw": ["вперед", "перемотай на", "skip forward", "перемотати вперед"],
+        "seek_bk": ["назад", "перемотай назад", "rewind", "перемотати назад"],
+        "current": ["що грає", "яка пісня", "хто грає", "what is playing", "яку пісню", "яка музика"],
     }
-    # volume окремо, тому що тянуть число
-    _VOLUME_KEYS = ["гучність", "volume", "громче", "тише", "vol"]
+    # volume окремо, тому що тягнуть число
+    _VOLUME_KEYS = ["гучність", "volume", "громче", "тише", "vol", "звук"]
 
-    def __init__(self, controller: SpotifyController, text: str):
+    def __init__(self, controller: SpotifyController, text: str, api_key: str = ""):
         super().__init__()
-        self.ctrl = controller
-        self.text = text.strip().lower()
+        self.ctrl     = controller
+        self.text     = text.strip().lower()
+        self._api_key = api_key
 
     # ── ключові слова для «грай песню X» через API ──────
     _PLAY_KEYS = [
@@ -3286,15 +4458,91 @@ class SpotifyControlThread(QThread):
                         elif cmd == "next":    self.result.emit(self.ctrl.next_track())
                         elif cmd == "prev":    self.result.emit(self.ctrl.prev_track())
                         elif cmd == "shuffle": self.result.emit(self.ctrl.toggle_shuffle())
+                        elif cmd == "repeat":  self.result.emit(self.ctrl.toggle_repeat())
+                        elif cmd == "liked":   self.result.emit(self.ctrl.liked_songs())
+                        elif cmd == "seek_fw": self.result.emit(self.ctrl.seek_forward())
+                        elif cmd == "seek_bk": self.result.emit(self.ctrl.seek_back())
                         elif cmd == "current": self.result.emit(self.ctrl.current())
                         return
 
-            self.error.emit("Команда не розпознана")
+            # ── AI fallback: GPT розбирає довільну команду ──────────────────
+            cmd = self._ai_parse(self.text)
+            if cmd:
+                self._execute_ai_cmd(cmd)
+            else:
+                self.error.emit("Команда Spotify не розпознана")
 
         except RuntimeError as e:
             self.error.emit(str(e))
         except Exception as e:
             self.error.emit(f"Spotify: {str(e)[:40]}")
+
+    # ── AI fallback ───────────────────────────────────────────────────────────
+
+    _AI_SYSTEM = """\
+Ти — парсер команд Spotify. Отримуєш голосову команду і повертаєш ТІЛЬКИ JSON.
+
+Доступні дії:
+  search      — шукати і грати (потрібен "query")
+  liked_songs — улюблені треки
+  pause       — пауза
+  resume      — продовжити
+  next        — наступна
+  prev        — попередня
+  shuffle     — перемішати
+  repeat      — повтор
+  volume      — гучність (потрібен "value": 0-100)
+  current     — що зараз грає
+
+Приклади:
+  "зіграй щось весело" → {"action":"search","query":"веселі хіти"}
+  "хочу слухати рок"   → {"action":"search","query":"rock"}
+  "щось спокійне"      → {"action":"search","query":"спокійна музика"}
+  "погромче"           → {"action":"volume","value":75}
+  "стоп"               → {"action":"pause"}
+
+Повертай ТІЛЬКИ JSON, без пояснень."""
+
+    def _ai_parse(self, text: str) -> dict | None:
+        if not self._api_key:
+            return None
+        try:
+            import json as _json
+            from openai import OpenAI
+            client = OpenAI(api_key=self._api_key)
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": self._AI_SYSTEM},
+                    {"role": "user",   "content": text},
+                ],
+                max_tokens=80,
+                temperature=0,
+            )
+            return _json.loads(resp.choices[0].message.content)
+        except Exception as e:
+            print(f"[Spotify AI] {e}")
+            return None
+
+    def _execute_ai_cmd(self, cmd: dict) -> None:
+        action = cmd.get("action", "")
+        if   action == "search":
+            q = cmd.get("query", self.text)
+            self.result.emit(self.ctrl.play_track(q))
+        elif action == "liked_songs": self.result.emit(self.ctrl.liked_songs())
+        elif action == "pause":       self.result.emit(self.ctrl.pause())
+        elif action == "resume":      self.result.emit(self.ctrl.resume())
+        elif action == "next":        self.result.emit(self.ctrl.next_track())
+        elif action == "prev":        self.result.emit(self.ctrl.prev_track())
+        elif action == "shuffle":     self.result.emit(self.ctrl.toggle_shuffle())
+        elif action == "repeat":      self.result.emit(self.ctrl.toggle_repeat())
+        elif action == "current":     self.result.emit(self.ctrl.current())
+        elif action == "volume":
+            v = int(cmd.get("value", 50))
+            self.result.emit(self.ctrl.set_volume(v))
+        else:
+            self.error.emit("Команда Spotify не розпознана")
 
 
 class SearchThread(QThread):
@@ -3319,10 +4567,17 @@ class SearchThread(QThread):
     ]
 
     _MOVIE_KEYS = [
-        "включи фільм", "поставь фільм", "найди фільм",
-        "включи фильм", "поставь фильм", "найди фильм",
-        "play movie",   "find movie",
-        "фільм",        "фильм",
+        # explicit movie/series phrases first (more specific → higher priority)
+        "включи серіал", "поставь серіал", "знайди серіал", "відкрий серіал",
+        "включи сериал", "поставь сериал", "знайди сериал",
+        "включи фільм",  "поставь фільм",  "найди фільм",
+        "включи фильм",  "поставь фильм",  "найди фильм",
+        "play movie",    "play series",    "find movie",
+        # bare keywords — checked after specific phrases
+        "серіал",  "сериал",
+        "фільм",   "фильм",
+        "сезон",   "серія",   "серия",
+        "episode", "season",
     ]
 
     _SEARCH_KEYS = [
@@ -3331,9 +4586,11 @@ class SearchThread(QThread):
         "що таке", "як зробити", "хто це",
     ]
 
-    # Слова після голих «включи»/«грай», яких НЕ торкаємось
+    # Слова після голих «включи»/«грай», яких НЕ торкаємось (→ НЕ музика)
     _NOT_MUSIC_AFTER = [
         "фільм", "фильм", "movie",
+        "серіал", "сериал", "series",
+        "сезон", "season", "серія", "серия", "episode",
         "калькулятор", "блокнот", "notepad", "calc",
     ]
 
@@ -3414,7 +4671,22 @@ class SearchThread(QThread):
     @staticmethod
     def _open_youtube(query: str) -> bool:
         from urllib.parse import quote
-        url = f"https://www.youtube.com/results?search_query={quote(query)}"
+        import os
+        url = f"https://www.google.com/search?q={quote(query)}"
+        chrome_paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+        ]
+        for p in chrome_paths:
+            if os.path.exists(p):
+                try:
+                    # Pass URL directly — Chrome opens it as new tab in existing window
+                    subprocess.Popen([p, url], creationflags=_NO_WINDOW)
+                    print(f"[YouTube] Opening: {url}")
+                    return True
+                except Exception as e:
+                    print(f"[YouTube] Chrome launch error: {e}")
         try:
             webbrowser.open(url)
             return True
@@ -3437,59 +4709,173 @@ class SearchThread(QThread):
             # ЦЕЙ РЯДОК ПРОСТО ВІДКРИВАЄ SPOTIFY
             self._open_spotify(query)
             self.result.emit(f"🎵 Шукаю в Spotify: {query}")
-            return # Обов'язково виходимо тут, щоб код нижче не виконувався
 
         elif kind == "movie":
             query = self._extract_query(self._MOVIE_KEYS)
             if query:
-                self._open_youtube(query + " фільм")
-                self.result.emit(f"🎬 Шукаю фільм: {query}")
-            return
+                # For series (сезон/серія/серіал) keep query as-is; add "фільм" only for bare films
+                _series_words = ("сезон", "серія", "серия", "серіал", "сериал",
+                                 "season", "episode", "series")
+                suffix = "" if any(w in self.text.lower() for w in _series_words) else " фільм"
+                self._open_youtube(query + suffix)
+                icon = "📺" if suffix == "" else "🎬"
+                self.result.emit(f"{icon} Шукаю: {query}")
 
         elif kind == "search":
             query = self._extract_query(self._SEARCH_KEYS)
             if query:
                 self._open_youtube(query)
                 self.result.emit(f"🔍 Шукаю: {query}")
-            return
-        
+
         else:
             self.error.emit("Запит не розпізнано")
 
 
+# ┌─ MODULE: sphere/ai.py (continued) ─────────────────────────────────────────┐
+# │  AIThread: складні AI запити з function calling + streaming                  │
+# └────────────────────────────────────────────────────────────────────────────┘
 class AIThread(QThread):
-    """Multi-provider AI з підтримкою діалогу (conversation history)"""
-    response = pyqtSignal(str)
-    error = pyqtSignal(str)
+    """Multi-provider AI з підтримкою діалогу (conversation history).
 
-    SYSTEM = "Ти Aivon — розумний голосовий AI асистент. Відповідай українською, коротко і по суті (1-3 речення). Ти підтримуєш діалог і пам'ятаєш контекст розмови."
+    Task 1: Streaming support.
+      - `sentence_ready` fires for each sentence as it arrives.
+      - `response` fires with the full text when generation is done.
+      - Call `abort()` to cancel in-flight generation (interrupt handling).
+    """
+    response       = pyqtSignal(str)   # full text when done (for history / display)
+    sentence_ready = pyqtSignal(str)   # Task 1: each sentence as it streams
+    error          = pyqtSignal(str)
+
+    SYSTEM = (
+        "Ти Aivon — природний голосовий AI асистент для ПК. "
+        "Відповідай українською мовою природно, як людина. "
+        "Адаптуй довжину відповіді до запиту: "
+        "на коротку команду — 1-2 речення, "
+        "на питання — по суті без зайвого, "
+        "на 'розкажи' / 'поясни' / 'напиши' — повністю і детально. "
+        "Пам'ятаєш контекст всієї розмови."
+    )
 
     # Спільна історія діалогу (зберігається між викликами)
     _history = []
     MAX_HISTORY = 20  # максимум пар повідомлень
 
-    def __init__(self, config: dict, msg: str):
+    # Ключові слова що сигналізують складне питання → smart model
+    _SMART_KEYWORDS = [
+        "розкажи", "поясни", "опиши", "проаналізуй", "порівняй",
+        "що таке", "як працює", "чому", "навіщо", "яка різниця",
+        "напиши", "склади", "придумай", "вигадай", "запропонуй",
+        "допоможи", "порада", "думаєш", "вважаєш", "твоя думка",
+        "розбери", "детально", "докладно", "розгорни",
+        "tell me", "explain", "describe", "analyze", "compare",
+        "what is", "how does", "why", "write", "create", "suggest",
+    ]
+
+    @classmethod
+    def pick_model(cls, msg: str, config: dict) -> str:
+        """Обирає модель: gpt-5.5 для складних питань, gpt-4o-mini для простих."""
+        lower = msg.lower()
+        words = lower.split()
+        # Явно задана модель в конфізі → використовуємо її
+        forced = config.get("openai_model", "")
+        if forced:
+            return forced
+        # Довгий запит або ключові слова → розумна модель
+        if len(words) > 12 or any(k in lower for k in cls._SMART_KEYWORDS):
+            return "gpt-5.5-2026-04-23"
+        # Коротка команда → швидка дешева модель
+        return "gpt-4o-mini"
+
+    def __init__(self, config: dict, msg: str, system_override: str = ""):
         super().__init__()
-        self.config = config
-        self.msg = msg
+        self.config           = config
+        self.msg              = msg
+        self.model            = self.pick_model(msg, config)
+        self._system_override = system_override
+        # Task 1: abort event — set by abort() to cancel in-flight streaming
+        self._abort_event     = threading.Event()
+
+    def abort(self) -> None:
+        """Task 1: Cancel in-flight streaming generation."""
+        self._abort_event.set()
 
     @classmethod
     def clear_history(cls):
         cls._history.clear()
 
+    @staticmethod
+    def _load_owner_context() -> str:
+        """Завантажує повний профіль власника для системного промту."""
+        try:
+            from core.profile import ProfileManager
+            from core.paths import USER_DATA_DIR
+            return ProfileManager(USER_DATA_DIR).build_ai_context()
+        except Exception:
+            return ""
+
+    # Task 6: keywords that require full unrestricted response
+    _LONG_KEYWORDS = [
+        "розкажи", "розкажіть", "казку", "казочку", "казка", "казки",
+        "анекдот", "жарт", "жартівливу", "смішну", "вірш", "поему",
+        "поясни", "поясніть", "детально", "докладно", "розгорни",
+        "напиши", "склади", "придумай", "вигадай", "розповідь",
+        "историю", "расскажи", "подробно", "объясни",
+        "tell me a story", "write a story", "joke", "poem",
+        "fairy tale", "explain in detail",
+    ]
+
+    @classmethod
+    def _needs_long_response(cls, msg: str) -> bool:
+        lower = msg.lower()
+        return any(k in lower for k in cls._LONG_KEYWORDS)
+
     def run(self):
-        # Inject live PC context + long-term memory into system prompt
+        # Inject live PC context + owner profile + long-term memory
         try:
             pc_ctx = get_pc_context()
             extra  = "\n\n[Поточний стан ПК]\n" + pc_ctx
+            # Owner profile
+            owner = AIThread._load_owner_context()
+            if owner:
+                extra += f"\n\n[Профіль власника]\n{owner}"
             # Add memory facts if any
             mem = load_memory()
             if mem:
                 facts = "; ".join(v["value"][:40] for v in list(mem.values())[:6])
                 extra += f"\n\n[Що я знаю про користувача]\n{facts}"
-            self.SYSTEM = AIThread.SYSTEM + extra
+            # Add relevant conversation memories
+            try:
+                from core.convo_memory import build_recall_context
+                convo_ctx = build_recall_context(self.msg)
+                if convo_ctx:
+                    extra += f"\n\n{convo_ctx}"
+            except Exception:
+                pass
+            # Inject response style
+            try:
+                from core.ai_tools import build_system_with_profile as _bswp
+                _style_sys = _bswp("")   # get only the injected parts
+                if _style_sys:
+                    extra += _style_sys
+            except Exception:
+                pass
+            # Task 6: dynamic response length exception
+            if AIThread._needs_long_response(self.msg):
+                extra += (
+                    "\n\nУВАГА: Для цього запиту НЕ обмежуй довжину відповіді — "
+                    "відповідай повністю і розгорнуто, без будь-яких скорочень."
+                )
+                self._long_response = True
+            else:
+                self._long_response = False
+            # system_override completely replaces built system (for recall queries)
+            if getattr(self, '_system_override', ''):
+                self.SYSTEM = self._system_override
+            else:
+                self.SYSTEM = AIThread.SYSTEM + extra
         except Exception:
-            self.SYSTEM = AIThread.SYSTEM
+            self.SYSTEM    = AIThread.SYSTEM
+            self._long_response = False
 
         # Додаємо повідомлення користувача в історію
         AIThread._history.append({"role": "user", "content": self.msg})
@@ -3509,6 +4895,18 @@ class AIThread(QThread):
             "perplexity": ("perplexity_key", self._perplexity),
         }
 
+        # Track whether sentence_ready was already emitted (streaming providers do it
+        # themselves; non-streaming providers need a single emit at the end).
+        self._sentences_emitted = False
+
+        def _emit_result(result: str):
+            """Store history + emit response; emit sentence_ready if not already done."""
+            AIThread._history.append({"role": "assistant", "content": result})
+            if not self._sentences_emitted:
+                # Non-streaming provider — emit whole response as one sentence
+                self.sentence_ready.emit(result)
+            self.response.emit(result)
+
         # Спочатку пробуємо обраний провайдер
         tried = set()
         if preferred in PROVIDER_MAP:
@@ -3519,8 +4917,7 @@ class AIThread(QThread):
                 try:
                     result = fn(key)
                     if result:
-                        AIThread._history.append({"role": "assistant", "content": result})
-                        self.response.emit(result)
+                        _emit_result(result)
                         return
                 except Exception as e:
                     print(f"[Dialog] {preferred} error: {e}")
@@ -3538,30 +4935,365 @@ class AIThread(QThread):
                 try:
                     result = fn(key)
                     if result:
-                        AIThread._history.append({"role": "assistant", "content": result})
-                        self.response.emit(result)
+                        _emit_result(result)
                         return
                 except Exception as e:
                     print(f"[Dialog] {prov} fallback error: {e}")
                     continue
         self.error.emit("Немає API ключів. Додайте у панелі → API Ключі.")
 
+    # ── Task 1: sentence splitting helper ────────────────────────────────────
+    _SENT_RE = re.compile(r'(?<=[.!?…])\s+|(?<=[.!?…])$|\n{2,}')
+
+    def _flush_sentences(self, buf: str) -> str:
+        """Emit complete sentences from buf via sentence_ready; return remainder."""
+        while not self._abort_event.is_set():
+            m = self._SENT_RE.search(buf)
+            if not m:
+                break
+            sentence = buf[:m.end()].strip()
+            buf = buf[m.end():]
+            if len(sentence) >= 3:
+                self._sentences_emitted = True
+                self.sentence_ready.emit(sentence)
+        return buf
+
     def _anthropic(self, key):
+        """Anthropic with streaming (Task 1)."""
         import anthropic
-        client = anthropic.Anthropic(api_key=key)
-        res = client.messages.create(
-            model="claude-sonnet-4-20250514", max_tokens=500,
-            system=self.SYSTEM,
-            messages=list(AIThread._history))
-        return res.content[0].text
+        client    = anthropic.Anthropic(api_key=key)
+        buf       = ""
+        full_text = ""
+        max_tok   = 4000 if getattr(self, '_long_response', False) else 500
+        try:
+            with client.messages.stream(
+                model="claude-sonnet-4-20250514", max_tokens=max_tok,
+                system=self.SYSTEM,
+                messages=list(AIThread._history),
+            ) as stream:
+                for token in stream.text_stream:
+                    if self._abort_event.is_set():
+                        break
+                    buf       += token
+                    full_text += token
+                    buf = self._flush_sentences(buf)
+        except Exception:
+            # Fallback: non-streaming
+            res = anthropic.Anthropic(api_key=key).messages.create(
+                model="claude-sonnet-4-20250514", max_tokens=max_tok,
+                system=self.SYSTEM, messages=list(AIThread._history))
+            full_text = res.content[0].text
+            buf       = full_text
+
+        # flush remainder
+        if buf.strip() and not self._abort_event.is_set():
+            self._sentences_emitted = True
+            self.sentence_ready.emit(buf.strip())
+        return full_text or None
+
+    # ── Tool schemas for Function Calling ────────────────────────────────────
+    TOOLS = [
+        {"type": "function", "function": {
+            "name": "web_search",
+            "description": "Шукати актуальну інформацію в інтернеті: новини, погода, ціни, факти.",
+            "parameters": {"type": "object",
+                "properties": {"query": {"type": "string", "description": "Пошуковий запит"}},
+                "required": ["query"]}}},
+        {"type": "function", "function": {
+            "name": "get_datetime",
+            "description": "Отримати поточну дату і час.",
+            "parameters": {"type": "object", "properties": {}}}},
+        {"type": "function", "function": {
+            "name": "open_app",
+            "description": "Відкрити програму на ПК (Telegram, Chrome, Калькулятор тощо).",
+            "parameters": {"type": "object",
+                "properties": {"name": {"type": "string", "description": "Назва програми"}},
+                "required": ["name"]}}},
+        {"type": "function", "function": {
+            "name": "open_url",
+            "description": "Відкрити сайт у браузері.",
+            "parameters": {"type": "object",
+                "properties": {"url": {"type": "string"}},
+                "required": ["url"]}}},
+        {"type": "function", "function": {
+            "name": "system_action",
+            "description": "Дія над системою: вимкнути, перезавантажити, режим сну, гучність.",
+            "parameters": {"type": "object",
+                "properties": {"action": {"type": "string",
+                    "enum": ["shutdown", "restart", "sleep", "volume_up", "volume_down", "mute"]}},
+                "required": ["action"]}}},
+        {"type": "function", "function": {
+            "name": "save_note",
+            "description": "Зберегти нотатку або нагадування.",
+            "parameters": {"type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "Заголовок"},
+                    "text":  {"type": "string", "description": "Текст нотатки"}},
+                "required": ["text"]}}},
+        # Task 5: clarification tool — AI calls this when required argument is missing
+        {"type": "function", "function": {
+            "name": "clarify",
+            "description": (
+                "Запитати уточнення коли бракує обов'язкових деталей для виконання команди "
+                "(назва програми, пісні, фільму, час нагадування, тощо). "
+                "НЕ вигадуй значення — завжди питай якщо не вистачає."
+            ),
+            "parameters": {"type": "object",
+                "properties": {"question": {"type": "string",
+                    "description": "Питання для уточнення, яке Aivon задасть користувачу"}},
+                "required": ["question"]}}},
+    ]
+
+    # ── Tool execution ────────────────────────────────────────────────────────
+    @staticmethod
+    def _run_tool(name: str, args: dict) -> str:
+        import json as _j, subprocess, webbrowser
+        from datetime import datetime
+
+        if name == "get_datetime":
+            return datetime.now().strftime("Зараз: %A, %d %B %Y, %H:%M")
+
+        elif name == "web_search":
+            return AIThread._web_search(args.get("query", ""))
+
+        elif name == "open_app":
+            app = args.get("name", "")
+            APP_MAP = {
+                "telegram": "Telegram.exe", "хром": "chrome", "chrome": "chrome",
+                "firefox": "firefox", "блокнот": "notepad", "notepad": "notepad",
+                "калькулятор": "calc", "calculator": "calc",
+                "провідник": "explorer", "explorer": "explorer",
+                "discord": "Discord.exe", "spotify": "Spotify.exe",
+                "vscode": "code", "vs code": "code", "ворд": "winword",
+                "word": "winword", "excel": "excel", "ексель": "excel",
+            }
+            exe = APP_MAP.get(app.lower(), app)
+            try:
+                subprocess.Popen(exe, shell=True)
+                return f"Відкрив {app}"
+            except Exception as e:
+                return f"Не вдалось відкрити {app}: {e}"
+
+        elif name == "open_url":
+            url = args.get("url", "")
+            if not url.startswith("http"):
+                url = "https://" + url
+            webbrowser.open(url)
+            return f"Відкрив {url}"
+
+        elif name == "system_action":
+            action = args.get("action", "")
+            if action == "shutdown":
+                subprocess.Popen("shutdown /s /t 30", shell=True)
+                return "Вимикаю ПК через 30 секунд"
+            elif action == "restart":
+                subprocess.Popen("shutdown /r /t 30", shell=True)
+                return "Перезавантажую через 30 секунд"
+            elif action == "sleep":
+                subprocess.Popen("rundll32.exe powrprof.dll,SetSuspendState 0,1,0", shell=True)
+                return "Перехожу в режим сну"
+            elif action in ("volume_up", "volume_down", "mute"):
+                try:
+                    from ctypes import cast, POINTER
+                    from comtypes import CLSCTX_ALL
+                    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+                    dev = AudioUtilities.GetSpeakers()
+                    vol = cast(dev.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None),
+                                POINTER(IAudioEndpointVolume))
+                    if action == "mute":
+                        m = vol.GetMute(); vol.SetMute(not m, None)
+                        return "Звук вимкнено" if not m else "Звук увімкнено"
+                    cur = vol.GetMasterVolumeLevelScalar()
+                    nw = min(1.0, cur + 0.1) if action == "volume_up" else max(0.0, cur - 0.1)
+                    vol.SetMasterVolumeLevelScalar(nw, None)
+                    return f"Гучність: {int(nw * 100)}%"
+                except Exception:
+                    return "Гучність змінено"
+            return "Дія виконана"
+
+        elif name == "save_note":
+            import json as _j
+            title = args.get("title", "Нотатка від Aivon")
+            text  = args.get("text", "")
+            print(f"__AXIS_PUSH__:save_note_request:{_j.dumps({'title': title, 'text': text})}", flush=True)
+            return f"Нотатку «{title}» збережено"
+
+        elif name == "clarify":
+            # Task 5: return a special marker so _openai returns the question directly
+            return f"__CLARIFY__:{args.get('question', 'Уточніть будь ласка')}"
+
+        return "Виконано"
+
+    @staticmethod
+    def _web_search(query: str) -> str:
+        """Пошук в інтернеті. Спочатку duckduckgo_search, потім DDG API."""
+        import requests as _req
+
+        # ── 1. duckduckgo_search (pip install duckduckgo-search) ─────────────
+        try:
+            from duckduckgo_search import DDGS
+            with DDGS(timeout=8) as ddgs:
+                results = list(ddgs.text(query, max_results=4))
+            if results:
+                lines = []
+                for r in results[:3]:
+                    title = r.get("title", "")
+                    body  = r.get("body", "")[:200]
+                    href  = r.get("href", "")
+                    lines.append(f"• {title}: {body}" + (f" [{href}]" if href else ""))
+                return "\n".join(lines)
+        except ImportError:
+            pass
+        except Exception as e:
+            print(f"[Search] DDGS error: {e}")
+
+        # ── 2. DuckDuckGo Instant Answer API (завжди доступний) ─────────────
+        try:
+            r = _req.get("https://api.duckduckgo.com/",
+                params={"q": query, "format": "json", "no_html": 1,
+                        "skip_disambig": 1, "kl": "ua-uk"},
+                timeout=8, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0)"})
+            d = r.json()
+            if d.get("AbstractText"):
+                src = d.get("AbstractSource", "")
+                return d["AbstractText"][:500] + (f" (Джерело: {src})" if src else "")
+            topics = [t for t in d.get("RelatedTopics", []) if t.get("Text")]
+            if topics:
+                return "\n".join(f"• {t['Text'][:200]}" for t in topics[:3])
+        except Exception as e:
+            print(f"[Search] DDG API error: {e}")
+
+        # ── 3. DuckDuckGo HTML scrape fallback ───────────────────────────────
+        try:
+            import re as _re
+            r = _req.get(f"https://html.duckduckgo.com/html/?q={_req.utils.quote(query)}",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0)"}, timeout=8)
+            snippets = _re.findall(r'class="result__snippet"[^>]*>(.*?)</a>', r.text, _re.S)
+            if snippets:
+                clean = [_re.sub(r'<[^>]+>', '', s).strip() for s in snippets[:3]]
+                return "\n".join(f"• {s[:200]}" for s in clean if s)
+        except Exception as e:
+            print(f"[Search] HTML scrape error: {e}")
+
+        return f"Пошук '{query}': результатів не знайдено"
 
     def _openai(self, key):
+        """OpenAI with streaming (Task 1). Handles tool calls + clarify (Tasks 4, 5)."""
+        import json as _j
         from openai import OpenAI
         client = OpenAI(api_key=key)
-        msgs = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
-        res = client.chat.completions.create(
-            model="gpt-4o-mini", max_tokens=500, messages=msgs)
-        return res.choices[0].message.content
+        msgs   = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
+
+        # Task 6: long responses get more tokens
+        if getattr(self, '_long_response', False):
+            max_tok = 4000
+        elif "5.5" in self.model:
+            max_tok = 1500
+        else:
+            max_tok = 800
+        print(f"[AI] model={self.model} max_tokens={max_tok} long={getattr(self,'_long_response',False)}")
+
+        # ── Phase 1: streaming with tool-call accumulation ────────────────────
+        stream = client.chat.completions.create(
+            model=self.model, max_tokens=max_tok, messages=msgs,
+            tools=AIThread.TOOLS, tool_choice="auto", stream=True,
+        )
+
+        buf       = ""
+        full_text = ""
+        tool_acc: dict[int, dict] = {}   # index → {id, name, arguments}
+
+        for chunk in stream:
+            if self._abort_event.is_set():
+                try: stream.close()
+                except Exception: pass
+                return full_text or None
+
+            choice = chunk.choices[0] if chunk.choices else None
+            if not choice:
+                continue
+            delta = choice.delta
+
+            # Accumulate streaming tool-call chunks
+            if delta.tool_calls:
+                for tc_d in delta.tool_calls:
+                    idx = tc_d.index
+                    if idx not in tool_acc:
+                        tool_acc[idx] = {"id": "", "name": "", "arguments": ""}
+                    if tc_d.id:
+                        tool_acc[idx]["id"] = tc_d.id
+                    if tc_d.function:
+                        if tc_d.function.name:
+                            tool_acc[idx]["name"] += tc_d.function.name
+                        if tc_d.function.arguments:
+                            tool_acc[idx]["arguments"] += tc_d.function.arguments
+
+            # Stream text tokens → emit sentences
+            if delta.content:
+                buf       += delta.content
+                full_text += delta.content
+                buf = self._flush_sentences(buf)
+
+        # Flush trailing buffer (non-tool path)
+        if buf.strip() and not self._abort_event.is_set() and not tool_acc:
+            self.sentence_ready.emit(buf.strip())
+
+        if not tool_acc:
+            return full_text or None
+
+        # ── Phase 2: execute tool calls, stream final response ────────────────
+        msgs.append({
+            "role": "assistant", "content": "",
+            "tool_calls": [{"id": tc["id"], "type": "function",
+                            "function": {"name": tc["name"], "arguments": tc["arguments"]}}
+                           for tc in tool_acc.values()],
+        })
+
+        clarify_q = None
+        for tc in tool_acc.values():
+            try:
+                args = _j.loads(tc["arguments"])
+            except Exception:
+                args = {}
+            print(f"[AI] 🔧 {tc['name']}({args})")
+            result = AIThread._run_tool(tc["name"], args)
+            print(f"[AI] ✅ {result[:80]}")
+
+            if result.startswith("__CLARIFY__:"):
+                clarify_q = result[len("__CLARIFY__:"):]
+                msgs.append({"role": "tool", "content": clarify_q,
+                             "tool_call_id": tc["id"]})
+            else:
+                msgs.append({"role": "tool", "content": result,
+                             "tool_call_id": tc["id"]})
+
+        # Task 5: clarify — speak the question, no second AI call
+        if clarify_q:
+            self.sentence_ready.emit(clarify_q)
+            return clarify_q
+
+        if self._abort_event.is_set():
+            return full_text or None
+
+        # Stream final response after tool results
+        buf2 = ""
+        stream2 = client.chat.completions.create(
+            model=self.model, max_tokens=max_tok, messages=msgs, stream=True,
+        )
+        for chunk in stream2:
+            if self._abort_event.is_set():
+                try: stream2.close()
+                except Exception: pass
+                break
+            delta2 = chunk.choices[0].delta if chunk.choices else None
+            if delta2 and delta2.content:
+                buf2      += delta2.content
+                full_text += delta2.content
+                buf2 = self._flush_sentences(buf2)
+        if buf2.strip() and not self._abort_event.is_set():
+            self.sentence_ready.emit(buf2.strip())
+
+        return full_text or None
 
     def _google(self, key):
         import requests
@@ -3609,6 +5341,9 @@ class AIThread(QThread):
 # PC FILE SEARCH THREAD
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/network.py (continued) ────────────────────────────────────┐
+# │  PCFileSearchThread: асинхронний пошук файлів на ПК                         │
+# └────────────────────────────────────────────────────────────────────────────┘
 class PCFileSearchThread(QThread):
     """Шукає файли на ПК у фоні і повертає результат."""
     result = pyqtSignal(str)
@@ -3626,6 +5361,9 @@ class PCFileSearchThread(QThread):
 # HAND GESTURE THREAD  (MediaPipe + OpenCV)
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/ui.py (gesture) ───────────────────────────────────────────┐
+# │  HandGestureThread: розпізнавання жестів руки через камеру (MediaPipe)       │
+# └────────────────────────────────────────────────────────────────────────────┘
 class HandGestureThread(QThread):
     """Розпізнавання жестів руки через MediaPipe Tasks API 0.10+.
     Автоматично завантажує модель hand_landmarker.task при першому запуску.
@@ -3772,6 +5510,9 @@ class HandGestureThread(QThread):
         print("[Gesture] Камера закрита")
 
 
+# ┌─ MODULE: sphere/audio.py (continued) ──────────────────────────────────────┐
+# │  TTSThread: відтворення TTS аудіо-файлів (mp3/wav)                          │
+# └────────────────────────────────────────────────────────────────────────────┘
 class TTSThread(QThread):
     """OpenAI TTS - говорить напряму без плеєра"""
     done = pyqtSignal()
@@ -3844,7 +5585,7 @@ class TTSThread(QThread):
             try:
                 time.sleep(0.2)
                 os.remove(temp_path)
-            except:
+            except Exception:
                 pass
                 
         except Exception as e:
@@ -3861,6 +5602,9 @@ class TTSThread(QThread):
 # FEATURE: AUTOMATION ENGINE (Chain Triggers)
 # ═══════════════════════════════════════════════════════════
 
+# ┌─ MODULE: sphere/automation.py (continued) ─────────────────────────────────┐
+# │  AutomationEngine: AI-керована автоматизація UI через Win32 API              │
+# └────────────────────────────────────────────────────────────────────────────┘
 class AutomationEngine:
     """
     Рушій автоматизацій — відстежує тригери та запускає ланцюги дій.
@@ -4064,11 +5808,9 @@ class AutomationEngine:
                     macro_name = action.get("name", "")
                     if macro_name:
                         # Find macro by name and run it
-                        macros = sphere.config.get("macros", [])
                         if hasattr(sphere, 'macro_engine'):
                             sphere.macro_engine.run(macro_name)
                 elif a_type == "spotify":
-                    sp_action = action.get("action", "pause")
                     try:
                         subprocess.Popen(
                             ['powershell', '-Command',
@@ -4098,11 +5840,16 @@ class AutomationEngine:
                 print(f"[AutoEngine] Помилка дії {action}: {e}")
 
 
+# ┌─ MODULE: sphere/ui.py ─────────────────────────────────────────────────────┐
+# │  AivonSphere(QWidget) – ГОЛОВНИЙ КЛАС: UI, трей, анімація, малювання        │
+# │  Методи розподілені по mixin-модулях (tts, ai, commands, system, тощо)      │
+# └────────────────────────────────────────────────────────────────────────────┘
 class AivonSphere(QWidget):
     IDLE, LISTENING, THINKING, SPEAKING = 0, 1, 2, 3
     # Сигнал для безпечної передачі відповіді з фонового потоку в GUI
-    _respond_signal = pyqtSignal(str)
+    _respond_signal        = pyqtSignal(str)
     _respond_silent_signal = pyqtSignal(str)
+    _respond_error_signal  = pyqtSignal(str)   # Task 1: AI error from worker thread
     
     def __init__(self):
         super().__init__()
@@ -4132,6 +5879,10 @@ class AivonSphere(QWidget):
         self.dialog_provider = self.config.get("dialog_provider", "gemini")  # провайдер діалогу
         self.dialog_role = "assistant"   # роль діалогу
         self._dialog_waiting_role = False  # чекаємо вибір ролі
+        self._enrolling_voice = False      # режим реєстрації голосу
+        self._voice_rejected  = False      # поточний фрейм відхилено фільтром
+        # ── Text input popup ──────────────────────────────────────────────────
+        self._text_input = None            # QLineEdit overlay, lazy-created
         
         # Нові системи
         self.jarvis = JarvisSound()
@@ -4140,6 +5891,18 @@ class AivonSphere(QWidget):
         self.memory_enabled = self.config.get("memory_enabled", True)
         self.reminders = []  # [(datetime, reminder_dict), ...] where reminder_dict has keys: text, repeat, repeat_days
         self._mode = self.config.get("current_mode", "normal")  # normal | work | game | quiet | focus
+
+        # ── Interpreter (перекладач) ──────────────────────────────────────────
+        self.interpreter_mode = False   # двосторонній режим перекладача
+        self._interp_lang_a  = "uk"    # мова Людини А (uk/ru)
+        self._interp_lang_b  = "en"    # мова Людини Б (en)
+        self._interp_last    = None    # last speaker: "a" or "b"
+
+        # ── Notes / To-Do / Habits ────────────────────────────────────────────
+        self._notes_file   = USER_DATA_DIR / "notes.json"
+        self._todo_file    = USER_DATA_DIR / "todo.json"
+        self._habits_file  = USER_DATA_DIR / "habits.json"
+        self._clipboard_history: list[str] = []   # останні 20 скопійованих
 
         # Automation engine — chain triggers
         self.automation_engine = AutomationEngine(self)
@@ -4154,10 +5917,15 @@ class AivonSphere(QWidget):
         # Сигнали для потокобезпечної комунікації
         self._respond_signal.connect(self.respond)
         self._respond_silent_signal.connect(self.respond_silent)
+        self._respond_error_signal.connect(self.on_error)
         
         # TTS черга — щоб відповіді не накладались
         self._tts_queue = []
-        self._tts_busy = False
+        self._tts_busy  = False
+        # Task 8: interrupt monitor (background VAD during TTS)
+        self._interrupt_monitor = None
+        # Task 1: currently running AIThread (for abort on interrupt)
+        self._current_ai_thread: AIThread | None = None
         self.reminder_timer = QTimer()
         self.reminder_timer.timeout.connect(self._check_reminders)
         self.reminder_timer.start(30000)  # Кожні 30 сек
@@ -4252,6 +6020,9 @@ class AivonSphere(QWidget):
         # (мають бути ДО будь-якого виклику respond/respond_silent!)
         self._telegram_bot: TelegramBotThread | None = None
         self._tg_chat_id: str | None = None
+        # Persistent chat ID for proactive notifications (saved to config)
+        # Used even for voice commands — sends notes/tasks/etc to Telegram automatically
+        self._tg_notify_chat_id: str | None = self.config.get("telegram_notify_chat_id") or None
         self._last_stt_confidence: float = 1.0
 
         # Wake word listener
@@ -4273,6 +6044,23 @@ class AivonSphere(QWidget):
         self.work_monitor.work_started.connect(self._on_work_started)
         self.work_monitor.work_stopped.connect(self._on_work_stopped)
         self.work_monitor.start()
+
+        # ── Focus mode ────────────────────────────────────────────────────────────
+        self._focus_mode = False
+        self._focus_timer: QTimer | None = None
+
+        # ── Alarms ────────────────────────────────────────────────────────────────
+        self._alarms_file = USER_DATA_DIR / "alarms.json"
+        self._alarm_timers: list = []  # list of QTimer objects
+        self._load_and_schedule_alarms()
+
+        # ── Conversation memory ───────────────────────────────────────────────────
+        self._memory_file = USER_DATA_DIR / "memory.json"
+        self._conversation_memory = self._load_memory()
+        self._last_user_text: str = ""
+
+        # ── Daily auto-backup (23:50 щодня) ──────────────────────────────────────
+        self._start_backup_scheduler()
 
         # Telegram bot — remote control via Telegram
         if self.config.get("telegram_enabled") and self.config.get("telegram_token"):
@@ -4406,8 +6194,7 @@ class AivonSphere(QWidget):
         if currentState := getattr(self, 'state', None):
             if currentState == self.SPEAKING:
                 self.hologram_gesture('explain', 2)
-                return
-    
+
     def _startup_greeting(self):
         """Привітання при запуску залежно від часу доби"""
         if not self.config.get("bhv_greeting", True):
@@ -4539,7 +6326,7 @@ class AivonSphere(QWidget):
             startup_dir = os.path.join(os.environ["APPDATA"], "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
             shortcut = os.path.join(startup_dir, "AIVON Sphere.lnk")
             return os.path.exists(shortcut)
-        except:
+        except Exception:
             return False
     
     def _toggle_autostart(self, checked):
@@ -5016,7 +6803,7 @@ class AivonSphere(QWidget):
                 ac = QColor(self._agent_color)
                 c1 = QColor(ac.red(), ac.green(), ac.blue(), 255)
                 c2 = QColor(max(0, ac.red()-60), max(0, ac.green()-60), max(0, ac.blue()-60), 255)
-            except:
+            except Exception:
                 pass
 
         pulse = 1 + 0.08 * math.sin(self.phase)
@@ -5040,6 +6827,12 @@ class AivonSphere(QWidget):
             self._viz_music_spectrum(p, cx, cy, R, c1, c2)
         elif viz == "music-pulse":
             self._viz_music_pulse(p, cx, cy, R, c1, c2, pulse)
+        elif viz == "aurora":
+            self._viz_aurora(p, cx, cy, R, c1, c2, pulse)
+        elif viz == "glitch":
+            self._viz_glitch(p, cx, cy, R, c1, c2, pulse)
+        elif viz == "liquid":
+            self._viz_liquid(p, cx, cy, R, c1, c2, pulse)
         else:
             # plasma, energy, galaxy, dark, wave-ocean, wave-forest, wave-aurora — базова сфера
             self._viz_plasma(p, cx, cy, R, c1, c2, pulse)
@@ -5105,43 +6898,52 @@ class AivonSphere(QWidget):
             p.setPen(QColor(200, 140, 255, 220))
             p.drawText(0, ty, w, 20, Qt.AlignmentFlag.AlignCenter, badge_text)
 
-        # ── КНОПКА ЖЕСТІВ (✋) — верхній правий кут ──
+        # ── Зберігаємо rect-и для click-detection (без малювання у спокої) ──
         _btn_sz = 28
-        _btn_x  = w - _btn_sz - 6
-        _btn_y  = 6
-        self._gesture_btn_rect = (_btn_x, _btn_y, _btn_sz, _btn_sz)
-        gesture_on = bool(self.config.get("hand_gestures", False)) and self.gesture_thread is not None
-        # Background
-        _bg_col = QColor(0, 200, 120, 120) if gesture_on else QColor(80, 80, 100, 70)
-        p.setBrush(QBrush(_bg_col))
-        p.setPen(QPen(QColor(255, 255, 255, 80 if gesture_on else 40), 1))
-        p.drawRoundedRect(_btn_x, _btn_y, _btn_sz, _btn_sz, 8, 8)
-        # Icon
-        p.setFont(QFont("Segoe UI Emoji", 12))
-        p.setPen(QColor(255, 255, 255, 220 if gesture_on else 100))
-        p.drawText(_btn_x, _btn_y, _btn_sz, _btn_sz, Qt.AlignmentFlag.AlignCenter, "✋")
+        self._gesture_btn_rect = (w - _btn_sz - 6,  6,          _btn_sz, _btn_sz)
+        self._stt_btn_rect     = (6,                  6,          _btn_sz, _btn_sz)
+        self._tg_btn_rect      = (6,                  h - _btn_sz - 6, _btn_sz, _btn_sz)
+        self._ti_btn_rect      = (w - _btn_sz - 6,  h - _btn_sz - 6, _btn_sz, _btn_sz)
 
-        # ── STT ІНДИКАТОР (Whisper / Google) — верхній лівий ──
-        stt_prov = self.config.get("stt_provider", "google")
-        if stt_prov == "whisper":
-            _stt_col  = QColor(130, 80, 255, 100) if WhisperSTT._instance else QColor(80, 80, 100, 60)
-            _stt_icon = "🧠" if WhisperSTT._instance else "⏳"
-            p.setBrush(QBrush(_stt_col))
-            p.setPen(QPen(QColor(255, 255, 255, 50), 1))
-            p.drawRoundedRect(6, 6, 28, 28, 8, 8)
-            p.setFont(QFont("Segoe UI Emoji", 12))
-            p.setPen(QColor(255, 255, 255, 200))
-            p.drawText(6, 6, 28, 28, Qt.AlignmentFlag.AlignCenter, _stt_icon)
+        # ── Малюємо активні індикатори (тільки якщо є активний стан) ──────────
+        gesture_on  = bool(self.config.get("hand_gestures", False)) and self.gesture_thread is not None
+        _tg_running = bool(self._telegram_bot and self._telegram_bot.isRunning())
+        _stt_active = self.config.get("stt_provider", "google") == "whisper"
+        _ti_on      = bool(self._text_input and self._text_input.isVisible())
+        _vf_on      = False
+        try:
+            from core.voice_filter import get_voice_filter
+            _vf_on = get_voice_filter().enabled
+        except Exception:
+            pass
 
-        # ── Telegram bot indicator (bottom-left corner) ───────────────────────
-        if self._telegram_bot and self._telegram_bot.isRunning():
-            _tg_col = QColor(0, 136, 204, 100)  # Telegram blue
-            p.setBrush(QBrush(_tg_col))
-            p.setPen(QPen(QColor(255, 255, 255, 50), 1))
-            p.drawRoundedRect(6, h - 34, 28, 28, 8, 8)
-            p.setFont(QFont("Segoe UI Emoji", 12))
-            p.setPen(QColor(255, 255, 255, 200))
-            p.drawText(6, h - 34, 28, 28, Qt.AlignmentFlag.AlignCenter, "📱")
+        # Helper: draw a small glowing dot indicator
+        def _draw_dot(px, py, color, label=''):
+            p.setBrush(QBrush(color))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(px, py, 8, 8)
+            if label:
+                p.setFont(QFont("Segoe UI", 6))
+                p.setPen(QColor(200, 200, 220, 110))
+                p.drawText(px - 8, py + 10, 24, 10, Qt.AlignmentFlag.AlignCenter, label)
+
+        # Gesture — верхній правий
+        if gesture_on:
+            _draw_dot(w - 12, 8, QColor(0, 220, 130, 200), "✋")
+        # STT Whisper — верхній лівий (тільки якщо Whisper активний)
+        if _stt_active and WhisperSTT._instance:
+            _draw_dot(6, 8, QColor(140, 80, 255, 200), "W")
+        # Telegram — нижній лівий (тільки якщо Online)
+        if _tg_running:
+            _draw_dot(6, h - 14, QColor(0, 150, 220, 200), "TG")
+        # Voice filter — маленький замочок біля центру знизу
+        if _vf_on:
+            p.setFont(QFont("Segoe UI Emoji", 8))
+            p.setPen(QColor(100, 220, 120, 180))
+            p.drawText(cx - 10, h - 16, 20, 14, Qt.AlignmentFlag.AlignCenter, "🔒")
+        # Text input — нижній правий (тільки якщо відкрито)
+        if _ti_on:
+            _draw_dot(w - 12, h - 14, QColor(160, 100, 255, 200), "✏")
 
         # ── STT confidence bar (bottom, thin strip) ───────────────────────────
         conf = getattr(self, '_last_stt_confidence', 1.0)
@@ -5588,18 +7390,146 @@ class AivonSphere(QWidget):
         p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawEllipse(cx - R, cy - R, R * 2, R * 2)
 
+    # ─── AURORA — північне сяйво ─────────────────────────────────────────────
+    def _viz_aurora(self, p, cx, cy, R, c1, c2, pulse):
+        import math, random as _rnd
+        ph = self.phase
+        # Кілька хвилеподібних смуг — зелені, блакитні, фіолетові переходи
+        aurora_colors = [
+            QColor(0, 255, 150),
+            QColor(100, 200, 255),
+            QColor(180, 100, 255),
+            QColor(0, 255, 200),
+        ]
+        n_bands = 5
+        for band in range(n_bands):
+            col = aurora_colors[band % len(aurora_colors)]
+            alpha = int(80 + 70 * abs(math.sin(ph * 0.7 + band * 1.3)))
+            col.setAlpha(alpha)
+            offset_y = int(math.sin(ph * 1.2 + band * 0.8) * R * 0.3)
+            p.setPen(Qt.PenStyle.NoPen)
+            g = QRadialGradient(cx, cy + offset_y, R)
+            transparent = QColor(col)
+            transparent.setAlpha(0)
+            g.setColorAt(0.5 - 0.15, transparent)
+            g.setColorAt(0.5, col)
+            g.setColorAt(0.5 + 0.15, transparent)
+            p.setBrush(QBrush(g))
+            p.drawEllipse(cx - R, cy - R, R * 2, R * 2)
+        # Core
+        cr = int(R * 0.3)
+        glow = QRadialGradient(cx, cy, cr)
+        glow.setColorAt(0, QColor(200, 255, 220, int(180 * pulse)))
+        glow.setColorAt(1, QColor(0, 255, 150, 0))
+        p.setBrush(QBrush(glow))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(cx - cr, cy - cr, cr * 2, cr * 2)
+
+    # ─── GLITCH — кіберпанк ──────────────────────────────────────────────────
+    def _viz_glitch(self, p, cx, cy, R, c1, c2, pulse):
+        import math, random as _rnd
+        ph = self.phase
+        # Базова сфера пурпурна/cyan
+        g = QRadialGradient(cx, cy, R)
+        g.setColorAt(0.0, QColor(255, 0, 200, int(180 * pulse)))
+        g.setColorAt(0.5, QColor(0, 255, 255, 120))
+        g.setColorAt(1.0, QColor(0, 0, 0, 0))
+        p.setBrush(QBrush(g))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(cx - R, cy - R, R * 2, R * 2)
+        # Глітч-прямокутники
+        _rnd.seed(int(ph * 8))
+        for _ in range(6):
+            if _rnd.random() > 0.35:
+                continue
+            gx = cx - R + _rnd.randint(0, int(R * 1.8))
+            gy = cy - R + _rnd.randint(0, int(R * 1.8))
+            gw = _rnd.randint(int(R * 0.1), int(R * 0.6))
+            gh = _rnd.randint(2, int(R * 0.06))
+            gcol = _rnd.choice([
+                QColor(255, 0, 200, 180),
+                QColor(0, 255, 255, 160),
+                QColor(255, 255, 255, 200),
+            ])
+            p.setBrush(QBrush(gcol))
+            p.drawRect(gx, gy, gw, gh)
+        # Контур
+        p.setPen(QPen(QColor(0, 255, 255, 200), 2))
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawEllipse(cx - R, cy - R, R * 2, R * 2)
+        # Scan-line
+        sl_y = cy - R + int((R * 2) * ((ph * 0.6) % 1.0))
+        p.setPen(QPen(QColor(255, 255, 255, 80), 1))
+        p.drawLine(cx - R, sl_y, cx + R, sl_y)
+
+    # ─── LIQUID — рідина ─────────────────────────────────────────────────────
+    def _viz_liquid(self, p, cx, cy, R, c1, c2, pulse):
+        import math
+        ph = self.phase
+        # Кілька розмитих крапель що переміщуються
+        drops = [
+            (math.sin(ph * 1.1) * R * 0.25, math.cos(ph * 0.9) * R * 0.2, 0.55),
+            (math.sin(ph * 0.7 + 2) * R * 0.2, math.cos(ph * 1.3 + 1) * R * 0.25, 0.4),
+            (math.sin(ph * 1.5 + 4) * R * 0.15, math.cos(ph * 0.5 + 3) * R * 0.3, 0.35),
+        ]
+        for dx, dy, scale in drops:
+            gr = int(R * scale)
+            lx, ly = int(cx + dx), int(cy + dy)
+            g = QRadialGradient(lx, ly, gr)
+            a1 = int(160 * pulse)
+            g.setColorAt(0.0, QColor(c1.red(), c1.green(), c1.blue(), a1))
+            g.setColorAt(0.6, QColor(c2.red(), c2.green(), c2.blue(), a1 // 2))
+            g.setColorAt(1.0, QColor(c1.red(), c1.green(), c1.blue(), 0))
+            p.setBrush(QBrush(g))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(lx - gr, ly - gr, gr * 2, gr * 2)
+        # Ripples
+        n_rip = 4
+        for i in range(n_rip):
+            t = (ph * 0.5 + i / n_rip) % 1.0
+            rr = int(R * 0.2 + R * 0.8 * t)
+            ra = max(0, int(200 * (1 - t)))
+            p.setPen(QPen(QColor(c1.red(), c1.green(), c1.blue(), ra), 1.5))
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawEllipse(cx - rr, cy - rr, rr * 2, rr * 2)
+
     def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
             pos = e.position().toPoint()
-            
+
             # ── Клік по кнопці жестів ✋ ──
+            # ── Кнопка жестів ✋ ──
             gesture_rect = getattr(self, '_gesture_btn_rect', None)
             if gesture_rect is not None:
                 bx, by, bw, bh = gesture_rect
                 if bx <= pos.x() <= bx + bw and by <= pos.y() <= by + bh:
                     self._toggle_gestures()
                     return
-            
+
+            # ── Кнопка STT 🧠/🎤 — верхній лівий ──
+            stt_rect = getattr(self, '_stt_btn_rect', None)
+            if stt_rect is not None:
+                bx, by, bw, bh = stt_rect
+                if bx <= pos.x() <= bx + bw and by <= pos.y() <= by + bh:
+                    self._toggle_stt_provider()
+                    return
+
+            # ── Кнопка Telegram 📱 — нижній лівий ──
+            tg_rect = getattr(self, '_tg_btn_rect', None)
+            if tg_rect is not None:
+                bx, by, bw, bh = tg_rect
+                if bx <= pos.x() <= bx + bw and by <= pos.y() <= by + bh:
+                    self._on_telegram_btn_click()
+                    return
+
+            # ── Кнопка тексту ✏️ — нижній правий ──
+            ti_rect = getattr(self, '_ti_btn_rect', None)
+            if ti_rect is not None:
+                bx, by, bw, bh = ti_rect
+                if bx <= pos.x() <= bx + bw and by <= pos.y() <= by + bh:
+                    self._show_text_input()
+                    return
+
             # Перетягування вікна сфери (цей рядок має бути на одному рівні з pos = ...)
             self.drag_pos = e.globalPosition().toPoint() - self.frameGeometry().topLeft()
             
@@ -5614,13 +7544,80 @@ class AivonSphere(QWidget):
         
     def mouseDoubleClickEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
-            self.respond("Йду в тихий режим!")
-            QTimer.singleShot(2000, self.hide_orb)
+            # Double-click = open text input (instead of hiding)
+            self._show_text_input()
         
     def mouseMoveEvent(self, e):
         if e.buttons() == Qt.MouseButton.LeftButton and self.drag_pos:
             self.move(e.globalPosition().toPoint() - self.drag_pos)
             
+    # ── Text input popup ──────────────────────────────────────────────────────
+
+    def _show_text_input(self):
+        """Show a floating text-input bar below the sphere."""
+        if self._text_input and self._text_input.isVisible():
+            self._text_input.hide()
+            return
+
+        if self._text_input is None:
+            inp = QLineEdit(self)
+            inp.setFixedHeight(36)
+            inp.setPlaceholderText("✏️ Напишіть промпт асистенту...")
+            inp.setStyleSheet("""
+                QLineEdit {
+                    background: #0d0f1b;
+                    color: #e0e6ff;
+                    border: 1.5px solid #00d4ff;
+                    border-radius: 18px;
+                    padding: 4px 16px;
+                    font-size: 13px;
+                    font-family: 'Segoe UI', sans-serif;
+                }
+                QLineEdit:focus { border-color: #a78bfa; }
+            """)
+            inp.returnPressed.connect(self._submit_text_input)
+            # Esc closes it
+            inp.keyPressEvent = self._text_input_key
+            self._text_input = inp
+
+        w = self.width()
+        inp_w = max(w + 60, 320)
+        self._text_input.setFixedWidth(inp_w)
+        # Position below the sphere, centred
+        sx = self.x() + (w - inp_w) // 2
+        sy = self.y() + self.height() + 8
+        self._text_input.setParent(None)            # top-level floating window
+        self._text_input.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.Tool |
+            Qt.WindowType.WindowStaysOnTopHint
+        )
+        self._text_input.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, False)
+        self._text_input.move(sx, sy)
+        self._text_input.clear()
+        self._text_input.show()
+        self._text_input.setFocus()
+        self._text_input.raise_()
+
+    def _text_input_key(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self._text_input.hide()
+        else:
+            QLineEdit.keyPressEvent(self._text_input, event)
+
+    def _submit_text_input(self):
+        """Process typed text as voice command."""
+        text = self._text_input.text().strip()
+        self._text_input.hide()
+        if not text:
+            return
+        self.show_orb()
+        self.user_text = text
+        self.response_text = ""
+        self.update()
+        # Route through normal command/dialog pipeline
+        self.on_recognized(text)
+
     def contextMenuEvent(self, e):
         menu = QMenu(self)
         menu.setStyleSheet("""
@@ -5629,6 +7626,7 @@ class AivonSphere(QWidget):
             QMenu::item:selected { background: #00d4ff; color: black; }
         """)
         menu.addAction("🎤 Слухати", self.start_listening)
+        menu.addAction("✏️ Ввести текст", self._show_text_input)
         menu.addAction("🔇 Тихий режим", self.hide_orb)
         menu.addSeparator()
         menu.addAction("🎛️ Панель AXIS OS", self.open_panel)
@@ -5639,6 +7637,16 @@ class AivonSphere(QWidget):
         auto_act.setChecked(self._is_autostart_enabled())
         auto_act.triggered.connect(self._toggle_autostart)
         menu.addSeparator()
+        # Voice filter status
+        try:
+            from core.voice_filter import get_voice_filter
+            vf = get_voice_filter()
+            vf_label = ("🔒 Фільтр голосу: ON" if vf.enabled else "🔓 Фільтр голосу: OFF")
+            vf_act = menu.addAction(vf_label)
+            vf_act.triggered.connect(lambda: vf.set_enabled(not vf.enabled))
+            menu.addSeparator()
+        except Exception:
+            pass
         menu.addAction("❌ Вийти", self.quit_app)
         menu.exec(e.globalPos())
         
@@ -5646,24 +7654,72 @@ class AivonSphere(QWidget):
         if e.key() == Qt.Key.Key_Space:
             self.continuous_listen = True
             self.start_listening()
+        elif e.key() == Qt.Key.Key_T:
+            self._show_text_input()
         elif e.key() == Qt.Key.Key_Escape:
             self.hide_orb()
             
     def start_listening(self):
-        """Почати слухати — блокується якщо TTS ще грає"""
+        """Почати слухати. Task 8: TTS busy no longer blocks — interrupt instead."""
         if self.voice_thread and self.voice_thread.isRunning():
             return
-        # Не слухаємо поки сфера говорить!
+        # Task 8: interrupt TTS if playing instead of refusing to listen
         if self._tts_busy:
-            print("Listening blocked: TTS still playing")
-            return
+            self._interrupt_tts()
         self.user_text, self.response_text = "", ""
         self.retry_count = 0
-        
+
         if self.wake_thread:
             self.wake_thread.pause()
-            
+
         self._do_listen()
+
+    def _interrupt_tts(self):
+        """Task 1+8: stop TTS playback AND abort in-flight AI generation."""
+        print("[TTS] ⚡ Interrupted by user voice")
+        # Task 1: abort AIThread — stops streaming generation
+        ai_t = getattr(self, '_current_ai_thread', None)
+        if ai_t is not None:
+            ai_t.abort()
+            self._current_ai_thread = None
+        try:
+            import pygame
+            if pygame.mixer.get_init():
+                pygame.mixer.music.stop()
+                pygame.mixer.stop()
+        except Exception:
+            pass
+        # Stop any running TTS thread
+        tts_t = getattr(self, '_current_tts_thread', None)
+        if tts_t and hasattr(tts_t, 'requestInterruption'):
+            tts_t.requestInterruption()
+        # Stop interrupt monitor (it already released the mic before signalling)
+        self._stop_interrupt_monitor()
+        self._tts_queue.clear()
+        self._tts_busy = False
+
+    def _start_interrupt_monitor(self):
+        """Task 8: start background VAD monitor during TTS."""
+        self._stop_interrupt_monitor()
+        mon = InterruptMonitorThread()
+        mon.interrupted.connect(self._on_tts_interrupted)
+        mon.start()
+        self._interrupt_monitor = mon
+
+    def _stop_interrupt_monitor(self):
+        """Stop the interrupt monitor thread if running."""
+        mon = getattr(self, '_interrupt_monitor', None)
+        if mon and mon.isRunning():
+            mon.stop_monitor()
+            mon.wait(300)
+        self._interrupt_monitor = None
+
+    def _on_tts_interrupted(self):
+        """Task 8: called from InterruptMonitorThread when user speaks during TTS."""
+        if self._tts_busy:
+            self._interrupt_tts()
+            # Short delay so mic is fully released before VoiceThread opens it
+            QTimer.singleShot(80, self.start_listening)
         
     def _do_listen(self):
         """Внутрішній метод слухання"""
@@ -5672,20 +7728,69 @@ class AivonSphere(QWidget):
         self.voice_thread.started_signal.connect(lambda: setattr(self, 'state', self.LISTENING))
         self.voice_thread.partial.connect(lambda t: setattr(self, 'response_text', t))
         self.voice_thread.stopped.connect(self.on_voice_stopped)
+        # recognized_with_audio must connect BEFORE recognized so voice filter
+        # can set _voice_rejected=True before on_recognized runs.
+        self.voice_thread.recognized_with_audio.connect(self._on_voice_with_audio)
         self.voice_thread.recognized.connect(self.on_recognized)
         self.voice_thread.recognized_with_conf.connect(self._on_stt_confidence)
         self.voice_thread.error.connect(self.on_error)
         self.voice_thread.start()
         
+    def _on_voice_with_audio(self, text: str, audio_bytes: bytes):
+        """Speaker verification slot. Rejects audio if voice filter enabled and mismatch."""
+        if getattr(self, '_enrolling_voice', False):
+            # Enrollment mode: record sample
+            try:
+                from core.voice_filter import get_voice_filter
+                vf     = get_voice_filter()
+                result = vf.enroll_sample(audio_bytes)
+                self.respond(result["msg"])
+                if result.get("ready"):
+                    vf.set_enabled(True)
+                    self._enrolling_voice = False
+                    self.respond("✅ Фільтр голосу увімкнено! Тепер сфера реагує тільки на ваш голос.")
+            except Exception as e:
+                self.respond(f"Помилка реєстрації голосу: {e}")
+            return
+
+        # Normal verification path
+        try:
+            from core.voice_filter import get_voice_filter
+            vf = get_voice_filter()
+            if vf.enabled:
+                res = vf.verify(audio_bytes)
+                if not res["ok"]:
+                    print(f"[VoiceFilter] Відхилено: score={res['score']} < threshold")
+                    # Silently ignore — don't respond to foreign voice
+                    # But show visual cue
+                    self.response_text = f"🚫 {res['score']:.0%}"
+                    self.update()
+                    QTimer.singleShot(1500, lambda: setattr(self, 'response_text', ''))
+                    # Cancel any already-queued on_recognized processing by clearing user_text
+                    self._voice_rejected = True
+                    return
+        except Exception:
+            pass
+        self._voice_rejected = False
+
     def on_voice_stopped(self):
         if self.state == self.LISTENING:
             self.state = self.IDLE
             
     def on_recognized(self, text):
+        # ── Voice filter: skip if non-owner speaker ──────────────────────────
+        if getattr(self, '_voice_rejected', False):
+            self._voice_rejected = False
+            return
+        # ── Enrollment mode handled entirely in _on_voice_with_audio ─────────
+        if getattr(self, '_enrolling_voice', False):
+            return
+
         self.user_text = text
         self.response_text = ""
         lower = text.lower()
-        
+        self._last_user_text = text
+
         # ══ МИТТЄВІ команди (без жодної затримки) ══
         if any(p in lower for p in ["замовк", "замовкни", "shut up"]):
             self.jarvis.play("confirm")
@@ -5703,6 +7808,79 @@ class AivonSphere(QWidget):
             self.automation_engine.trigger_voice(text)
 
         print(f"[Cmd] Heard: '{text}' | mode={self.sphere_mode} → routing...")
+
+        # ══ СТИЛЬ ВІДПОВІДЕЙ ══
+        if self._handle_style_command(lower, text):
+            return
+
+        # ══ ГОЛОСОВИЙ ФІЛЬТР — реєстрація та керування ══
+        _vf_enroll  = ["зареєструй мій голос", "запам'ятай мій голос",
+                       "навчись мого голосу", "запиши мій голос"]
+        _vf_on      = ["увімкни фільтр голосу", "фільтр голосу увімкни",
+                       "реагуй тільки на мій голос", "ігноруй чужий голос"]
+        _vf_off     = ["вимкни фільтр голосу", "фільтр голосу вимкни",
+                       "реагуй на всіх", "вимкни розпізнавання голосу"]
+        _vf_reset   = ["скинь голосовий профіль", "видали мій голос",
+                       "скинь мій голос"]
+        if any(p in lower for p in _vf_enroll):
+            try:
+                from core.voice_filter import get_voice_filter, ENROLL_MIN
+                vf = get_voice_filter()
+                vf.reset()  # Start fresh enrollment
+                self._enrolling_voice = True
+                self._enroll_count = 0
+                self.continuous_listen = True
+                self.respond(
+                    f"🎤 Режим реєстрації голосу. Вимовте {ENROLL_MIN} фрази. "
+                    f"Зразок 1: скажіть будь-що..."
+                )
+            except Exception as e:
+                self.respond(f"Помилка: {e}")
+            return
+        if any(p in lower for p in _vf_on):
+            try:
+                from core.voice_filter import get_voice_filter
+                vf = get_voice_filter()
+                if not vf.enrolled:
+                    self.respond("⚠️ Спочатку зареєструйте голос: «зареєструй мій голос»")
+                else:
+                    vf.set_enabled(True)
+                    self.respond("✅ Фільтр голосу увімкнено")
+            except Exception as e:
+                self.respond(f"Помилка: {e}")
+            return
+        if any(p in lower for p in _vf_off):
+            try:
+                from core.voice_filter import get_voice_filter
+                vf = get_voice_filter()
+                vf.set_enabled(False)
+                self.respond("🔓 Фільтр голосу вимкнено — реагую на всіх")
+            except Exception as e:
+                self.respond(f"Помилка: {e}")
+            return
+        if any(p in lower for p in _vf_reset):
+            try:
+                from core.voice_filter import get_voice_filter
+                vf = get_voice_filter()
+                vf.reset()
+                self._enrolling_voice = False
+                self.respond("🗑️ Голосовий профіль видалено")
+            except Exception as e:
+                self.respond(f"Помилка: {e}")
+            return
+
+        # ══ РЕЖИМ ПЕРЕКЛАДАЧА — перехоплює ВСЮ мову ══
+        if getattr(self, 'interpreter_mode', False):
+            exit_words = ["вийди з перекладача", "стоп перекладача",
+                          "stop interpreter", "вимкни перекладача",
+                          "exit interpreter", "закрий перекладача"]
+            if any(w in lower for w in exit_words):
+                self.interpreter_mode = False
+                self.jarvis.play("confirm")
+                self.respond_silent("🌐 Режим перекладача вимкнено")
+                return
+            self._do_interpret(text)
+            return
         
         # ══ ВХІД в режим діалогу ══
         # НЕ використовуємо "діалог"/"диалог" окремо — вони ловлять "закрий діалог"
@@ -5821,6 +7999,9 @@ class AivonSphere(QWidget):
         # ── КОМАНДИ З ФАЙЛУ — найвищий пріоритет ──
         commands = load_commands()
         for cmd in commands:
+            # Skip commands where sphere listening is explicitly disabled
+            if cmd.get("sphere_listen") is False:
+                continue
             # Support both old sphere format (phrase/alts) and new panel format (trigger/trigger_alts)
             p_list = []
             ph = cmd.get("phrase", "") or cmd.get("trigger", "")
@@ -5865,27 +8046,38 @@ class AivonSphere(QWidget):
         if self._handle_search(lower, text):
             return
         
+        # ── Chrome history queries ──
+        if self._handle_chrome_history_query(lower, text):
+            return
+
+        # ── Chrome browser control ──
+        if self._handle_chrome_commands(lower):
+            return
+
         # ── Відкриття додатків/ігор ──
         if self._handle_app_launch(lower, text):
             return
         
-        # ── Управління Spotify (pause / next / volume…) ──
-        if SpotifyControlThread.detect(lower):
-            self._ensure_spotify_ctrl()
-            if self.spotify_ctrl:
-                self.spotify_thread = SpotifyControlThread(self.spotify_ctrl, text)
-                self.spotify_thread.result.connect(self.respond_silent)
-                self.spotify_thread.error.connect(lambda e: self.respond_silent(f"⚠️ {e}"))
-                self.spotify_thread.start()
-                return
-
-        # ── Пошук музики / фільмів ──────────────────────
+        # ── Пошук фільмів / серіалів / відео (перед Spotify!) ──
         if SearchThread.detect(lower):
             self.search_thread = SearchThread(text)
             self.search_thread.result.connect(self.respond_silent)
             self.search_thread.error.connect(lambda e: self.respond_silent(f"⚠️ {e[:25]}"))
             self.search_thread.start()
             return
+
+        # ── Управління Spotify (pause / next / volume…) ──
+        if SpotifyControlThread.detect(lower):
+            self._ensure_spotify_ctrl()
+            if self.spotify_ctrl:
+                _oai_key = self.config.get("openai_key") or \
+                           self.config.get("api_keys", {}).get("openai", "")
+                self.spotify_thread = SpotifyControlThread(
+                    self.spotify_ctrl, text, api_key=_oai_key)
+                self.spotify_thread.result.connect(self.respond_silent)
+                self.spotify_thread.error.connect(lambda e: self.respond_silent(f"⚠️ {e}"))
+                self.spotify_thread.start()
+                return
         
         # ── Макроси (Voice Attack style) ──
         macro = self.macro_engine.find_macro(lower)
@@ -5934,14 +8126,90 @@ class AivonSphere(QWidget):
         if self._handle_pc_query(lower, text):
             return
 
-        # ── Нічого не знайшли — пропонуємо схожі команди ──
-        suggestions = self._fuzzy_suggestions(lower)
-        if suggestions:
-            opts = ", ".join(f"«{s}»" for s in suggestions)
-            self.respond(f"Не зрозумів 🤔 Можливо, мали на увазі: {opts}?")
+        # ── Режим перекладача ──
+        if self._handle_interpreter_toggle(lower, text):
             return
 
-        # Прямий AI діалог
+        # ── Нотатки голосом → Telegram ──
+        if self._handle_notes(lower, text):
+            return
+
+        # ── To-Do список ──
+        if self._handle_todo(lower, text):
+            return
+
+        # ── Трекер звичок ──
+        if self._handle_habits(lower, text):
+            return
+
+        # ── Новини RSS ──
+        if self._handle_news(lower, text):
+            return
+
+        # ── Аналіз документу з Gemini ──
+        if self._handle_document_analysis(lower, text):
+            return
+
+        # ── Підсумок URL ──
+        if self._handle_url_summary(lower, text):
+            return
+
+        # ── YouTube пошук ──
+        if self._handle_youtube_search(lower, text):
+            return
+
+        # ── Закрити програму ──
+        if self._handle_app_close(lower, text):
+            return
+
+        # ── Температура CPU/GPU ──
+        if self._handle_temperature_query(lower, text):
+            return
+
+        # ── Менеджер клапборду ──
+        if self._handle_clipboard_manager(lower, text):
+            return
+
+        # ── Зміна AI-провайдера голосом ──
+        if self._handle_provider_switch(lower, text):
+            return
+
+        # ── Ранковий брифінг ──
+        if self._handle_morning_briefing(lower):
+            return
+
+        # ── Нові можливості ───────────────────────────────────────────────────────
+        if self._handle_calculator(text, lower): return
+        if self._handle_battery(text, lower): return
+        if self._handle_alarm(text, lower): return
+        if self._handle_shutdown_timer(text, lower): return
+        if self._handle_autotype(text, lower): return
+        if self._handle_screen_ocr(text, lower): return
+        if self._handle_speedtest(text, lower): return
+        if self._handle_wifi_devices(text, lower): return
+        if self._handle_file_search(text, lower): return
+        if self._handle_daily_summary(text, lower): return
+        if self._handle_focus_mode(text, lower): return
+        if self._handle_memory_query(text, lower): return
+        if self._handle_calendar(text, lower): return
+        if self._handle_pomodoro(text, lower): return
+        if self._handle_screenshot_tg(text, lower): return
+
+        # ── Нічого не знайшли ────────────────────────────────────────────────────
+        # Природна мова (> 3 слів або знак питання) → одразу до AI/function calling
+        # Fuzzy пропонуємо тільки для коротких незрозумілих команд
+        words = lower.split()
+        _natural = (len(words) > 3 or "?" in text or
+                    any(w in lower for w in ["де ", "як ", "чому", "коли", "скільки",
+                                             "знайди", "покажи", "що ", "який", "яка"]))
+        if not _natural:
+            suggestions = self._fuzzy_suggestions(lower)
+            if suggestions:
+                opts = ", ".join(f"«{s}»" for s in suggestions)
+                self.respond(f"Не зрозумів 🤔 Можливо, мали на увазі: {opts}?")
+                return
+
+        # Прямий AI діалог (з function calling)
         self.ask_ai(text)
     
     def _reset_agent_color(self):
@@ -5950,6 +8218,7 @@ class AivonSphere(QWidget):
         self._agent_name = ""
         self.update()
 
+    # ┌─ sphere/commands.py ── _looks_like_command + _handle_jarvis_commands ──┐
     def _looks_like_command(self, lower):
         """Швидка локальна перевірка — чи це КОМАНДА (дія) чи ДІАЛОГ (розмова).
         Anthropic викликається ТІЛЬКИ для команд. Діалог іде одразу до GPT.
@@ -5994,6 +8263,7 @@ class AivonSphere(QWidget):
         return False
 
     # ── НОВІ ГОЛОСОВІ КОМАНДИ ──
+    # │  ДИСПЕТЧЕР КОМАНД: головна функція розбору голосових команд             │
     def _handle_jarvis_commands(self, lower):
         """Обробка нових голосових команд з JARVIS звуками"""
         
@@ -6234,7 +8504,7 @@ class AivonSphere(QWidget):
                 img = ImageGrab.grab()
                 img.save(path)
                 self.jarvis.play("confirm")
-                self.respond_silent(f"Скріншот збережено на робочий стіл!")
+                self.respond_silent("Скріншот збережено на робочий стіл!")
             except ImportError:
                 self.respond_silent("Встановіть Pillow: pip install Pillow")
             except Exception as e:
@@ -6249,7 +8519,7 @@ class AivonSphere(QWidget):
             expr_safe = expr.replace('х', '*').replace('×', '*').replace('÷', '/').replace(',', '.')
             expr_safe = re.sub(r'[^0-9+\-*/.() ]', '', expr_safe)
             try:
-                result = eval(expr_safe)  # Безпечно бо залишили тільки цифри та оператори
+                result = eval(expr_safe, {"__builtins__": {}})  # ізольований namespace
                 self.jarvis.play("confirm")
                 self.respond_silent(f"🧮 {expr} = {result}")
             except Exception:
@@ -6347,7 +8617,8 @@ class AivonSphere(QWidget):
                 self._search_thread.error.connect(lambda e: self.respond(f"⚠️ Пошук: {e}"))
                 self._search_thread.start()
             else:
-                self.respond("Додайте Tavily або Serper ключ для пошуку")
+                # Немає зовнішнього пошуку → AI function calling сам знайде
+                return False
             return True
         
         # ── Системний моніторинг голосом ──
@@ -6508,10 +8779,113 @@ class AivonSphere(QWidget):
                 if available:
                     self._respond_signal.emit(f"✅ Ollama доступна. Модель: {model}")
                 else:
-                    self._respond_signal.emit(f"❌ Ollama недоступна (localhost:11434). Запустіть: ollama serve")
+                    self._respond_signal.emit("❌ Ollama недоступна (localhost:11434). Запустіть: ollama serve")
             self.jarvis.play("science")
             threading.Thread(target=_ollama_check, daemon=True).start()
             return True
+
+        # ── Мультимовний TTS ──
+        _LANG_MAP = {
+            "німецьк":      ("German",      "de-DE-KatjaNeural"),
+            "deutsch":      ("German",      "de-DE-KatjaNeural"),
+            "german":       ("German",      "de-DE-KatjaNeural"),
+            "французьк":    ("French",      "fr-FR-DeniseNeural"),
+            "french":       ("French",      "fr-FR-DeniseNeural"),
+            "франц":        ("French",      "fr-FR-DeniseNeural"),
+            "іспанськ":     ("Spanish",     "es-ES-ElviraNeural"),
+            "spanish":      ("Spanish",     "es-ES-ElviraNeural"),
+            "іспан":        ("Spanish",     "es-ES-ElviraNeural"),
+            "польськ":      ("Polish",       "pl-PL-ZofiaNeural"),
+            "polish":       ("Polish",       "pl-PL-ZofiaNeural"),
+            "італійськ":    ("Italian",     "it-IT-ElsaNeural"),
+            "italian":      ("Italian",     "it-IT-ElsaNeural"),
+            "японськ":      ("Japanese",    "ja-JP-NanamiNeural"),
+            "japanese":     ("Japanese",    "ja-JP-NanamiNeural"),
+            "китайськ":     ("Chinese",     "zh-CN-XiaoxiaoNeural"),
+            "chinese":      ("Chinese",     "zh-CN-XiaoxiaoNeural"),
+            "корейськ":     ("Korean",      "ko-KR-SunHiNeural"),
+            "korean":       ("Korean",      "ko-KR-SunHiNeural"),
+            "арабськ":      ("Arabic",      "ar-SA-ZariyahNeural"),
+            "arabic":       ("Arabic",      "ar-SA-ZariyahNeural"),
+            "турецьк":      ("Turkish",     "tr-TR-EmelNeural"),
+            "turkish":      ("Turkish",     "tr-TR-EmelNeural"),
+            "португальськ": ("Portuguese",  "pt-PT-FernandaNeural"),
+            "portuguese":   ("Portuguese",  "pt-PT-FernandaNeural"),
+            "грецьк":       ("Greek",       "el-GR-AthinaNeural"),
+            "greek":        ("Greek",       "el-GR-AthinaNeural"),
+            "чеськ":        ("Czech",       "cs-CZ-VlastaNeural"),
+            "czech":        ("Czech",       "cs-CZ-VlastaNeural"),
+            "шведськ":      ("Swedish",     "sv-SE-SofieNeural"),
+            "swedish":      ("Swedish",     "sv-SE-SofieNeural"),
+            "норвезьк":     ("Norwegian",   "nb-NO-PernilleNeural"),
+            "норвег":       ("Norwegian",   "nb-NO-PernilleNeural"),
+            "данськ":       ("Danish",      "da-DK-ChristelNeural"),
+            "danish":       ("Danish",      "da-DK-ChristelNeural"),
+            "фінськ":       ("Finnish",     "fi-FI-NooraNeural"),
+            "finnish":      ("Finnish",     "fi-FI-NooraNeural"),
+            "румунськ":     ("Romanian",    "ro-RO-AlinaNeural"),
+            "romanian":     ("Romanian",    "ro-RO-AlinaNeural"),
+            "угорськ":      ("Hungarian",   "hu-HU-NoemiNeural"),
+            "hungarian":    ("Hungarian",   "hu-HU-NoemiNeural"),
+            "нідерландськ": ("Dutch",       "nl-NL-ColetteNeural"),
+            "dutch":        ("Dutch",       "nl-NL-ColetteNeural"),
+            "англійськ":    ("English",     "en-US-JennyNeural"),
+            "англ":         ("English",     "en-US-JennyNeural"),
+            "english":      ("English",     "en-US-JennyNeural"),
+            "російськ":     ("Russian",     "ru-RU-SvetlanaNeural"),
+            "русск":        ("Russian",     "ru-RU-SvetlanaNeural"),
+            "russian":      ("Russian",     "ru-RU-SvetlanaNeural"),
+            # Russian-style endings users may say
+            "немецк":       ("German",      "de-DE-KatjaNeural"),
+            "французск":    ("French",      "fr-FR-DeniseNeural"),
+            "японск":       ("Japanese",    "ja-JP-NanamiNeural"),
+            "китайск":      ("Chinese",     "zh-CN-XiaoxiaoNeural"),
+            "польск":       ("Polish",       "pl-PL-ZofiaNeural"),
+            "испанск":      ("Spanish",     "es-ES-ElviraNeural"),
+            "итальянск":    ("Italian",     "it-IT-ElsaNeural"),
+            "английск":     ("English",     "en-US-JennyNeural"),
+            "турецк":       ("Turkish",     "tr-TR-EmelNeural"),
+            "арабск":       ("Arabic",      "ar-SA-ZariyahNeural"),
+        }
+        _lang_re = re.compile(
+            r'(?:скажи|say|розкажи|прочитай|прочитати)\s*(.*?)\s*'
+            r'(?:по-(\w+)|на\s+(\w+)\s*(?:мов\w*)?|(\w+)ською\s+мовою|мовою\s+(\w+)|in\s+(\w+))',
+            re.IGNORECASE | re.DOTALL
+        )
+        _lang_m = _lang_re.search(lower)
+        if _lang_m:
+            topic    = (_lang_m.group(1) or "").strip()
+            lang_kw  = (_lang_m.group(2) or _lang_m.group(3) or
+                        _lang_m.group(4) or _lang_m.group(5) or
+                        _lang_m.group(6) or "").lower().strip()
+            # Normalize: strip inflection endings (Ukrainian & Russian) so "німецьки" → "німецьк"
+            lang_kw_norm = re.sub(r'(ому|ому|ским|ской|ском|ком|им|ій|ого|ою|ий|их|ій|и|і|у)$', '', lang_kw)
+            matched_lang  = None
+            matched_voice = None
+            for key, (lname, lvoice) in _LANG_MAP.items():
+                if lang_kw_norm.startswith(key) or key.startswith(lang_kw_norm) or lang_kw == key:
+                    matched_lang  = lname
+                    matched_voice = lvoice
+                    break
+            if matched_lang:
+                if not topic:
+                    topic = "коротку цікаву фразу або невеликий вірш"
+                ai_prompt = (
+                    f"Скажи {topic} мовою {matched_lang}. "
+                    f"Відповідай ТІЛЬКИ текстом мовою {matched_lang}, "
+                    f"без перекладу, без пояснень, без префіксів."
+                )
+                self.jarvis.play("science")
+                self.respond(f"🌐 Зараз скажу {topic} по-{matched_lang.lower()}…")
+                def _speak_multilang(prompt=ai_prompt, voice=matched_voice):
+                    orig_voice = self.config.get("edge_voice", "uk-UA-PolinaNeural")
+                    self.config["edge_voice"] = voice
+                    try:
+                        self._respond_with_ai(prompt)
+                    finally:
+                        self.config["edge_voice"] = orig_voice
+                threading.Thread(target=_speak_multilang, daemon=True).start()
+                return True
 
         # ── Рандомна фраза ──
         if any(p in lower for p in ["скажи щось", "say something", "рандом", "фраза"]):
@@ -6666,7 +9040,64 @@ class AivonSphere(QWidget):
                              args=(raw,), daemon=True).start()
             return True
 
+        # ── Зміна стилю сфери голосом ──────────────────────────────────────────
+        style_map = {
+            "аврора": "aurora", "aurora": "aurora",
+            "глітч": "glitch",  "glitch": "glitch", "кіберпанк": "glitch",
+            "рідина": "liquid",  "liquid": "liquid", "вода": "liquid",
+            "неон": "neon",     "neon": "neon",
+            "вогонь": "fire",   "fire": "fire",
+            "матриця": "matrix_viz", "matrix": "matrix_viz",
+            "плазма": "plasma",  "plasma": "plasma",
+            "голограма": "holo", "holo": "holo",
+            "музичні бари": "music-bars", "music bars": "music-bars",
+            "синусоїда": "music-sine",
+        }
+        if any(k in lower for k in ["стиль", "style", "режим відображення", "вигляд сфери", "тема сфери"]):
+            for word, style_key in style_map.items():
+                if word in lower:
+                    self.jarvis.play("confirm")
+                    sphere_cfg = load_sphere_config()
+                    sphere_cfg["sphere_style"] = style_key
+                    save_sphere_config(sphere_cfg)
+                    self.config = load_config()
+                    self.respond_silent(f"🎨 Стиль сфери: {word.title()}")
+                    return True
+
+        # ── Міні-режим (компактна смужка) ─────────────────────────────────────
+        if any(k in lower for k in ["міні режим", "mini mode", "компактний режим",
+                                     "маленька сфера", "мінімальний режим"]):
+            self._toggle_mini_mode(True)
+            return True
+        if any(k in lower for k in ["нормальний розмір", "звичайний режим", "full mode",
+                                     "вимкни міні", "вийти з міні"]):
+            self._toggle_mini_mode(False)
+            return True
+
         return False
+
+    # └─ sphere/commands.py ──────────────────────────────────────────────────┘
+    def _toggle_mini_mode(self, enable: bool):
+        """Перемикає між повним орбом та міні-смужкою знизу екрана."""
+        if enable:
+            screen = QApplication.primaryScreen().geometry()
+            bar_h  = 36
+            bar_w  = 340
+            self.setFixedSize(bar_w, bar_h)
+            self.move(screen.width() // 2 - bar_w // 2,
+                      screen.height() - bar_h - 4)
+            self._mini_mode = True
+            self.jarvis.play("confirm")
+            self.respond_silent("📏 Міні-режим")
+        else:
+            # Відновлюємо стандартний розмір
+            cfg = load_sphere_config()
+            size = int(cfg.get("sphere_size", 180))
+            self.setFixedSize(size, size)
+            pos  = cfg.get("position", "bottom-right")
+            self._reposition(pos, size, size)
+            self._mini_mode = False
+            self.respond_silent("🔵 Повний режим")
     
     def _create_command_from_voice(self, raw: str):
         """
@@ -6797,8 +9228,8 @@ class AivonSphere(QWidget):
             else:
                 # Просто шукаємо в Steam Store
                 webbrowser.open(f"https://store.steampowered.com/search/?term={game_name}")
-                self.respond(f"🔍 Не знайшов точного збігу. Відкриваю пошук в Steam Store.")
-        except Exception as e:
+                self.respond("🔍 Не знайшов точного збігу. Відкриваю пошук в Steam Store.")
+        except Exception:
             # Fallback — відкриваємо Steam пошук
             webbrowser.open(f"https://store.steampowered.com/search/?term={game_name}")
             self.respond(f"🎮 Відкриваю пошук {game_name} в Steam.")
@@ -6854,7 +9285,7 @@ class AivonSphere(QWidget):
                 query += f" {episode} серія"
             webbrowser.open(f"https://www.google.com/search?q={query}")
             self.respond(f"🎬 Шукаю {name} в Google (встановіть beautifulsoup4 для кращого пошуку)")
-        except Exception as e:
+        except Exception:
             webbrowser.open(f"https://www.google.com/search?q={name}+дивитись+онлайн")
             self.respond(f"🎬 Відкриваю пошук {name}")
     
@@ -7031,7 +9462,7 @@ $w.Stop()
             import requests
             ow_key = self.config.get("openweather_key", "")
             if ow_key:
-                url = f"http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={ow_key}"
+                url = f"https://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={lon}&limit=1&appid={ow_key}"
                 r = requests.get(url, timeout=5)
                 if r.status_code == 200:
                     data = r.json()
@@ -7045,7 +9476,7 @@ $w.Stop()
         """Fallback: визначити місто по IP (ip-api.com → ipinfo.io)"""
         try:
             import requests
-            r = requests.get("http://ip-api.com/json/?fields=city,country,lat,lon", timeout=4)
+            r = requests.get("https://ip-api.com/json/?fields=city,country,lat,lon", timeout=4)
             if r.status_code == 200:
                 d = r.json()
                 if d.get("city"):
@@ -7517,6 +9948,7 @@ $w.Stop()
         return False
     
     # ── КЕРУВАННЯ МУЗИКОЮ ──
+    # ┌─ sphere/media.py ── музика, steam, серіали ──────────────────────────┐
     def _handle_music(self, lower):
         """Голосове керування музикою через медіа-клавіші"""
         if any(p in lower for p in ["грай музику", "play music", "включи музику", "відтворюй"]):
@@ -7568,15 +10000,7 @@ $w.Stop()
         if not is_search and not is_news:
             return False
         
-        key = self.config.get("perplexity_key", "")
-        if not key:
-            return False  # Fallback до звичайного AI
-        
-        self.state = self.THINKING
-        self.response_text = "🔍 Шукаю..."
-        self.jarvis.play("loading")
-        
-        # Витягти запит
+        # Витягти запит (до перевірки ключа — потрібен в обох гілках)
         query = text
         for trigger in search_triggers + news_triggers:
             if trigger in lower:
@@ -7586,6 +10010,18 @@ $w.Stop()
                     query = after
                 break
         
+        key = self.config.get("perplexity_key", "")
+        if not key:
+            # Немає Perplexity → DDG без API ключа
+            self.state = self.THINKING
+            self.response_text = "🌐 Шукаю..."
+            self.jarvis.play("loading")
+            import threading as _thr
+            _q = query
+            _thr.Thread(target=lambda: self.respond(AIThread._web_search(_q)[:300]),
+                        daemon=True).start()
+            return True
+
         search_type = "news" if is_news else "general"
         self.perplexity_thread = PerplexitySearchThread(self.config, query, search_type)
         self.perplexity_thread.response.connect(self._on_search_result)
@@ -7609,12 +10045,328 @@ $w.Stop()
                 pass
     
     # ── ВІДКРИТТЯ ДОДАТКІВ / ПРОЄКТІВ ──
+    # ═══════════════════════════════════════════════════════════
+    # CHROME BROWSER CONTROL
+    # ═══════════════════════════════════════════════════════════
+
+    # ── Chrome History reader ─────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_chrome_history(limit: int = 15, search: str = "") -> list[dict]:
+        """Read Chrome browsing history from SQLite DB.
+
+        Chrome locks the file while running → we copy to temp first.
+        Returns list of {title, url, visited} sorted by most recent.
+        """
+        import os, shutil, tempfile, sqlite3
+        from datetime import datetime, timedelta
+
+        db_path = os.path.expandvars(
+            r"%LOCALAPPDATA%\Google\Chrome\User Data\Default\History")
+        if not os.path.exists(db_path):
+            return []
+
+        # Copy to temp — Chrome keeps the file locked
+        fd, tmp = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        try:
+            shutil.copy2(db_path, tmp)
+            conn = sqlite3.connect(tmp)
+            cur  = conn.cursor()
+
+            # Chrome epoch: microseconds since 1601-01-01
+            _epoch = datetime(1601, 1, 1)
+
+            if search:
+                cur.execute("""
+                    SELECT urls.title, urls.url, urls.last_visit_time
+                    FROM urls
+                    WHERE (urls.title LIKE ? OR urls.url LIKE ?)
+                    ORDER BY urls.last_visit_time DESC
+                    LIMIT ?
+                """, (f"%{search}%", f"%{search}%", limit))
+            else:
+                cur.execute("""
+                    SELECT title, url, last_visit_time
+                    FROM urls
+                    ORDER BY last_visit_time DESC
+                    LIMIT ?
+                """, (limit,))
+
+            rows = cur.fetchall()
+            conn.close()
+
+            result = []
+            for title, url, ts in rows:
+                visited = _epoch + timedelta(microseconds=ts)
+                result.append({
+                    "title":   title or url,
+                    "url":     url,
+                    "visited": visited.strftime("%d.%m %H:%M"),
+                })
+            return result
+        except Exception as e:
+            print(f"[Chrome History] {e}")
+            return []
+        finally:
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
+
+    def _handle_chrome_history_query(self, lower: str, text: str) -> bool:
+        """Handle voice queries about Chrome history.
+
+        Commands:
+          "що я останнє дивився/читав/відкривав"
+          "що я дивився вчора/сьогодні"
+          "відкрий останній сайт"
+          "відкрий останнє відео"
+          "знайди в историї Netflix/YouTube/…"
+          "розкажи мою историю"
+        """
+        _TRIGGERS = [
+            "що я останнє", "що я дивився", "що я читав", "що я відкривав",
+            "що я переглядав", "останні сайти", "останні сторінки",
+            "відкрий останній сайт", "відкрий останню сторінку",
+            "відкрий останнє відео", "розкажи мою историю",
+            "що я дивився вчора", "що я дивився сьогодні",
+            "знайди в историї", "пошукай в историї",
+            "покажи историю", "моя история", "останні відвідані",
+        ]
+        if not any(t in lower for t in _TRIGGERS):
+            return False
+
+        # Extract search term if present
+        search = ""
+        for marker in ("знайди в историї", "пошукай в историї"):
+            if marker in lower:
+                search = lower.split(marker, 1)[-1].strip()
+                break
+
+        # Handle "відкрий останній сайт/відео" — open it directly
+        if any(k in lower for k in ("відкрий останній", "відкрий останню", "відкрий останнє")):
+            items = self._get_chrome_history(limit=5)
+            if items:
+                top = items[0]
+                self._open_chrome_url(top["url"],
+                    f"🌐 Відкриваю: {top['title'][:60]}")
+            else:
+                self.respond("Не вдалось прочитати историю Chrome")
+            return True
+
+        # Fetch and speak recent history
+        self.state = self.THINKING
+        self.response_text = "🔍 Читаю историю..."
+        self.update()
+
+        def _fetch():
+            items = self._get_chrome_history(limit=8, search=search)
+            if not items:
+                self._respond_signal.emit("История Chrome порожня або недоступна")
+                return
+
+            # Build a short spoken summary
+            lines = []
+            for i, it in enumerate(items[:5], 1):
+                title = it["title"]
+                # Strip long URLs from title
+                if title.startswith("http"):
+                    title = title.split("/")[2]   # show just domain
+                lines.append(f"{i}. {title[:55]} — {it['visited']}")
+
+            summary = "Ось твоя остання история:\n" + "\n".join(lines)
+            if len(items) > 5:
+                summary += f"\n...і ще {len(items)-5} сторінок"
+            self._respond_signal.emit(summary)
+
+            # Also push as chrome://history in background
+            QTimer.singleShot(500, lambda: self._open_chrome_url(
+                "chrome://history" if not search
+                else f"chrome://history/search#{search}",
+                ""))
+
+        threading.Thread(target=_fetch, daemon=True).start()
+        return True
+
+    def _find_chrome_exe(self) -> str | None:
+        """Return path to Chrome executable or None."""
+        import os as _os
+        candidates = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            _os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+            _os.path.expandvars(r"%PROGRAMFILES%\Google\Chrome\Application\chrome.exe"),
+        ]
+        for p in candidates:
+            if _os.path.exists(p):
+                return p
+        return None
+
+    def _open_chrome_url(self, url: str, speak: str = ""):
+        """Open URL in existing Chrome window as new tab.
+
+        Passing the URL directly to chrome.exe is enough — if Chrome is already
+        running it opens a new tab in the current window; if not, it starts Chrome.
+        Falls back to webbrowser.open() if Chrome executable not found.
+        """
+        chrome = self._find_chrome_exe()
+        if speak:
+            self.respond_silent(speak)
+
+        def _launch():
+            try:
+                if chrome:
+                    subprocess.Popen([chrome, url], creationflags=_NO_WINDOW)
+                else:
+                    webbrowser.open(url)
+            except Exception as e:
+                print(f"[Chrome] open error: {e}")
+                webbrowser.open(url)
+
+        QTimer.singleShot(200, _launch)
+
+    def _chrome_shortcut(self, keys: str, speak: str = ""):
+        """Focus Chrome window then send keyboard shortcut via pyautogui."""
+        if speak:
+            self.respond_silent(speak)
+
+        def _send():
+            import time
+            # 1. Try to focus Chrome window
+            focused = False
+            try:
+                import pygetwindow as gw
+                wins = [w for w in gw.getAllWindows()
+                        if w.title and ("chrome" in w.title.lower()
+                                        or "google" in w.title.lower()
+                                        or "youtube" in w.title.lower())]
+                if wins:
+                    w = wins[0]
+                    w.restore()
+                    w.activate()
+                    time.sleep(0.4)   # wait for focus
+                    focused = True
+            except Exception as e:
+                print(f"[Chrome shortcut] focus error: {e}")
+
+            # 2. If Chrome not open yet — launch it first, then retry
+            if not focused:
+                chrome = self._find_chrome_exe()
+                if chrome:
+                    subprocess.Popen([chrome], creationflags=_NO_WINDOW)
+                    time.sleep(1.5)
+
+            # 3. Send hotkey
+            try:
+                import pyautogui
+                pyautogui.hotkey(*keys.split("+"))
+            except Exception as e:
+                print(f"[Chrome shortcut] hotkey error: {e}")
+
+        threading.Thread(target=_send, daemon=True).start()
+
+    def _handle_chrome_commands(self, lower: str) -> bool:
+        """Detect and execute Chrome browser control commands.
+
+        Handles: history, tabs, bookmarks, downloads, settings,
+                 close/reload tab, new tab, back/forward, search in page.
+        Returns True if command was handled.
+        """
+        # ── History ──────────────────────────────────────────────────────────
+        _hist = ["историю", "историй", "историї", "history",
+                 "мою историю", "відкрий историю", "покажи историю",
+                 "переглянуту историю", "переглянуті сторінки"]
+        if any(k in lower for k in _hist):
+            self._open_chrome_url("chrome://history", "📜 Відкриваю историю Chrome")
+            return True
+
+        # ── Tabs ─────────────────────────────────────────────────────────────
+        _tabs_show = ["мої вкладки", "всі вкладки", "відкриті вкладки",
+                      "покажи вкладки", "список вкладок", "my tabs", "show tabs"]
+        if any(k in lower for k in _tabs_show):
+            # Ctrl+Shift+A = Chrome tab search (Chrome 87+)
+            self._chrome_shortcut("ctrl+shift+a", "📑 Показую вкладки")
+            return True
+
+        _new_tab = ["нову вкладку", "нова вкладка", "нова таб", "new tab", "відкрий вкладку"]
+        if any(k in lower for k in _new_tab):
+            self._open_chrome_url("chrome://newtab", "➕ Нова вкладка")
+            return True
+
+        _close_tab = ["закрий вкладку", "закрити вкладку", "close tab", "закрий таб"]
+        if any(k in lower for k in _close_tab):
+            self._chrome_shortcut("ctrl+w", "✖️ Закриваю вкладку")
+            return True
+
+        # ── Bookmarks ─────────────────────────────────────────────────────────
+        _bmarks = ["закладки", "обрані", "збережені сайти", "bookmarks", "favorites"]
+        if any(k in lower for k in _bmarks):
+            self._open_chrome_url("chrome://bookmarks", "⭐ Відкриваю закладки")
+            return True
+
+        # ── Downloads ────────────────────────────────────────────────────────
+        _dl = ["завантаження", "downloads", "скачане", "завантажені файли"]
+        if any(k in lower for k in _dl):
+            self._open_chrome_url("chrome://downloads", "⬇️ Відкриваю завантаження")
+            return True
+
+        # ── Settings ─────────────────────────────────────────────────────────
+        _cfg = ["налаштування хрому", "налаштування хромa", "налаштування браузера",
+                "chrome settings", "browser settings"]
+        if any(k in lower for k in _cfg):
+            self._open_chrome_url("chrome://settings", "⚙️ Налаштування Chrome")
+            return True
+
+        # ── Page navigation ───────────────────────────────────────────────────
+        _reload = ["перезавантаж сторінку", "оновити сторінку", "reload", "refresh"]
+        if any(k in lower for k in _reload):
+            self._chrome_shortcut("ctrl+r", "🔄 Оновлюю сторінку")
+            return True
+
+        _back = ["назад в браузері", "крок назад", "go back", "назад browser"]
+        if any(k in lower for k in _back):
+            self._chrome_shortcut("alt+Left", "⬅️ Назад")
+            return True
+
+        _forward = ["вперед в браузері", "крок вперед", "go forward"]
+        if any(k in lower for k in _forward):
+            self._chrome_shortcut("alt+Right", "➡️ Вперед")
+            return True
+
+        # ── Google-specific quick searches ────────────────────────────────────
+        _google_search_triggers = [
+            "знайди в гуглі", "пошукай в гуглі", "відкрий в гуглі",
+            "знайди в google", "пошукай в google", "відкрий в google",
+            "в гуглі знайди", "загугли",
+        ]
+        for trigger in _google_search_triggers:
+            if trigger in lower:
+                query = lower.split(trigger, 1)[-1].strip()
+                if not query:
+                    query = lower.replace(trigger, "").strip()
+                if query:
+                    from urllib.parse import quote
+                    self._open_chrome_url(
+                        f"https://www.google.com/search?q={quote(query)}",
+                        f"🔍 Шукаю в Google: {query}")
+                    return True
+
+        return False
+
     def _handle_app_launch(self, lower, text):
-        """Обробка команд відкриття додатків/ігор/проєктів"""
-        
+        """Обробка команд відкриття додатків/ігор/проєктів.
+
+        Підтримує:
+        - «відкрий Клод і ГПТ» → запускає обидва
+        - веб-додатки (claude.ai, chat.openai.com, youtube, …)
+        - fuzzy matching — «хром» → Chrome, «клод» → claude.ai
+        - без тригерів: якщо фраза == назва відомого додатку
+        """
+
         # ── Відкриття проєкту голосом ──
         project_triggers = ["відкрий проєкт", "открой проект", "open project",
-                           "відкрий проект", "запусти проєкт"]
+                            "відкрий проект", "запусти проєкт"]
         for trigger in project_triggers:
             if trigger in lower:
                 idx = lower.find(trigger)
@@ -7632,42 +10384,73 @@ $w.Stop()
                     else:
                         self.respond_silent(f"Проєкт '{proj_name}' не знайдено")
                         return True
-        
-        # ── Стандартне відкриття додатків ──
-        launch_triggers = ["відкрий", "запусти", "открой", "запусти",
-                          "open", "launch", "включи", "запускай"]
-        
+
+        # ── Слова-тригери запуску ──
+        launch_triggers = [
+            "відкрий", "запусти", "открой", "запускай",
+            "open", "launch", "включи", "підніми", "підніміть",
+            "покажи", "показати", "start", "run",
+        ]
+        # Слова, що НЕ є назвами додатків — ігноруємо
+        skip_words = [
+            "музику", "песню", "пісню", "фільм", "movie", "song",
+            "серіал", "браузер нову вкладку",
+        ]
+
+        app_phrase = None  # Те що іде ПІСЛЯ тригеру
         for trigger in launch_triggers:
             if trigger in lower:
                 idx = lower.find(trigger)
-                app_name = text[idx + len(trigger):].strip()
+                candidate = text[idx + len(trigger):].strip()
                 for stop in ("будь ласка", "пожалуйста", "please"):
-                    app_name = app_name.replace(stop, "").strip()
-                
-                if not app_name:
-                    continue
-                
-                skip_words = ["музику", "песню", "пісню", "фільм", "movie", "song"]
-                if any(w in app_name.lower() for w in skip_words):
-                    return False
-                
-                path = self.app_launcher.find(app_name)
-                if path:
-                    self.jarvis.play("confirm")
-                    self.respond_silent(f"Відкриваю {app_name}!")
-                    QTimer.singleShot(300, lambda p=path: self.app_launcher.launch(p))
-                    return True
-                else:
-                    self.respond_silent(f"Не знайшов '{app_name}'. Спробую пошукати...")
-                    try:
-                        subprocess.Popen(app_name, shell=True, creationflags=_NO_WINDOW)
-                        self.jarvis.play("confirm")
-                        return True
-                    except Exception:
-                        pass
-                    return False
-        
-        return False
+                    candidate = candidate.replace(stop, "").strip()
+                if candidate and not any(w in candidate.lower() for w in skip_words):
+                    app_phrase = candidate
+                    break
+
+        # ── Без тригеру: перевіряємо чи вся фраза — відомий додаток ──
+        if app_phrase is None:
+            # Пробуємо знайти пряму відповідність у WEB_APPS або ALIASES
+            direct = self.app_launcher.find(lower)
+            if direct and len(lower.split()) <= 3:
+                app_phrase = lower
+            else:
+                return False
+
+        if not app_phrase:
+            return False
+
+        # ── Розбиваємо на декілька додатків (підтримка «і», «та», «and») ──
+        found_apps = self.app_launcher.find_multi(app_phrase)
+
+        if not found_apps:
+            # Жодного не знайшли — спробуємо запустити як shell команду
+            self.respond_silent(f"🔍 Не знайшов «{app_phrase}»…")
+            try:
+                subprocess.Popen(app_phrase, shell=True, creationflags=_NO_WINDOW)
+                self.jarvis.play("confirm")
+                return True
+            except Exception:
+                return False
+
+        # ── Запускаємо всі знайдені додатки ──
+        names = [n for n, _ in found_apps]
+        if len(names) == 1:
+            label = names[0].title()
+        else:
+            label = ", ".join(n.title() for n in names[:-1]) + f" і {names[-1].title()}"
+
+        self.jarvis.play("confirm")
+        self.respond_silent(f"🚀 Відкриваю: {label}")
+
+        def _launch_all(apps=found_apps):
+            for delay_i, (name, path) in enumerate(apps):
+                def _do(p=path):
+                    self.app_launcher.launch(p)
+                QTimer.singleShot(delay_i * 600, _do)
+
+        QTimer.singleShot(300, _launch_all)
+        return True
     
     def _find_project(self, name):
         """Знайти проєкт за назвою в типових папках"""
@@ -7875,6 +10658,7 @@ $w.Stop()
     # РОБОЧИЙ РЕЖИМ
     # ═══════════════════════════════════════════════════════════
 
+    # └─ sphere/media.py ─────────────────────────────────────────────────────┘
     def _on_work_started(self, app_name: str):
         """Виклик коли з'явився робочий застосунок."""
         if not self.config.get("work_mode_notify", True):
@@ -7899,6 +10683,7 @@ $w.Stop()
     # TELEGRAM BOT METHODS
     # ═══════════════════════════════════════════════════════════
 
+    # ┌─ sphere/telegram_bot.py ── методи AivonSphere ───────────────────────┐
     def _start_telegram_bot(self, cfg: dict | None = None):
         """Запускає Telegram бот потік.
         cfg — якщо передано, використовує ці налаштування замість self.config
@@ -7929,8 +10714,39 @@ $w.Stop()
         print(f"[Telegram] {status}")
         if status.startswith("online"):
             self.respond_silent(f"📱 Telegram бот підключено! {status}")
+            # Надсилаємо привітальне повідомлення в Telegram при запуску
+            QTimer.singleShot(1500, self._tg_send_startup_greeting)
         elif status.startswith("error"):
             self.respond_silent(f"⚠️ Telegram: {status}")
+
+    def _tg_send_startup_greeting(self):
+        """Надсилає привітання в Telegram при старті Sphere."""
+        if not (self._telegram_bot and self._telegram_bot.isRunning()):
+            return
+        target = self._tg_notify_chat_id
+        if not target:
+            return   # Нема збереженого chat_id — чекаємо поки хтось напише /start
+        from datetime import datetime as _dt
+        now = _dt.now()
+        hour = now.hour
+        if hour < 6:
+            greeting = "🌙 Доброї ночі"
+        elif hour < 12:
+            greeting = "🌅 Доброго ранку"
+        elif hour < 18:
+            greeting = "☀️ Доброго дня"
+        else:
+            greeting = "🌆 Доброго вечора"
+        time_str = now.strftime("%H:%M  %d.%m.%Y")
+        msg = (
+            f"🔮  <b>AIVON Sphere запущена</b>\n"
+            f"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+            f"{greeting}! Я онлайн та готова до роботи.\n"
+            f"🕐  <code>{time_str}</code>\n"
+            f"┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\n"
+            f"💬 Говоріть команди голосом або пишіть сюди."
+        )
+        self._telegram_bot.send_message(target, msg)
 
     def _on_telegram_message(self, text: str, chat_id: str):
         """Повідомлення з Telegram → обробляємо як голосову команду."""
@@ -7995,8 +10811,37 @@ $w.Stop()
                 self._telegram_bot.send_message(chat_id, msg)
             return
 
+        # ── Фото-аналіз через Gemini Vision ──────────────────────────────────
+        if text.startswith("__photo__:"):
+            parts = text[len("__photo__:"):].split(":", 1)
+            file_id = parts[0]
+            caption = parts[1] if len(parts) > 1 else "Що на цьому фото? Опиши детально."
+            self._tg_chat_id = chat_id
+            threading.Thread(
+                target=self._tg_analyze_photo,
+                args=(chat_id, file_id, caption),
+                daemon=True
+            ).start()
+            return
+
+        # ── Транскрипція голосового повідомлення ─────────────────────────────
+        if text.startswith("__voice__:"):
+            file_id = text[len("__voice__:"):]
+            self._tg_chat_id = chat_id
+            threading.Thread(
+                target=self._tg_transcribe_voice,
+                args=(chat_id, file_id),
+                daemon=True
+            ).start()
+            return
+
         # Всі інші — обробляємо як голосову команду
         self._tg_chat_id = chat_id
+        # Зберігаємо як постійний chat_id для проактивних сповіщень
+        if not self._tg_notify_chat_id or self._tg_notify_chat_id != chat_id:
+            self._tg_notify_chat_id = chat_id
+            self.config["telegram_notify_chat_id"] = chat_id
+            save_config(self.config)
         # Скинути chat_id через 30с щоб не надсилати зайве
         QTimer.singleShot(30000, self._clear_tg_chat_id)
         # Показуємо сферу при команді з Telegram
@@ -8005,23 +10850,207 @@ $w.Stop()
         # Показуємо текст команди на сфері
         self.user_text = f"📱 {text[:40]}"
         self.update()
+
+        # "музика" / "спотіфай" з Telegram → показуємо inline меню одразу
+        _tl = text.lower().strip()
+        if any(_tl == kw or _tl.startswith(kw) for kw in _TG_MUSIC_KW):
+            if self._telegram_bot and chat_id:
+                self._telegram_bot._show_topic_menu(chat_id, "music")
+                return
+
         # Обробляємо як команду
         self.on_recognized(text)
 
     def _clear_tg_chat_id(self):
         self._tg_chat_id = None
 
+    # ── Telegram photo analysis ───────────────────────────────────────────────
+    def _tg_download_file(self, file_id: str) -> bytes | None:
+        """Download a file from Telegram by file_id. Returns bytes or None."""
+        if not (self._telegram_bot and HAS_REQUESTS):
+            return None
+        try:
+            token = self._telegram_bot.token
+            r = _requests.get(
+                f"https://api.telegram.org/bot{token}/getFile",
+                params={"file_id": file_id}, timeout=10)
+            r.raise_for_status()
+            file_path = r.json()["result"]["file_path"]
+            r2 = _requests.get(
+                f"https://api.telegram.org/file/bot{token}/{file_path}",
+                timeout=30)
+            r2.raise_for_status()
+            return r2.content
+        except Exception as e:
+            print(f"[TG] download file error: {e}")
+            return None
+
+    def _tg_analyze_photo(self, chat_id: str, file_id: str, caption: str):
+        """Download Telegram photo and analyze with Gemini Vision."""
+        data = self._tg_download_file(file_id)
+        if not data:
+            self._respond_signal.emit("🖼 Не вдалось завантажити фото")
+            return
+
+        import tempfile, os as _os
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as f:
+            f.write(data)
+            tmp_path = f.name
+
+        try:
+            google_key = self.config.get("google_key", "")
+            if google_key:
+                try:
+                    import google.generativeai as genai
+                    import base64 as _b64
+                    genai.configure(api_key=google_key)
+                    model = genai.GenerativeModel("gemini-1.5-flash")
+                    img_b64 = _b64.b64encode(data).decode()
+                    # Detect image type
+                    mime = "image/jpeg"
+                    if data[:8] == b"\x89PNG\r\n\x1a\n":
+                        mime = "image/png"
+                    response = model.generate_content([
+                        {"mime_type": mime, "data": img_b64},
+                        caption
+                    ])
+                    result_text = response.text
+                    self._respond_signal.emit(
+                        f"🖼 <b>Аналіз фото:</b>\n{result_text[:800]}")
+                    if self._telegram_bot and chat_id:
+                        self._telegram_bot.send_message(
+                            chat_id, f"🖼 <b>Аналіз фото:</b>\n{result_text[:800]}")
+                    return
+                except Exception as e:
+                    print(f"[TG Photo] Gemini error: {e}")
+
+            # Fallback: OpenAI vision
+            openai_key = self.config.get("openai_key", "")
+            if openai_key:
+                try:
+                    import base64 as _b64
+                    img_b64 = _b64.b64encode(data).decode()
+                    headers = {"Authorization": f"Bearer {openai_key}",
+                               "Content-Type": "application/json"}
+                    payload = {
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": [
+                            {"type": "image_url",
+                             "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}},
+                            {"type": "text", "text": caption}
+                        ]}],
+                        "max_tokens": 600
+                    }
+                    r = _requests.post("https://api.openai.com/v1/chat/completions",
+                                       json=payload, headers=headers, timeout=30)
+                    result_text = r.json()["choices"][0]["message"]["content"]
+                    self._respond_signal.emit(
+                        f"🖼 <b>Аналіз фото:</b>\n{result_text[:800]}")
+                    if self._telegram_bot and chat_id:
+                        self._telegram_bot.send_message(
+                            chat_id, f"🖼 <b>Аналіз фото:</b>\n{result_text[:800]}")
+                    return
+                except Exception as e:
+                    print(f"[TG Photo] OpenAI error: {e}")
+
+            self._respond_signal.emit(
+                "🖼 Налаштуй Google API або OpenAI для аналізу фото")
+            if self._telegram_bot and chat_id:
+                self._telegram_bot.send_message(
+                    chat_id, "🖼 Для аналізу фото потрібен Google API або OpenAI ключ")
+        finally:
+            try:
+                _os.unlink(tmp_path)
+            except Exception:
+                pass
+
+    def _tg_transcribe_voice(self, chat_id: str, file_id: str):
+        """Download Telegram voice message and transcribe."""
+        data = self._tg_download_file(file_id)
+        if not data:
+            self._respond_signal.emit("🎤 Не вдалось завантажити аудіо")
+            return
+
+        import tempfile, os as _os
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+            f.write(data)
+            tmp_path = f.name
+
+        transcribed = None
+        try:
+            # Try Whisper
+            try:
+                import whisper as _whisper
+                model = _whisper.load_model("base")
+                result = model.transcribe(tmp_path)
+                transcribed = result.get("text", "").strip()
+            except ImportError:
+                pass
+            except Exception as e:
+                print(f"[TG Voice] Whisper error: {e}")
+
+            # Try OpenAI Whisper API
+            if not transcribed:
+                openai_key = self.config.get("openai_key", "")
+                if openai_key and HAS_REQUESTS:
+                    try:
+                        with open(tmp_path, "rb") as audio_f:
+                            r = _requests.post(
+                                "https://api.openai.com/v1/audio/transcriptions",
+                                headers={"Authorization": f"Bearer {openai_key}"},
+                                files={"file": ("voice.ogg", audio_f, "audio/ogg")},
+                                data={"model": "whisper-1", "language": "uk"},
+                                timeout=30)
+                        transcribed = r.json().get("text", "").strip()
+                    except Exception as e:
+                        print(f"[TG Voice] OpenAI Whisper error: {e}")
+
+            if transcribed:
+                if self._telegram_bot and chat_id:
+                    self._telegram_bot.send_message(
+                        chat_id, f"🎤 <i>Розпізнано:</i> «{transcribed}»\n⚙️ Виконую...")
+                # Process as command
+                QTimer.singleShot(0, lambda t=transcribed: self.on_recognized(t))
+            else:
+                msg = "🎤 Не вдалось розпізнати голосове. Встанови: pip install openai-whisper"
+                if self._telegram_bot and chat_id:
+                    self._telegram_bot.send_message(chat_id, msg)
+                self._respond_signal.emit(msg)
+        finally:
+            try:
+                _os.unlink(tmp_path)
+            except Exception:
+                pass
+
     def _tg_send(self, text: str):
-        """Надіслати красиво відформатовану відповідь у Telegram."""
-        if self._tg_chat_id and self._telegram_bot and self._telegram_bot.isRunning():
+        """Відповідь у Telegram на поточну команду (reply context).
+        Якщо команда прийшла з Telegram — відповідаємо туди.
+        Якщо голосова команда — використовуємо збережений notify chat_id.
+        """
+        if not (self._telegram_bot and self._telegram_bot.isRunning()):
+            return
+        target = self._tg_chat_id or self._tg_notify_chat_id
+        if target:
             formatted = self._telegram_bot._fmt_response(text)
-            self._telegram_bot.send_message(self._tg_chat_id, formatted)
-            self._tg_chat_id = None   # відповідаємо один раз на команду
+            self._telegram_bot.send_message(target, formatted)
+            if self._tg_chat_id:
+                self._tg_chat_id = None   # відповідаємо один раз на команду
+
+    def _tg_notify(self, text: str):
+        """Проактивне сповіщення в Telegram (нотатки, задачі, нагадування тощо).
+        Завжди надсилає до збереженого notify chat_id (незалежно від поточної команди).
+        """
+        if not (self._telegram_bot and self._telegram_bot.isRunning()):
+            return
+        target = self._tg_notify_chat_id or self._tg_chat_id
+        if target:
+            self._telegram_bot.send_message(target, text)
 
     # ═══════════════════════════════════════════════════════════
     # STT CONFIDENCE HANDLER
     # ═══════════════════════════════════════════════════════════
 
+    # └─ sphere/telegram_bot.py ──────────────────────────────────────────────┘
     def _on_stt_confidence(self, text: str, confidence: float):
         """Отримуємо confidence STT — зберігаємо для показу в UI."""
         self._last_stt_confidence = confidence
@@ -8220,30 +11249,212 @@ $w.Stop()
     # ДОВГОСТРОКОВА ПАМ'ЯТЬ
     # ═══════════════════════════════════════════════════════════
 
+    # ── Стиль відповідей ─────────────────────────────────────────────────────
+    _STYLE_VOICE_MAP = {
+        # голос → preset key
+        "коротко":          "short",
+        "стисло":           "short",
+        "коротк":           "short",
+        "детально":         "detailed",
+        "докладно":         "detailed",
+        "розгорнуто":       "detailed",
+        "по-дружньому":     "friendly",
+        "як друг":          "friendly",
+        "дружньо":          "friendly",
+        "неформально":      "friendly",
+        "офіційно":         "formal",
+        "формально":        "formal",
+        "діловий стиль":    "formal",
+        "як вчитель":       "teacher",
+        "з поясненнями":    "teacher",
+        "технічно":         "technical",
+        "по-технічному":    "technical",
+        "з гумором":        "humorous",
+        "жартівливо":       "humorous",
+        "просто":           "simple",
+        "простою мовою":    "simple",
+        "списком":          "bullet",
+        "у вигляді списку": "bullet",
+        "творчо":           "creative",
+        "креативно":        "creative",
+        "без стилю":        "",
+        "скинь стиль":      "",
+        "звичайний стиль":  "",
+    }
+    _STYLE_PREFIXES = [
+        "відповідай ", "говори ", "пиши ", "стиль відповідей ",
+        "змін стиль на ", "стиль ", "respond ", "answer ",
+    ]
+
+    def _handle_style_command(self, lower: str, text: str) -> bool:
+        # "який зараз стиль?" / "який стиль відповідей?"
+        if any(p in lower for p in ["який зараз стиль", "який стиль відповідей", "current style", "мій стиль відповідей"]):
+            try:
+                from core.ai_tools import get_ai_style_label
+                label = get_ai_style_label()
+                self.respond(f"Поточний стиль: {label or 'Стандартний'}")
+            except Exception:
+                self.respond("Стиль не встановлено")
+            return True
+
+        # Detect "відповідай [стиль]" / "стиль [назва]"
+        for prefix in self._STYLE_PREFIXES:
+            if lower.startswith(prefix):
+                style_phrase = lower[len(prefix):].strip().rstrip('.')
+                # Match against preset keywords
+                matched_key = None
+                for kw, key in self._STYLE_VOICE_MAP.items():
+                    if style_phrase.startswith(kw) or kw in style_phrase:
+                        matched_key = key
+                        break
+                if matched_key is not None:
+                    try:
+                        from core.ai_tools import set_ai_style
+                        label = set_ai_style(matched_key)
+                        if matched_key:
+                            self.respond(f"✅ Стиль встановлено: {label}")
+                        else:
+                            self.respond("✅ Стиль скинуто — відповідаю стандартно")
+                    except Exception as e:
+                        self.respond(f"Помилка: {e}")
+                    return True
+                # Custom style text (anything after prefix)
+                custom = text[len(prefix):].strip()
+                if len(custom) > 3:
+                    try:
+                        from core.ai_tools import set_ai_style
+                        label = set_ai_style(custom)
+                        self.respond(f"✅ Кастомний стиль збережено: «{custom[:40]}»")
+                    except Exception as e:
+                        self.respond(f"Помилка: {e}")
+                    return True
+        return False
+
+    # ── Профіль: розпізнати поле і зберегти ────────────────────────────────
+    _PROFILE_FIELD_HINTS = [
+        # (trigger keywords, profile_field, display_name)
+        (["телефон", "номер телефону", "phone", "мій номер"],          "phone",       "Телефон"),
+        (["email", "е-мейл", "пошта", "електронна пошта"],            "email",       "Email"),
+        (["iban", "айбан", "банківський рахунок", "рахунок"],          "iban",        "IBAN"),
+        (["інн", "іпн", "inn", "ідентифікаційний"],                    "inn",         "ІПН"),
+        (["адрес", "адреса", "живу на", "вулиця"],                     "address",     "Адреса"),
+        (["місто", "город", "живу в"],                                  "city",        "Місто"),
+        (["країна", "country"],                                         "country",     "Країна"),
+        (["компанія", "фірма", "організація", "company"],               "company",     "Компанія"),
+        (["посада", "должность", "position", "працюю як"],             "position",    "Посада"),
+        (["ім'я", "мене звати", "звуть мене", "first name"],           "first_name",  "Ім'я"),
+        (["прізвище", "last name", "surname"],                         "last_name",   "Прізвище"),
+        (["telegram", "телеграм", "нік телеграм"],                     "telegram",    "Telegram"),
+        (["сайт", "website", "мій сайт"],                              "website",     "Сайт"),
+        (["еdrpou", "єдрпоу", "код підприємства"],                     "edrpou",      "ЄДРПОУ"),
+        (["банк", "назва банку", "мій банк"],                          "bank",        "Банк"),
+        (["поштовий індекс", "zip", "postal"],                         "postal_code", "Поштовий індекс"),
+    ]
+
+    def _try_save_to_profile(self, content: str) -> bool:
+        """Detect profile field in content and save. Returns True if matched."""
+        lower_c = content.lower()
+        for hints, field, label in self._PROFILE_FIELD_HINTS:
+            for hint in hints:
+                if hint in lower_c:
+                    # Extract value: remove the hint keyword and surrounding filler
+                    value = lower_c.replace(hint, '').strip(' :—-–').strip()
+                    value = re.sub(r'^(це|мій|моя|моє|це|is|my|)\s*', '', value).strip()
+                    if not value:
+                        self.respond(f"Що зберегти для «{label}»? Скажіть значення.")
+                        return True
+                    # Capitalize
+                    value = value.strip()
+                    try:
+                        from core.profile import ProfileManager
+                        from core.paths import USER_DATA_DIR
+                        pm = ProfileManager(USER_DATA_DIR)
+                        profile = pm.get_profile()
+                        profile[field] = value
+                        pm.save_profile(profile)
+                        self.respond(f"✅ Профіль оновлено: {label} = «{value}»")
+                    except Exception as e:
+                        self.respond(f"Не вдалось зберегти профіль: {e}")
+                    return True
+        return False
+
     def _handle_memory(self, lower: str, text: str) -> bool:
         # ── Зберегти факт ──
         save_kw = [
             "запам'ятай що ", "запам'ятай: ", "запомни что ", "зафіксуй ",
             "запам'ятай — ", "remember that ", "note that ",
         ]
+        # Also catch bare "запам'ятай [text]" / "запомни [text]"
+        bare_kw = ["запам'ятай ", "запомни ", "запиши "]
         for kw in save_kw:
             if kw in lower:
                 fact = text[lower.find(kw) + len(kw):].strip()
                 fact = re.sub(r'\s*(будь ласка|пожалуйста|please)\s*$', '', fact).strip()
                 if fact:
+                    # Try profile fields first
+                    if self._try_save_to_profile(fact):
+                        return True
                     save_memory_fact(fact[:60], fact)
                     self.respond_silent(f"✅ Запам'ятав: «{fact[:50]}»")
                 return True
+        # Bare "запам'ятай [text]" — could be conversation context or profile field
+        for kw in bare_kw:
+            if lower.startswith(kw):
+                content = text[len(kw):].strip()
+                content = re.sub(r'\s*(будь ласка|пожалуйста|please)\s*$', '', content).strip()
+                if not content:
+                    # No text after keyword — save current conversation context
+                    self._save_current_convo_memory("")
+                    return True
+                if self._try_save_to_profile(content):
+                    return True
+                # Check if it looks like a topic reference to save conversation
+                topic_hints = ["що коли", "що якщо", "що завжди", "цю розмову", "цю тему",
+                               "наш діалог", "нашу розмову", "про це"]
+                if any(h in content.lower() for h in topic_hints):
+                    self._save_current_convo_memory(content)
+                    return True
+                # Fallback: save as memory fact AND note
+                save_memory_fact(content[:60], content)
+                print(f"__AXIS_PUSH__:save_note_request:{json.dumps({'title': content[:40], 'text': content})}", flush=True)
+                self.respond(f"📝 Збережено: «{content[:50]}»")
+                return True
 
-        # ── Запит факту ──
+        # ── Recall — "пам'ятаєш ми говорили про X" ──
+        recall_conv_kw = [
+            "пам'ятаєш ми", "пам'ятаєш як ми", "пам'ятаєш що ми",
+            "ти пам'ятаєш як", "ми говорили про", "ми обговорювали",
+            "remember when we", "we talked about", "our conversation about",
+        ]
+        for kw in recall_conv_kw:
+            if kw in lower:
+                query = text[lower.find(kw) + len(kw):].strip()
+                if not query:
+                    query = text  # use full utterance as query
+                self._recall_convo(query)
+                return True
+
+        # ── Запит простого факту ──
         recall_kw = [
             "що ти пам'ятаєш", "що ти знаєш про", "що я тобі казав про",
             "нагадай мені про", "recall ", "що запам'ятав",
         ]
         for kw in recall_kw:
             if kw in lower:
-                query = text[lower.find(kw) + len(kw):].strip() if kw in lower else ""
-                mem   = load_memory()
+                query = text[lower.find(kw) + len(kw):].strip()
+                # First try conversation memory
+                try:
+                    from core.convo_memory import search_conversations
+                    convos = search_conversations(query) if query else []
+                    if convos:
+                        c = convos[0]
+                        snippet = c["messages"][-1].get("content","")[:120] if c["messages"] else ""
+                        self.respond(f"🧠 Пам'ятаю ({c['dt']}): «{c['topic']}» — {snippet}")
+                        return True
+                except Exception:
+                    pass
+                # Fallback to facts
+                mem = load_memory()
                 if not mem:
                     self.respond("Поки нічого не запам'ятав 🧠 Скажи «запам'ятай що…»")
                     return True
@@ -8263,6 +11474,8 @@ $w.Stop()
         if any(p in lower for p in ["очисти пам'ять", "забудь все", "видали пам'ять", "clear memory"]):
             try:
                 _get_memory_file().write_text("{}", encoding="utf-8")
+                from core.convo_memory import clear_all
+                clear_all()
             except Exception:
                 pass
             self.respond_silent("🗑 Пам'ять очищена")
@@ -8270,10 +11483,73 @@ $w.Stop()
 
         return False
 
+    def _save_current_convo_memory(self, user_note: str = ""):
+        """Save current dialog_history or dialog context as a conversation memory."""
+        try:
+            from core.convo_memory import save_conversation
+            # Build message list from dialog_history (sphere uses this during dialog mode)
+            msgs = list(getattr(self, 'dialog_history', []))
+            if not msgs:
+                # Try AIThread._history
+                msgs = [{"role": m["role"], "content": m["content"]}
+                        for m in AIThread._history[-20:]]
+            if not msgs:
+                self.respond("Немає активної розмови для збереження 🤔")
+                return
+            topic = user_note or ""
+            rec = save_conversation(msgs, topic=topic)
+            self.respond(f"🧠 Запам'ятав розмову: «{rec['topic'][:50]}»")
+        except Exception as e:
+            self.respond(f"Помилка збереження: {e}")
+
+    def _recall_convo(self, query: str):
+        """Find relevant past conversation and inject into AI for response."""
+        try:
+            from core.convo_memory import build_recall_context, search_conversations
+            results = search_conversations(query)
+            if not results:
+                self.respond(f"Не знайшов розмов про «{query[:40]}» 🤔 Скажи «запам'ятай» під час наступної розмови.")
+                return
+            # Build context and send to AI so it can summarize/answer
+            ctx = build_recall_context(query)
+            # Use MemoryThread or direct AI call with injected context
+            prompt = (f"Користувач запитує про минулу розмову: «{query}».\n\n"
+                      f"{ctx}\n\nВідповідай природно як AIVON, нагадай основне з тої розмови.")
+            self._respond_with_ai(prompt, extra_system=ctx)
+        except Exception as e:
+            self.respond(f"Помилка пошуку пам'яті: {e}")
+
+    # ┌─ sphere/ai.py ── AI запити та діалог ─────────────────────────────────┐
+    def _respond_with_ai(self, prompt: str, extra_system: str = ""):
+        """Send a prompt to AI; stream sentences to TTS as they arrive (Task 1)."""
+        self.state = self.THINKING
+        self.response_text = "🧠 Думаю..."
+        self.update()
+
+        system_override = ""
+        if extra_system:
+            system_override = extra_system + "\n\n" + AIThread.SYSTEM
+
+        t = AIThread(self.config, prompt, system_override=system_override)
+        # Task 1: each sentence → TTS pipeline immediately
+        t.sentence_ready.connect(self._respond_signal)
+        # Full response → update display text only (TTS already handled per-sentence)
+        t.response.connect(lambda full: setattr(self, 'response_text', full[:120]))
+        t.error.connect(self._on_ai_error_signal)
+        # Store so _interrupt_tts() can abort in-flight generation
+        self._current_ai_thread = t
+        t.finished.connect(lambda: setattr(self, '_current_ai_thread', None))
+        t.start()
+
+    def _on_ai_error_signal(self, msg: str):
+        """Route AIThread error safely to the main-thread error handler."""
+        self._respond_error_signal.emit(msg)
+
     # ═══════════════════════════════════════════════════════════
     # СИСТЕМНЕ КЕРУВАННЯ — гучність, завершення, вікна
     # ═══════════════════════════════════════════════════════════
 
+    # ┌─ sphere/system.py ── системне керування ─────────────────────────────┐
     def _handle_system_control(self, lower: str, text: str) -> bool:
 
         # ── Гучність ──
@@ -8354,17 +11630,7 @@ $w.Stop()
         """Змінює гучність Windows на delta%%, повертає нову гучність."""
         try:
             if sys.platform == "win32":
-                # PowerShell + Audio API
-                script = f"""
-$obj = New-Object -ComObject WScript.Shell
-$current = (Get-ItemProperty -Path 'HKCU:\\SOFTWARE\\Microsoft\\Multimedia\\Audio' -Name MasterVolume -ErrorAction SilentlyContinue).MasterVolume
-Add-Type -TypeDefinition @'
-using System.Runtime.InteropServices;
-[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeLevelScalar(float fLevel,ref System.Guid pguidEventContext);int _(int a);int GetMasterVolumeLevelScalar(out float pfLevel);}}
-'@
-"""
-                # Simplified: use nircmd if available, else PowerShell
+                # Use nircmd if available, else PowerShell SendKeys fallback
                 subprocess.Popen(
                     f'nircmd changesysvolume {delta * 655}',
                     shell=True, creationflags=_NO_WINDOW)
@@ -8454,6 +11720,7 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
     # ТАЙМЕРИ ТА НАГАДУВАННЯ З ГОЛОСОМ
     # ═══════════════════════════════════════════════════════════
 
+    # │  Гучність, таймер, вікна, скріншот                                    │
     def _handle_timer(self, lower: str, text: str) -> bool:
         # ── Таймер: "постав таймер на 5 хвилин" ──
         timer_kw = ["постав таймер", "таймер на", "set timer", "timer for",
@@ -8519,6 +11786,7 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
     # GESTURE TOGGLE — з самої сфери
     # ═══════════════════════════════════════════════════════════
 
+    # └─ sphere/system.py ─────────────────────────────────────────────────────┘
     def _toggle_gestures(self):
         """Вмикає / вимикає жести рукою."""
         current = bool(self.config.get("hand_gestures", False))
@@ -8553,6 +11821,63 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             self.respond_silent("✋ Жести вимкнено")
         self.update()   # перемалювати сферу (оновити кнопку)
 
+    # ─── Перемикач STT провайдера ─────────────────────────────────────────────
+    def _toggle_stt_provider(self):
+        """Перемикає розпізнавання між Whisper (офлайн) і Google (онлайн).
+        Клік по іконці 🧠/🎤 у верхньому лівому куті сфери.
+        """
+        current = self.config.get("stt_provider", "google")
+        new_prov = "google" if current == "whisper" else "whisper"
+
+        # Зберігаємо в конфіг — скидаємо прапор CUDA-помилки при переключенні
+        try:
+            cfg = load_config()
+            cfg["stt_provider"] = new_prov
+            if new_prov == "google":
+                cfg["_whisper_cuda_error"] = False
+            save_config(cfg)
+            self.config = cfg
+        except Exception:
+            self.config["stt_provider"] = new_prov
+
+        if new_prov == "whisper":
+            if not WhisperSTT._instance:
+                self.respond_silent("🧠 Whisper вмикається… (завантаження моделі)")
+                threading.Thread(target=self._load_whisper_model, daemon=True).start()
+            else:
+                self.respond_silent("🧠 Whisper увімкнено (офлайн)")
+        else:
+            self.respond_silent("🎤 Google STT увімкнено")
+
+        self.update()
+        # Наступне слухання автоматично використає новий провайдер
+        # (не зупиняємо поточний потік силоміць)
+
+    # ─── Клік по кнопці Telegram ─────────────────────────────────────────────
+    def _on_telegram_btn_click(self):
+        """Клік по іконці 📱 — показує статус Telegram або запускає/зупиняє бота."""
+        if self._telegram_bot and self._telegram_bot.isRunning():
+            # Бот працює — показуємо статус
+            token = self.config.get("telegram_token", "")
+            chat  = self._tg_chat_id or "немає активного чату"
+            self.respond_silent(
+                f"📱 Telegram Online\n"
+                f"Token: …{token[-6:] if len(token) > 6 else '???'}\n"
+                f"Chat: {chat}"
+            )
+        else:
+            # Бот не запущений — намагаємось запустити
+            token = self.config.get("telegram_token", "")
+            if token:
+                self.respond_silent("📱 Запускаю Telegram бота…")
+                self._start_telegram_bot()
+            else:
+                self.respond_silent(
+                    "📱 Telegram не налаштовано.\n"
+                    "Додайте токен бота у Панелі → Сфера → Telegram"
+                )
+        self.update()
+
     def on_error(self, err):
         self.state = self.IDLE
 
@@ -8563,30 +11888,87 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             QTimer.singleShot(300, self._do_listen)
             return
         
-        # Автоповтор (режим команд)
-        if err in ["timeout", "no_speech"] and self.retry_count < 2:
-            self.retry_count += 1
-            self.response_text = f"🔄 Спроба {self.retry_count + 1}..."
-            QTimer.singleShot(500, self._do_listen)
+        # ── Якщо помилка Whisper / CUDA → переключаємось на Google і зберігаємо ──
+        err_lower = err.lower()
+        if any(k in err_lower for k in ("cublas", "cuda", "dll", "ctranslate",
+                                         "cudnn", "whisper")):
+            try:
+                _scfg = load_config()
+                _scfg["stt_provider"] = "google"
+                _scfg["_whisper_cuda_error"] = True
+                save_config(_scfg)
+                self.config = _scfg
+            except Exception:
+                self.config["stt_provider"] = "google"
+                self.config["_whisper_cuda_error"] = True
+            self.response_text = "⚡ Google STT (Whisper недоступний)"
+            QTimer.singleShot(800, self._do_listen)   # одразу слухаємо далі
+            self.update()
             return
-            
-        self.response_text = {"timeout": "⏱️ Час вичерпано", "no_speech": "🔇 Не почув"}.get(err, f"⚠️ {err[:25]}")
-        QTimer.singleShot(2000, self._on_all_tts_done)
+
+        # Автоповтор (timeout / no_speech) — до 3 разів
+        if err in ["timeout", "no_speech"] and self.retry_count < 3:
+            self.retry_count += 1
+            # Мовчазно повторюємо — без повідомлення
+            QTimer.singleShot(300, self._do_listen)
+            return
+
+        # Будь-яка інша помилка — показуємо і продовжуємо слухати
+        self.response_text = {"timeout": "⏱️", "no_speech": "🔇 Не почув"}.get(
+            err, f"⚠️ {err[:30]}")
+        # Завжди повертаємось до слухання через 1.5с
+        QTimer.singleShot(1500, self._on_all_tts_done)
         
     def _extract_query(self, text: str, phrase: str) -> str:
-        """Витягує query з тексту після фрази команди"""
-        lower_text = text.lower()
+        """Витягує query з тексту після фрази команди.
+
+        Handles Ukrainian case inflections: «Гуглі» correctly skips to after «і».
+        Strips leading junk prepositions/connectors from the extracted query.
+        """
+        lower_text  = text.lower()
         lower_phrase = phrase.lower()
         idx = lower_text.find(lower_phrase)
-        if idx != -1:
-            after = text[idx + len(lower_phrase):].strip()
-            # Видаляємо ввічливі слова
-            for stop in ("пожалуйста", "будь ласка", "будь-ласка", "please"):
-                after = after.replace(stop, "").strip()
-            return after
-        return ""
+        if idx == -1:
+            return ""
+
+        end_pos = idx + len(lower_phrase)
+        # Skip trailing word-characters that are part of an inflected form
+        # e.g. "Гуглі" — phrase="гугл", skip the remaining "і"
+        while end_pos < len(lower_text) and lower_text[end_pos].isalpha():
+            end_pos += 1
+
+        after = text[end_pos:].strip()
+
+        # Strip leading Ukrainian prepositions / filler words
+        _LEADING_JUNK = ("і ", "й ", "та ", "що ", "в ", "у ", "на ",
+                         "про ", "для ", "по ", "до ", "мені ", "мне ")
+        changed = True
+        while changed:
+            changed = False
+            for j in _LEADING_JUNK:
+                if after.lower().startswith(j):
+                    after  = after[len(j):].strip()
+                    changed = True
+
+        # Remove polite stop-words
+        for stop in ("пожалуйста", "будь ласка", "будь-ласка", "please"):
+            after = after.replace(stop, "").strip()
+
+        return after
 
     def execute_command(self, cmd, user_text=""):
+        # ── Trial license check ────────────────────────────────────────────────
+        try:
+            from core.license import LicenseManager
+            from core.paths import USER_DATA_DIR
+            _lic_result = LicenseManager(USER_DATA_DIR).consume("voice_commands")
+            if not _lic_result["ok"]:
+                self.respond(_lic_result["msg"])
+                return
+        except Exception as _le:
+            print(f"[License] voice check error: {_le}", flush=True)
+        # ──────────────────────────────────────────────────────────────────────
+
         t = cmd.get("type", "")
         # Support both old sphere format (action) and new panel format (body)
         action = cmd.get("action", "") or cmd.get("body", "")
@@ -8599,11 +11981,25 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             if not query:
                 self.respond("Що саме шукати? 🎵")
                 return
-            
-            # Замінюємо {query} в action
+
             from urllib.parse import quote
+
+            # Smart redirect: "включи/дивись/постав" + Google query → YouTube
+            _play_words = ("включи", "увімкни", "поставь", "запусти",
+                           "дивитись", "хочу дивитись", "покажи серіал",
+                           "покажи фільм", "play", "watch")
+            _is_play = any(w in user_text.lower() for w in _play_words)
+            _is_google = "google" in action.lower() or "гугл" in user_text.lower()
+
+            if _is_play and _is_google and "{query}" in action:
+                yt_url = f"https://www.youtube.com/results?search_query={quote(query, safe='')}"
+                self.respond_silent(f"▶️ YouTube: {query}")
+                QTimer.singleShot(300, lambda u=yt_url: webbrowser.open(u))
+                return
+
+            # Замінюємо {query} в action
             final_action = action.replace("{query}", quote(query, safe=""))
-            
+
             if t == "query_url":
                 self.respond_silent(resp.replace("{query}", query) if resp else f"Шукаю: {query}")
                 QTimer.singleShot(300, lambda: webbrowser.open(final_action))
@@ -8616,9 +12012,19 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             return
         
         # Стандартні типи команд
-        if t == "url":
-            self.respond_silent(resp or "Відкриваю")
-            QTimer.singleShot(300, lambda: webbrowser.open(action))
+        if t == "spotify" or (action and action.startswith("spotify:")):
+            # Spotify URI або тип spotify → через контролер (з авто-play)
+            self._execute_spotify_uri(action, resp)
+        elif t == "url":
+            # Перевіряємо чи це Spotify URL → конвертуємо і граємо
+            import re as _re2
+            _sm = _re2.match(r"https?://open\.spotify\.com/([a-z]+)/([A-Za-z0-9]+)", action or "")
+            if _sm:
+                _suri = f"spotify:{_sm.group(1)}:{_sm.group(2)}"
+                self._execute_spotify_uri(_suri, resp)
+            else:
+                self.respond_silent(resp or "Відкриваю")
+                QTimer.singleShot(300, lambda: webbrowser.open(action))
         elif t == "app":
             self.respond_silent(resp or "Запускаю")
             if "://" in action and not action.startswith(("start ", "cmd ")):
@@ -8700,17 +12106,67 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
         else:
             self.respond_silent(resp or "Готово")
             
+    def _execute_spotify_uri(self, uri: str, resp: str = ""):
+        """Виконує Spotify URI через контролер — з авто-play."""
+        self._ensure_spotify_ctrl()
+        ctrl = self.spotify_ctrl
+
+        def _do():
+            if uri == "spotify:collection":
+                msg = ctrl.liked_songs() if ctrl else "❤️ Відкриваю улюблені треки"
+            elif uri.startswith("spotify:track:"):
+                if ctrl and ctrl._sp:
+                    try:
+                        devs = (ctrl._sp.devices() or {}).get("devices", [])
+                        dev_id = next((d["id"] for d in devs if d.get("is_active")), None) or \
+                                 (devs[0]["id"] if devs else None)
+                        ctrl._sp.start_playback(device_id=dev_id, uris=[uri])
+                        msg = resp or "🎵 Граю"
+                    except Exception:
+                        subprocess.Popen(f'start "" "{uri}"', shell=True,
+                                         creationflags=_NO_WINDOW)
+                        msg = resp or "🎵 Відкриваю Spotify"
+                else:
+                    subprocess.Popen(f'start "" "{uri}"', shell=True,
+                                     creationflags=_NO_WINDOW)
+                    msg = resp or "🎵 Відкриваю Spotify"
+            elif uri.startswith("spotify:playlist:") or uri.startswith("spotify:album:") or \
+                 uri.startswith("spotify:artist:"):
+                if ctrl and ctrl._sp:
+                    try:
+                        devs = (ctrl._sp.devices() or {}).get("devices", [])
+                        dev_id = next((d["id"] for d in devs if d.get("is_active")), None) or \
+                                 (devs[0]["id"] if devs else None)
+                        ctrl._sp.start_playback(device_id=dev_id, context_uri=uri)
+                        msg = resp or "🎵 Граю"
+                    except Exception:
+                        subprocess.Popen(f'start "" "{uri}"', shell=True,
+                                         creationflags=_NO_WINDOW)
+                        msg = resp or "🎵 Відкриваю Spotify"
+                else:
+                    subprocess.Popen(f'start "" "{uri}"', shell=True,
+                                     creationflags=_NO_WINDOW)
+                    msg = resp or "🎵 Відкриваю Spotify"
+            else:
+                subprocess.Popen(f'start "" "{uri}"', shell=True,
+                                 creationflags=_NO_WINDOW)
+                msg = resp or "🎵 Spotify"
+            self.respond_silent(msg)
+
+        import threading as _t
+        _t.Thread(target=_do, daemon=True).start()
+
     def _ensure_spotify_ctrl(self):
         """Lazy-init SpotifyController з конфіга."""
         if self.spotify_ctrl:
             return
         cid  = self.config.get("spotify_client_id", "")
         csec = self.config.get("spotify_client_secret", "")
+        self.spotify_ctrl = SpotifyController(cid, csec)
         if cid and csec:
-            self.spotify_ctrl = SpotifyController(cid, csec)
-            print("Spotify controller ready")
+            print("Spotify controller ready (Web API)")
         else:
-            print("Spotify: client_id / client_secret не задані в config.json")
+            print("Spotify controller ready (URI fallback, no API keys)")
 
     def _dialog_ask(self, text):
         """Multi-provider AI виклик для діалогу — з пам'яттю та роллю"""
@@ -8923,6 +12379,8 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             self.respond_silent(f"Помилка AI: {error[:40]}")
 
     # ── PC queries ────────────────────────────────────────────────────────────
+    # └─ sphere/ai.py ─────────────────────────────────────────────────────────┘
+    # ┌─ sphere/network.py ── пошук, Chrome, файли ────────────────────────────┐
     def _handle_pc_query(self, lower: str, text: str) -> bool:
         """Перехоплює запити про стан ПК / пошук файлів.
         Повертає True якщо обробив — щоб зупинити подальший routing.
@@ -8969,6 +12427,2137 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
                 return True
 
         return False
+
+    # ═══════════════════════════════════════════════════════════
+    # INTERPRETER MODE — двосторонній перекладач (uk/ru ↔ en)
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_interpreter_toggle(self, lower: str, text: str) -> bool:
+        """Вмикає/вимикає режим перекладача."""
+        on_kw  = ["режим перекладача", "включи перекладача", "interpreter mode",
+                  "translator mode", "режим транслятора", "стань перекладачем",
+                  "enable interpreter", "увімкни перекладача"]
+        if not any(k in lower for k in on_kw):
+            return False
+        self.interpreter_mode = True
+        # Автовизначення мов з фрази: "перекладай з рос на англ"
+        if "рос" in lower or "рус" in lower or "russian" in lower:
+            self._interp_lang_a = "ru"
+        else:
+            self._interp_lang_a = "uk"
+        self.jarvis.play("ready")
+        self.respond(
+            "🌐 Режим перекладача ввімкнено! "
+            "Людина А говорить — я перекладаю англійською. "
+            "Людина Б говорить англійською — я перекладаю українською. "
+            "Щоб вийти скажіть «стоп перекладача»."
+        )
+        return True
+
+    def _do_interpret(self, text: str):
+        """Визначає мову та перекладає у фоні через AI."""
+        # Просте визначення: є кирилиця → uk/ru → translate to en, інакше → translate to uk
+        has_cyrillic = bool(re.search(r'[а-яіїєґА-ЯІЇЄҐ]', text))
+        if has_cyrillic:
+            src_lang, tgt_lang, tgt_label = "Ukrainian/Russian", "English", "EN"
+        else:
+            src_lang, tgt_lang, tgt_label = "English", "Ukrainian", "UK"
+
+        self.state = self.THINKING
+        self.response_text = f"🌐 Перекладаю → {tgt_label}…"
+
+        prompt = (
+            f"You are a real-time interpreter. "
+            f"Translate the following text from {src_lang} to {tgt_lang}. "
+            f"Reply with ONLY the translation, no explanations:\n\n{text}"
+        )
+
+        def _run():
+            try:
+                # Використовуємо Gemini або будь-який доступний провайдер
+                cfg = self.config
+                key = (cfg.get("google_key") or cfg.get("openai_key") or
+                       cfg.get("anthropic_key") or cfg.get("xai_key"))
+                if not key:
+                    if self._check_ollama_available():
+                        result = self._call_ollama([{"role": "user", "content": prompt}])
+                    else:
+                        self._respond_signal.emit("⚠️ Немає AI-ключа для перекладу")
+                        return
+                else:
+                    import queue as _q
+                    _result_q = _q.Queue()
+                    t = AIThread(cfg, prompt)
+                    t.response.connect(lambda r: _result_q.put(r))
+                    t.error.connect(lambda e: _result_q.put(f"ERR:{e}"))
+                    t.start()
+                    t.wait(15000)
+                    try:
+                        result = _result_q.get_nowait()
+                    except Exception:
+                        result = ""
+                    if result.startswith("ERR:"):
+                        self._respond_signal.emit(f"⚠️ {result[4:40]}")
+                        return
+                if result:
+                    self._respond_signal.emit(f"🌐 {result.strip()}")
+            except Exception as e:
+                self._respond_signal.emit(f"⚠️ Помилка перекладу: {str(e)[:40]}")
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    # ═══════════════════════════════════════════════════════════
+    # VOICE NOTES — нотатки голосом + Telegram
+    # ═══════════════════════════════════════════════════════════
+
+    # └─ sphere/network.py ────────────────────────────────────────────────────┘
+    # ┌─ sphere/productivity.py ── нотатки, todo, звички, фокус ──────────────┐
+    def _load_notes(self) -> list:
+        try:
+            if self._notes_file.exists():
+                return json.loads(self._notes_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return []
+
+    def _save_notes(self, notes: list):
+        try:
+            self._notes_file.write_text(
+                json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _handle_notes(self, lower: str, text: str) -> bool:
+        """Голосові нотатки: запиши / покажи / видали."""
+        save_kw  = ["запиши нотатку", "запиши нотатки", "нотатка", "запам'ятай нотатку",
+                    "save note", "add note", "нотатку:", "нотатку "]
+        read_kw  = ["мої нотатки", "покажи нотатки", "що я записував",
+                    "show notes", "read notes", "список нотаток"]
+        clear_kw = ["видали всі нотатки", "очисти нотатки", "clear notes", "delete notes"]
+
+        if any(k in lower for k in clear_kw):
+            self._save_notes([])
+            self.respond_silent("🗑️ Всі нотатки видалено")
+            return True
+
+        if any(k in lower for k in read_kw):
+            notes = self._load_notes()
+            if not notes:
+                self.respond_silent("📝 Нотаток немає")
+                return True
+            last = notes[-5:]
+            msg = "📝 Останні нотатки:\n" + "\n".join(
+                f"• [{n['date']}] {n['text']}" for n in reversed(last))
+            self.respond_silent(msg[:300])
+            self._tg_send(msg)
+            return True
+
+        for kw in save_kw:
+            if kw in lower:
+                idx = lower.find(kw)
+                note_text = text[idx + len(kw):].strip().strip(":")
+                if not note_text:
+                    self.respond("Що записати? Скажіть текст нотатки.")
+                    return True
+                notes = self._load_notes()
+                entry = {
+                    "text": note_text,
+                    "date": datetime.now().strftime("%d.%m %H:%M"),
+                    "ts":   time.time(),
+                }
+                notes.append(entry)
+                self._save_notes(notes)
+                self.jarvis.play("confirm")
+                self.respond_silent(f"📝 Записано: {note_text[:60]}")
+                # Надсилаємо в Telegram (проактивне сповіщення)
+                self._tg_notify(f"📝 <b>Нова нотатка</b> [{entry['date']}]:\n{TelegramBotThread._html_escape(note_text)}")
+                return True
+
+        return False
+
+    # ═══════════════════════════════════════════════════════════
+    # TO-DO LIST — список завдань голосом
+    # ═══════════════════════════════════════════════════════════
+
+    def _load_todo(self) -> list:
+        try:
+            if self._todo_file.exists():
+                return json.loads(self._todo_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return []
+
+    def _save_todo(self, tasks: list):
+        try:
+            self._todo_file.write_text(
+                json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _handle_todo(self, lower: str, text: str) -> bool:
+        """To-Do список голосом."""
+        add_kw  = ["додай завдання", "додай задачу", "add task", "нове завдання",
+                   "запиши завдання", "потрібно зробити"]
+        list_kw = ["мої завдання", "список завдань", "що потрібно зробити",
+                   "show tasks", "my tasks", "todo list", "що у мене"]
+        done_kw = ["завдання виконано", "відмітити зроблено", "done task",
+                   "task done", "виконав завдання", "зроблено"]
+        if any(k in lower for k in list_kw):
+            tasks = self._load_todo()
+            if not tasks:
+                self.respond_silent("✅ Список завдань порожній!")
+                return True
+            pending   = [t for t in tasks if not t.get("done")]
+            completed = [t for t in tasks if t.get("done")]
+            lines = [f"📋 Завдань: {len(pending)} активних, {len(completed)} виконано"]
+            for t in pending[:5]:
+                lines.append(f"◻ {t['text']}")
+            msg = "\n".join(lines)
+            self.respond_silent(msg[:250])
+            self._tg_send(msg)
+            return True
+
+        if any(k in lower for k in done_kw):
+            tasks = self._load_todo()
+            # Позначаємо останнє незавершене
+            for t in reversed(tasks):
+                if not t.get("done"):
+                    t["done"] = True
+                    t["done_at"] = datetime.now().strftime("%d.%m %H:%M")
+                    break
+            self._save_todo(tasks)
+            self.jarvis.play("confirm")
+            self.respond_silent("✅ Завдання виконано!")
+            return True
+
+        for kw in add_kw:
+            if kw in lower:
+                idx = lower.find(kw)
+                task_text = text[idx + len(kw):].strip().strip(":")
+                if not task_text:
+                    self.respond("Що потрібно зробити?")
+                    return True
+                tasks = self._load_todo()
+                tasks.append({
+                    "text": task_text,
+                    "done": False,
+                    "added": datetime.now().strftime("%d.%m %H:%M"),
+                    "ts":   time.time(),
+                })
+                self._save_todo(tasks)
+                self.jarvis.play("confirm")
+                self.respond_silent(f"✅ Завдання додано: {task_text[:60]}")
+                self._tg_notify(f"📋 <b>Нове завдання додано:</b>\n◻ {TelegramBotThread._html_escape(task_text)}")
+                return True
+
+        return False
+
+    # ═══════════════════════════════════════════════════════════
+    # HABITS TRACKER — трекер звичок
+    # ═══════════════════════════════════════════════════════════
+
+    def _load_habits(self) -> dict:
+        try:
+            if self._habits_file.exists():
+                return json.loads(self._habits_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return {}
+
+    def _save_habits(self, data: dict):
+        try:
+            self._habits_file.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+    def _handle_habits(self, lower: str, text: str) -> bool:
+        """Трекер звичок — стрік та статистика."""
+        mark_kw  = ["відмітити звичку", "зробив звичку", "виконав звичку",
+                    "mark habit", "habit done", "зробив "]
+        stats_kw = ["мої звички", "статистика звичок", "стрік", "streak",
+                    "habit stats", "my habits", "show habits"]
+        add_kw   = ["додай звичку", "нова звичка", "add habit"]
+
+        if any(k in lower for k in stats_kw):
+            data = self._load_habits()
+            if not data:
+                self.respond_silent("🏆 Звичок ще немає. Скажіть «додай звичку: [назва]»")
+                return True
+            today = datetime.now().strftime("%Y-%m-%d")
+            lines = ["🏆 Звички:"]
+            for name, info in data.items():
+                streak = info.get("streak", 0)
+                done_today = today in info.get("done_dates", [])
+                icon = "✅" if done_today else "◻"
+                lines.append(f"{icon} {name}: 🔥{streak} днів підряд")
+            self.respond_silent("\n".join(lines)[:250])
+            return True
+
+        for kw in add_kw:
+            if kw in lower:
+                idx = lower.find(kw)
+                habit_name = text[idx + len(kw):].strip().strip(":").strip()
+                if not habit_name:
+                    self.respond("Назвіть звичку яку хочете відстежувати.")
+                    return True
+                data = self._load_habits()
+                key = habit_name.lower()
+                if key not in data:
+                    data[key] = {"name": habit_name, "streak": 0, "done_dates": []}
+                    self._save_habits(data)
+                self.jarvis.play("confirm")
+                self.respond_silent(f"🏆 Звичку «{habit_name}» додано!")
+                return True
+
+        for kw in mark_kw:
+            if kw in lower:
+                idx = lower.find(kw)
+                habit_query = text[idx + len(kw):].strip().strip(":").strip()
+                data = self._load_habits()
+                today = datetime.now().strftime("%Y-%m-%d")
+                yesterday = (datetime.now().replace(day=datetime.now().day - 1)
+                             .strftime("%Y-%m-%d") if datetime.now().day > 1 else "")
+                matched = None
+                if habit_query:
+                    for key in data:
+                        if habit_query.lower() in key:
+                            matched = key
+                            break
+                else:
+                    # Перша звичка яка ще не відмічена сьогодні
+                    for key, info in data.items():
+                        if today not in info.get("done_dates", []):
+                            matched = key
+                            break
+                if not matched:
+                    if data:
+                        matched = next(iter(data))
+                    else:
+                        self.respond("Спочатку додайте звичку: «додай звичку: [назва]»")
+                        return True
+                info = data[matched]
+                done_dates = info.get("done_dates", [])
+                if today not in done_dates:
+                    done_dates.append(today)
+                    # Перевіряємо стрік
+                    if yesterday and yesterday in done_dates:
+                        info["streak"] = info.get("streak", 0) + 1
+                    elif not yesterday:
+                        info["streak"] = info.get("streak", 0) + 1
+                    else:
+                        info["streak"] = 1
+                    info["done_dates"] = done_dates[-90:]  # Зберігаємо 90 днів
+                    data[matched] = info
+                    self._save_habits(data)
+                streak = info.get("streak", 1)
+                self.jarvis.play("confirm")
+                self.respond_silent(
+                    f"🔥 «{info.get('name', matched)}» виконано! Стрік: {streak} {'день' if streak == 1 else 'дні' if streak < 5 else 'днів'}")
+                return True
+
+        return False
+
+    # ═══════════════════════════════════════════════════════════
+    # NEWS RSS — новини дня
+    # ═══════════════════════════════════════════════════════════
+
+    # │  Новини, документи, URL                                                │
+    def _handle_news(self, lower: str, text: str) -> bool:
+        """Новини через RSS (без API-ключа)."""
+        kw = ["новини", "що нового", "останні новини", "news", "what's new",
+              "технологічні новини", "tech news", "світові новини"]
+        if not any(k in lower for k in kw):
+            return False
+
+        # Вибір RSS-стрічки
+        if any(w in lower for w in ["технолог", "tech", "it"]):
+            feed_url = "https://feeds.feedburner.com/TechCrunch"
+            label = "Tech"
+        elif any(w in lower for w in ["україн", "ukraine"]):
+            feed_url = "https://www.pravda.com.ua/rss/view_news/"
+            label = "Україна"
+        else:
+            feed_url = "https://rss.cnn.com/rss/edition.rss"
+            label = "Світ"
+
+        self.state = self.THINKING
+        self.respond_silent(f"📰 Завантажую новини ({label})…")
+
+        def _fetch():
+            try:
+                import urllib.request
+                import xml.etree.ElementTree as ET
+                req = urllib.request.Request(
+                    feed_url,
+                    headers={"User-Agent": "AXIS-OS/1.0"},
+                )
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    xml_data = r.read()
+                root = ET.fromstring(xml_data)
+                items = root.findall(".//item")[:5]
+                if not items:
+                    self._respond_signal.emit("📰 Новини недоступні")
+                    return
+                lines = [f"📰 <b>Новини ({label}):</b>"]
+                spoken = []
+                for item in items:
+                    title = (item.findtext("title") or "").strip()
+                    if title:
+                        lines.append(f"• {title}")
+                        spoken.append(title)
+                msg = "\n".join(lines)
+                self._tg_notify(msg)
+                # Зачитуємо перші 2 заголовки
+                short = ". ".join(spoken[:2])
+                self._respond_signal.emit(f"📰 {short[:200]}")
+            except Exception as e:
+                self._respond_signal.emit(f"📰 Помилка новин: {str(e)[:40]}")
+
+        threading.Thread(target=_fetch, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # DOCUMENT ANALYSIS — аналіз документів через Gemini
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_document_analysis(self, lower: str, text: str) -> bool:
+        """Аналіз документів (txt/pdf/docx) через Gemini."""
+        kw = ["проаналізуй документ", "аналіз документу", "прочитай файл",
+              "analyze document", "read file", "analyze file",
+              "підсумуй файл", "що у файлі", "розбери документ",
+              "відкрий документ для аналізу", "аналізуй"]
+        if not any(k in lower for k in kw):
+            return False
+
+        # Витягуємо шлях або назву файлу
+        file_path = None
+        for kw_item in kw:
+            if kw_item in lower:
+                idx = lower.find(kw_item)
+                candidate = text[idx + len(kw_item):].strip().strip(":")
+                if candidate:
+                    file_path = candidate
+                break
+
+        if not file_path:
+            self.respond("Вкажіть шлях до файлу, наприклад: «проаналізуй документ C:/звіт.pdf»")
+            return True
+
+        # Якщо шлях відносний — шукаємо на десктопі та в документах
+        if not os.path.isabs(file_path):
+            search_dirs = [
+                os.path.expanduser("~/Desktop"),
+                os.path.expanduser("~/Documents"),
+                os.path.expanduser("~/Downloads"),
+            ]
+            for d in search_dirs:
+                candidate = os.path.join(d, file_path)
+                if os.path.exists(candidate):
+                    file_path = candidate
+                    break
+
+        if not os.path.exists(file_path):
+            self.respond(f"Файл не знайдено: {file_path}")
+            return True
+
+        self.state = self.THINKING
+        self.respond_silent(f"📄 Читаю «{os.path.basename(file_path)}»…")
+
+        def _analyze():
+            try:
+                ext = os.path.splitext(file_path)[1].lower()
+                content = ""
+
+                if ext == ".txt":
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read(20000)
+
+                elif ext == ".pdf":
+                    try:
+                        import pdfplumber
+                        with pdfplumber.open(file_path) as pdf:
+                            pages = pdf.pages[:15]
+                            content = "\n".join(
+                                p.extract_text() or "" for p in pages)[:20000]
+                    except ImportError:
+                        # Fallback: PyPDF2
+                        try:
+                            import PyPDF2
+                            with open(file_path, "rb") as f:
+                                reader = PyPDF2.PdfReader(f)
+                                content = "\n".join(
+                                    page.extract_text() or ""
+                                    for page in reader.pages[:15])[:20000]
+                        except ImportError:
+                            self._respond_signal.emit(
+                                "⚠️ Встановіть pdfplumber: pip install pdfplumber")
+                            return
+
+                elif ext in (".docx", ".doc"):
+                    try:
+                        import docx
+                        doc = docx.Document(file_path)
+                        content = "\n".join(p.text for p in doc.paragraphs)[:20000]
+                    except ImportError:
+                        self._respond_signal.emit(
+                            "⚠️ Встановіть python-docx: pip install python-docx")
+                        return
+
+                else:
+                    # Спробуємо прочитати як текст
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read(10000)
+
+                if not content.strip():
+                    self._respond_signal.emit("📄 Файл порожній або не вдалося прочитати")
+                    return
+
+                # Завжди через Gemini якщо є ключ
+                cfg   = load_config()
+                fname = os.path.basename(file_path)
+                prompt = (
+                    f"Ти аналізуєш документ «{fname}».\n"
+                    f"Зроби стислий аналіз: основна тема, ключові пункти (3-5), "
+                    f"висновок. Відповідай українською.\n\n"
+                    f"ДОКУМЕНТ:\n{content[:15000]}"
+                )
+
+                # Пробуємо Gemini (найкращий для документів)
+                import queue as _q
+                _rq = _q.Queue()
+                gemini_cfg = dict(cfg)
+                gemini_cfg["_force_provider"] = "gemini"
+                t = AIThread(cfg, prompt)
+                t.response.connect(lambda r: _rq.put(r))
+                t.error.connect(lambda e: _rq.put(f"ERR:{e}"))
+                t.start()
+                t.wait(60000)
+                try:
+                    result = _rq.get_nowait()
+                except Exception:
+                    result = ""
+                if not result or result.startswith("ERR:"):
+                    # Ollama fallback
+                    try:
+                        result = self._call_ollama([{"role": "user", "content": prompt}])
+                    except Exception:
+                        result = ""
+
+                if result:
+                    summary = result.strip()[:600]
+                    self._respond_signal.emit(f"📄 {summary}")
+                    self._tg_notify(
+                        f"📄 <b>Аналіз документа: {TelegramBotThread._html_escape(fname)}</b>\n\n"
+                        f"{TelegramBotThread._html_escape(summary)}")
+                else:
+                    self._respond_signal.emit("📄 Не вдалося проаналізувати документ")
+            except Exception as e:
+                self._respond_signal.emit(f"📄 Помилка: {str(e)[:60]}")
+
+        threading.Thread(target=_analyze, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # URL SUMMARIZER — підсумок веб-сторінки
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_url_summary(self, lower: str, text: str) -> bool:
+        """Підсумовує веб-сторінку за URL."""
+        kw = ["підсумуй сторінку", "підсумуй сайт", "summarize url",
+              "про що ця сторінка", "що на сайті", "summarize site",
+              "підсумуй посилання", "читай url", "прочитай сайт"]
+        url_found = re.search(r'https?://\S+', text)
+        has_kw = any(k in lower for k in kw)
+        if not url_found and not has_kw:
+            return False
+        if not url_found:
+            self.respond("Скажіть URL після команди, наприклад: «підсумуй сторінку https://…»")
+            return True
+        url = url_found.group(0).rstrip(".,;")
+        self.state = self.THINKING
+        self.respond_silent(f"🌐 Завантажую {url[:50]}…")
+
+        def _fetch_and_summarize():
+            try:
+                import urllib.request
+                req = urllib.request.Request(
+                    url, headers={"User-Agent": "Mozilla/5.0 AXIS-OS/1.0"})
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    raw = r.read(300_000).decode("utf-8", errors="ignore")
+                # Strip HTML tags
+                clean = re.sub(r'<[^>]+>', ' ', raw)
+                clean = re.sub(r'\s+', ' ', clean).strip()[:12000]
+                if len(clean) < 100:
+                    self._respond_signal.emit("🌐 Не вдалося прочитати вміст сторінки")
+                    return
+                prompt = (
+                    f"Підсумуй вміст цієї веб-сторінки коротко (3-5 речень) українською:\n\n{clean}"
+                )
+                import queue as _q
+                _rq = _q.Queue()
+                t = AIThread(self.config, prompt)
+                t.response.connect(lambda r: _rq.put(r))
+                t.error.connect(lambda e: _rq.put(f"ERR:{e}"))
+                t.start()
+                t.wait(30000)
+                try:
+                    result = _rq.get_nowait()
+                except Exception:
+                    result = ""
+                if result and not result.startswith("ERR:"):
+                    self._respond_signal.emit(f"🌐 {result.strip()[:300]}")
+                else:
+                    self._respond_signal.emit("🌐 Не вдалося підсумувати")
+            except Exception as e:
+                self._respond_signal.emit(f"🌐 Помилка: {str(e)[:50]}")
+
+        threading.Thread(target=_fetch_and_summarize, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # YOUTUBE SEARCH — пошук та запуск YouTube
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_youtube_search(self, lower: str, text: str) -> bool:
+        """Пошук на YouTube або відкриття відео."""
+        kw = ["знайди на ютубі", "відкрий ютуб", "шукай на ютубі",
+              "youtube search", "find on youtube", "пошук ютуб",
+              "включи ютуб", "відкрий відео", "знайди відео"]
+        if not any(k in lower for k in kw):
+            return False
+        query = text
+        for k in kw:
+            if k in lower:
+                idx = lower.find(k)
+                q = text[idx + len(k):].strip()
+                if q:
+                    query = q
+                break
+        import urllib.parse
+        search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
+        webbrowser.open(search_url)
+        self.jarvis.play("confirm")
+        self.respond_silent(f"▶️ YouTube: «{query[:50]}»")
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # APP CLOSE — закрити програму голосом
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_app_close(self, lower: str, text: str) -> bool:
+        """Закрити програму голосом через psutil."""
+        kw = ["закрий", "вбий процес", "kill", "зупини програму",
+              "close app", "виключи", "заверши"]
+        if not any(k in lower for k in kw):
+            return False
+        # Не заважаємо командам типу "закрий діалог", "закрий сферу"
+        skip = ["діалог", "сферу", "панель", "вікно", "вкладку", "ютуб"]
+        if any(s in lower for s in skip):
+            return False
+        if not HAS_PSUTIL:
+            return False
+
+        app_name = text
+        for k in kw:
+            if k in lower:
+                idx = lower.find(k)
+                cand = text[idx + len(k):].strip()
+                if cand:
+                    app_name = cand
+                    break
+
+        app_name_l = app_name.lower().strip()
+        killed = []
+        try:
+            for proc in _psutil.process_iter(["pid", "name"]):
+                pname = proc.info["name"].lower()
+                if app_name_l in pname or pname.startswith(app_name_l[:4]):
+                    # Не вбиваємо системні процеси
+                    if pname not in ("explorer.exe", "svchost.exe",
+                                     "system", "csrss.exe", "winlogon.exe"):
+                        proc.terminate()
+                        killed.append(proc.info["name"])
+        except Exception:
+            pass
+
+        if killed:
+            self.jarvis.play("confirm")
+            self.respond_silent(f"💀 Закрито: {', '.join(set(killed))}")
+        else:
+            self.respond_silent(f"🔍 «{app_name[:30]}» не знайдено серед запущених")
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # TEMPERATURE — CPU / GPU температура
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_temperature_query(self, lower: str, text: str) -> bool:
+        """Температура CPU та GPU."""
+        kw = ["температура", "перегрів", "температуру пк",
+              "cpu temperature", "gpu temperature", "скільки градусів",
+              "гаряче пк", "нагрів процесора"]
+        if not any(k in lower for k in kw):
+            return False
+
+        lines = ["🌡️ Температури:"]
+        got_any = False
+
+        if HAS_PSUTIL:
+            try:
+                temps = _psutil.sensors_temperatures()
+                if temps:
+                    for chip, entries in temps.items():
+                        for entry in entries[:2]:
+                            if entry.current and entry.current > 0:
+                                icon = "🔥" if entry.current > 80 else "✅"
+                                lines.append(f"{icon} {chip}/{entry.label or 'CPU'}: {entry.current:.0f}°C")
+                                got_any = True
+            except (AttributeError, Exception):
+                pass
+
+        # NVIDIA GPU через pynvml (якщо встановлено)
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            for i in range(pynvml.nvmlDeviceGetCount()):
+                h = pynvml.nvmlDeviceGetHandleByIndex(i)
+                name = pynvml.nvmlDeviceGetName(h)
+                temp = pynvml.nvmlDeviceGetTemperature(h, pynvml.NVML_TEMPERATURE_GPU)
+                icon = "🔥" if temp > 85 else "✅"
+                lines.append(f"{icon} GPU ({name}): {temp}°C")
+                got_any = True
+        except Exception:
+            pass
+
+        if not got_any:
+            # Fallback через WMI на Windows
+            try:
+                result = subprocess.run(
+                    ["powershell", "-Command",
+                     "Get-WmiObject MSAcpi_ThermalZoneTemperature "
+                     "-Namespace root/wmi | "
+                     "Select-Object -First 1 -ExpandProperty CurrentTemperature"],
+                    capture_output=True, text=True, timeout=5, creationflags=_NO_WINDOW)
+                if result.stdout.strip():
+                    kelvin = int(result.stdout.strip()) / 10
+                    celsius = kelvin - 273.15
+                    icon = "🔥" if celsius > 80 else "✅"
+                    lines.append(f"{icon} Thermal Zone: {celsius:.0f}°C")
+                    got_any = True
+            except Exception:
+                pass
+
+        if not got_any:
+            self.respond_silent("🌡️ Не вдалося зчитати температуру (можливо потрібен pynvml)")
+        else:
+            msg = "\n".join(lines)
+            self.respond_silent(msg[:200])
+            self._tg_send(msg)
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # CLIPBOARD MANAGER — менеджер буфера обміну
+    # ═══════════════════════════════════════════════════════════
+
+    # └─ sphere/productivity.py ───────────────────────────────────────────────┘
+    def _handle_clipboard_manager(self, lower: str, text: str) -> bool:
+        """Показує/відновлює попередні скопійовані тексти."""
+        show_kw = ["клапборд", "що я копіював", "буфер обміну",
+                   "clipboard history", "покажи буфер",
+                   "попередній текст", "останній скопійований"]
+        copy_kw = ["скопіюй попереднє", "вставити попереднє", "restore clipboard"]
+        track_kw= ["запусти відстеження буферу", "відстежувати буфер",
+                   "track clipboard", "слідкуй за буфером"]
+
+        if any(k in lower for k in track_kw):
+            self._start_clipboard_tracker()
+            self.respond_silent("📋 Відстеження буфера обміну увімкнено")
+            return True
+
+        if any(k in lower for k in show_kw):
+            hist = getattr(self, '_clipboard_history', [])
+            if not hist:
+                self.respond_silent("📋 Буфер порожній — скажіть «запусти відстеження буферу»")
+                return True
+            last = hist[-5:]
+            lines = ["📋 Останнє скопійоване:"] + [
+                f"{i+1}. {t[:80]}" for i, t in enumerate(reversed(last))]
+            self.respond_silent("\n".join(lines)[:300])
+            return True
+
+        if any(k in lower for k in copy_kw):
+            hist = getattr(self, '_clipboard_history', [])
+            if len(hist) >= 2:
+                prev = hist[-2]
+                try:
+                    from PyQt6.QtWidgets import QApplication as _QApp
+                    _QApp.clipboard().setText(prev)
+                    self.respond_silent(f"📋 Відновлено: {prev[:60]}")
+                except Exception:
+                    self.respond_silent("📋 Не вдалося відновити")
+            else:
+                self.respond_silent("📋 Немає попереднього тексту")
+            return True
+
+        # Пасивне відстеження — перехоплюємо поточний вміст
+        self._track_clipboard_once()
+        return False
+
+    def _start_clipboard_tracker(self):
+        """Запускає фоновий потік відстеження буфера обміну."""
+        if getattr(self, '_clipboard_tracker_running', False):
+            return
+        self._clipboard_tracker_running = True
+        def _track():
+            last = ""
+            while getattr(self, '_clipboard_tracker_running', True):
+                try:
+                    from PyQt6.QtWidgets import QApplication as _QApp
+                    current = _QApp.clipboard().text()
+                    if current and current != last and len(current) < 5000:
+                        last = current
+                        hist = self._clipboard_history
+                        if not hist or hist[-1] != current:
+                            hist.append(current)
+                            if len(hist) > 20:
+                                self._clipboard_history = hist[-20:]
+                except Exception:
+                    pass
+                time.sleep(1.5)
+        threading.Thread(target=_track, daemon=True).start()
+
+    def _track_clipboard_once(self):
+        """Одноразово зчитує поточний буфер."""
+        try:
+            from PyQt6.QtWidgets import QApplication as _QApp
+            current = _QApp.clipboard().text()
+            if current and len(current) < 5000:
+                hist = self._clipboard_history
+                if not hist or hist[-1] != current:
+                    hist.append(current)
+                    if len(hist) > 20:
+                        self._clipboard_history = hist[-20:]
+        except Exception:
+            pass
+
+    # ═══════════════════════════════════════════════════════════
+    # PROVIDER SWITCH — зміна AI-провайдера голосом
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_provider_switch(self, lower: str, text: str) -> bool:
+        """Зміна AI-провайдера: «переключи на Gemini», «використовуй Claude»."""
+        switch_kw = ["переключи на", "змінити провайдер на", "використовуй",
+                     "switch to", "use provider", "провайдер", "змінити ai на",
+                     "діалог через", "розмовляй через", "відповідай через"]
+        if not any(k in lower for k in switch_kw):
+            return False
+
+        # Перевіряємо чи після ключового слова є назва провайдера
+        found_provider = None
+        for word, prov_key in VOICE_PROVIDER_MAP.items():
+            if word in lower:
+                found_provider = prov_key
+                break
+
+        if not found_provider:
+            return False
+
+        # Оновлюємо dialog_provider і зберігаємо в конфіг
+        self.dialog_provider = found_provider
+        cfg = load_config()
+        cfg["dialog_provider"] = found_provider
+        save_config(cfg)
+        self.config = cfg
+
+        prov_name = VOICE_PROVIDER_NAMES.get(found_provider, found_provider)
+        self.jarvis.play("confirm")
+        self.respond_silent(f"🤖 Провайдер змінено на {prov_name}")
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # MORNING BRIEFING — ранковий огляд дня
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_morning_briefing(self, lower: str) -> bool:
+        """Ранковий огляд: погода + завдання + нагадування + новини."""
+        kw = ["доброго ранку", "добрий ранок", "good morning",
+              "ранковий брифінг", "morning briefing",
+              "що у мене сьогодні", "overview", "що заплановано"]
+        if not any(k in lower for k in kw):
+            return False
+
+        def _briefing():
+            parts = []
+            now = datetime.now()
+            parts.append(f"🌅 Доброго ранку! Сьогодні {now.strftime('%A, %d %B %Y')}.")
+
+            # Завдання
+            try:
+                tasks = self._load_todo()
+                pending = [t for t in tasks if not t.get("done")]
+                if pending:
+                    names = ", ".join(t["text"][:30] for t in pending[:3])
+                    parts.append(f"📋 Завдань: {len(pending)}. Перші: {names}.")
+                else:
+                    parts.append("✅ Завдань немає — чистий день!")
+            except Exception:
+                pass
+
+            # Нагадування на сьогодні
+            try:
+                today_reminders = [
+                    r for dt, r in self.reminders
+                    if dt.date() == now.date()
+                ]
+                if today_reminders:
+                    r_texts = ", ".join(
+                        r.get("text", str(r))[:30] if isinstance(r, dict) else str(r)[:30]
+                        for r in today_reminders[:3]
+                    )
+                    parts.append(f"🔔 Нагадування: {r_texts}.")
+            except Exception:
+                pass
+
+            # Звички
+            try:
+                data = self._load_habits()
+                today = now.strftime("%Y-%m-%d")
+                not_done = [
+                    info.get("name", k) for k, info in data.items()
+                    if today not in info.get("done_dates", [])
+                ]
+                if not_done:
+                    parts.append(f"🏆 Звички сьогодні: {', '.join(not_done[:3])}.")
+            except Exception:
+                pass
+
+            briefing = " ".join(parts)
+            self._respond_signal.emit(briefing[:500])
+            self._tg_notify("🌅 <b>Ранковий брифінг</b>\n" + briefing)
+
+        threading.Thread(target=_briefing, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # CALCULATOR / UNIT CONVERTER / CURRENCY / CRYPTO
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_calculator(self, text: str, lower: str) -> bool:
+        math_kw = ["скільки буде", "порахуй", "calculate", "скільки є",
+                   "²", "^", "sqrt", "корінь"]
+        currency_kw = ["доларів в гривнях", "євро в гривнях", "долар курс",
+                       "курс валют", " usd ", " eur ", " uah ", " gbp "]
+        crypto_kw   = ["ціна біткоїна", "bitcoin price", "ethereum",
+                       "ціна крипти", "solana price", "bitcoin", "крипта"]
+        unit_kw     = ["в кілометрах", "в милях", "в кг", "в фунтах",
+                       "в метрах", "в футах", "в літрах", "в галонах",
+                       "kilometers", "miles", "convert"]
+
+        # Currency pattern: "100 usd в uah" or similar
+        currency_pattern = re.search(
+            r'(\d+(?:[.,]\d+)?)\s*(usd|eur|gbp|uah|долар|євро|фунт|гривн)',
+            lower)
+
+        is_math     = any(k in lower for k in math_kw)
+        is_currency = any(k in lower for k in currency_kw) or currency_pattern
+        is_crypto   = any(k in lower for k in crypto_kw)
+        is_unit     = any(k in lower for k in unit_kw)
+
+        if not (is_math or is_currency or is_crypto or is_unit):
+            return False
+
+        def _calc_thread():
+            try:
+                if is_crypto:
+                    self._calc_crypto(lower)
+                elif is_currency:
+                    self._calc_currency(lower, currency_pattern)
+                elif is_unit:
+                    self._calc_units(lower)
+                elif is_math:
+                    self._calc_math(lower)
+            except Exception as e:
+                self._respond_signal.emit(f"🔢 Помилка розрахунку: {str(e)[:60]}")
+
+        threading.Thread(target=_calc_thread, daemon=True).start()
+        return True
+
+    def _calc_math(self, lower: str):
+        """Safe math eval."""
+        import math as _math
+        # Extract expression
+        expr = lower
+        for kw in ["скільки буде", "порахуй", "calculate", "скільки є"]:
+            expr = expr.replace(kw, "")
+        expr = expr.strip()
+        expr = expr.replace("²", "**2").replace("^", "**")
+        expr = re.sub(r'sqrt\(([^)]+)\)', r'math.sqrt(\1)', expr)
+        expr = re.sub(r'корінь\s+(\d+)', r'math.sqrt(\1)', expr)
+        expr = expr.replace(",", ".")
+        # Remove non-safe chars
+        allowed = re.sub(r'[^0-9+\-*/(). _mathqrts]', '', expr)
+        try:
+            result = eval(allowed, {"__builtins__": {}, "math": _math})  # noqa: S307
+            self._respond_signal.emit(f"🔢 {allowed.strip()} = <b>{result}</b>")
+        except Exception:
+            self._respond_signal.emit(f"🔢 Не вдалось порахувати: {expr[:40]}")
+
+    def _calc_currency(self, lower: str, m):
+        """Fetch exchange rates from open.er-api.com."""
+        if not HAS_REQUESTS:
+            self._respond_signal.emit("💱 requests не встановлено: pip install requests")
+            return
+        try:
+            r = _requests.get("https://open.er-api.com/v6/latest/USD", timeout=8)
+            rates = r.json().get("rates", {})
+            usd_to_uah = rates.get("UAH", 41.5)
+            usd_to_eur = rates.get("EUR", 0.92)
+            usd_to_gbp = rates.get("GBP", 0.79)
+
+            amount = float(m.group(1).replace(",", ".")) if m else 1.0
+            src = (m.group(2) if m else "usd").lower()
+
+            if src in ("usd", "долар"):
+                uah = amount * usd_to_uah
+                eur = amount * usd_to_eur
+                msg = (f"💱 {amount:.2f} USD = <b>{uah:.2f} UAH</b> | {eur:.2f} EUR\n"
+                       f"Курс: 1 USD = {usd_to_uah:.2f} UAH")
+            elif src in ("eur", "євро"):
+                usd = amount / usd_to_eur
+                uah = usd * usd_to_uah
+                msg = (f"💱 {amount:.2f} EUR = <b>{uah:.2f} UAH</b> | {usd:.2f} USD\n"
+                       f"Курс: 1 EUR = {uah/amount:.2f} UAH")
+            elif src in ("gbp", "фунт"):
+                usd = amount / usd_to_gbp
+                uah = usd * usd_to_uah
+                msg = (f"💱 {amount:.2f} GBP = <b>{uah:.2f} UAH</b> | {usd:.2f} USD\n"
+                       f"Курс: 1 GBP = {uah/amount:.2f} UAH")
+            elif src in ("uah", "гривн"):
+                usd = amount / usd_to_uah
+                eur = usd * usd_to_eur
+                msg = (f"💱 {amount:.2f} UAH = <b>{usd:.2f} USD</b> | {eur:.2f} EUR\n"
+                       f"Курс: 1 USD = {usd_to_uah:.2f} UAH")
+            else:
+                msg = (f"💱 Курс USD: {usd_to_uah:.2f} UAH | "
+                       f"EUR: {1/usd_to_eur*usd_to_uah:.2f} UAH")
+            self._respond_signal.emit(msg)
+        except Exception as e:
+            self._respond_signal.emit(f"💱 Помилка курсу валют: {str(e)[:50]}")
+
+    def _calc_crypto(self, lower: str):
+        """Fetch crypto prices from CoinGecko."""
+        if not HAS_REQUESTS:
+            self._respond_signal.emit("🪙 requests не встановлено")
+            return
+        try:
+            url = ("https://api.coingecko.com/api/v3/simple/price"
+                   "?ids=bitcoin,ethereum,solana&vs_currencies=usd,uah")
+            r = _requests.get(url, timeout=10)
+            data = r.json()
+            btc_usd  = data.get("bitcoin",  {}).get("usd", "?")
+            btc_uah  = data.get("bitcoin",  {}).get("uah", "?")
+            eth_usd  = data.get("ethereum", {}).get("usd", "?")
+            eth_uah  = data.get("ethereum", {}).get("uah", "?")
+            sol_usd  = data.get("solana",   {}).get("usd", "?")
+            sol_uah  = data.get("solana",   {}).get("uah", "?")
+            msg = (f"🪙 <b>Крипто (зараз)</b>\n"
+                   f"₿ BTC: ${btc_usd:,} | ₴{btc_uah:,}\n"
+                   f"⟠ ETH: ${eth_usd:,} | ₴{eth_uah:,}\n"
+                   f"◎ SOL: ${sol_usd} | ₴{sol_uah}")
+            self._respond_signal.emit(msg)
+        except Exception as e:
+            self._respond_signal.emit(f"🪙 Помилка крипто: {str(e)[:50]}")
+
+    def _calc_units(self, lower: str):
+        """Hardcoded unit conversions."""
+        # Patterns: "100 кілометрів в милях", "5 кг в фунтах", "10 футів в метрах"
+        CONVERSIONS = {
+            # distance
+            ("км", "миля"): ("км", "миль", 0.621371),
+            ("миля", "км"): ("миль", "км", 1.60934),
+            ("метр", "фут"): ("м", "фут", 3.28084),
+            ("фут", "метр"): ("фут", "м", 0.3048),
+            # weight
+            ("кг", "фунт"): ("кг", "фунтів", 2.20462),
+            ("фунт", "кг"): ("фунтів", "кг", 0.453592),
+            # volume
+            ("літр", "галон"): ("л", "галонів", 0.264172),
+            ("галон", "літр"): ("галонів", "л", 3.78541),
+        }
+        m = re.search(r'(\d+(?:[.,]\d+)?)', lower)
+        amount = float(m.group(1).replace(",", ".")) if m else 1.0
+        for (src, dst), (src_lbl, dst_lbl, factor) in CONVERSIONS.items():
+            if src in lower and dst in lower:
+                result = amount * factor
+                self._respond_signal.emit(
+                    f"📏 {amount} {src_lbl} = <b>{result:.4g} {dst_lbl}</b>")
+                return
+        self._respond_signal.emit(f"📏 Не розпізнав одиниці в: {lower[:50]}")
+
+    # ═══════════════════════════════════════════════════════════
+    # BATTERY
+    # ═══════════════════════════════════════════════════════════
+
+    # ┌─ sphere/system.py (continued) ── батарея, будильник, shutdown ─────────┐
+    def _handle_battery(self, text: str, lower: str) -> bool:
+        kw = ["заряд батареї", "скільки заряду", "battery",
+              "заряд ноутбука", "акумулятор"]
+        if not any(k in lower for k in kw):
+            return False
+        if not HAS_PSUTIL:
+            self.respond_silent("🔋 psutil не встановлено: pip install psutil")
+            return True
+        batt = _psutil.sensors_battery()
+        if batt is None:
+            self.respond_silent("🖥 ПК не має батареї (стаціонарний)")
+            return True
+        percent = batt.percent
+        plugged = "🔌 підключено до мережі" if batt.power_plugged else "🔋 від батареї"
+        secs    = batt.secsleft
+        if secs == _psutil.POWER_TIME_UNLIMITED:
+            time_str = "необмежено"
+        elif secs == _psutil.POWER_TIME_UNKNOWN or secs < 0:
+            time_str = "невідомо"
+        else:
+            h, m = divmod(secs // 60, 60)
+            time_str = f"{h}г {m}хв" if h else f"{m}хв"
+        icon = "🔋" if percent > 50 else ("⚡" if percent > 20 else "🪫")
+        msg = (f"{icon} Батарея: <b>{percent:.0f}%</b> ({plugged})\n"
+               f"⏱ Залишилось: {time_str}")
+        self.respond_silent(msg)
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # ALARM
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_alarm(self, text: str, lower: str) -> bool:
+        set_kw    = ["постав будильник", "будильник на", "alarm",
+                     "розбуди мене", "прокинутися", "прокидатися"]
+        cancel_kw = ["скасуй будильник", "видали будильник", "cancel alarm",
+                     "вимкни будильник"]
+        list_kw   = ["мої будильники", "список будильників", "будильники"]
+
+        if any(k in lower for k in cancel_kw):
+            self._cancel_all_alarms()
+            return True
+        if any(k in lower for k in list_kw):
+            self._list_alarms()
+            return True
+        if not any(k in lower for k in set_kw):
+            return False
+
+        # Parse time
+        alarm_time = self._parse_alarm_time(lower)
+        if alarm_time is None:
+            self.respond_silent("⏰ Не зрозумів час будильника. Приклад: «будильник на 7:30»")
+            return True
+
+        self._add_alarm(alarm_time)
+        self.respond_silent(f"⏰ Будильник встановлено на <b>{alarm_time.strftime('%H:%M')}</b>")
+        return True
+
+    def _parse_alarm_time(self, lower: str):
+        """Parse time from lower-cased text. Returns datetime or None."""
+        now = datetime.now()
+        # HH:MM or HH.MM
+        m = re.search(r'(\d{1,2})[:\.](\d{2})', lower)
+        if m:
+            h, mi = int(m.group(1)), int(m.group(2))
+            if 0 <= h <= 23 and 0 <= mi <= 59:
+                t = now.replace(hour=h, minute=mi, second=0, microsecond=0)
+                if t <= now:
+                    t = t.replace(day=t.day + 1)
+                return t
+        # "в 7 ранку" / "о 8 ранку" / "в 22 вечора"
+        m2 = re.search(r'(?:в|о)\s+(\d{1,2})\s*(ранку|вечора|дня|ночі)?', lower)
+        if m2:
+            h = int(m2.group(1))
+            period = m2.group(2) or ""
+            if period in ("вечора", "дня") and h < 12:
+                h += 12
+            if period == "ночі" and h >= 12:
+                h = h % 12
+            if 0 <= h <= 23:
+                t = now.replace(hour=h, minute=0, second=0, microsecond=0)
+                if t <= now:
+                    t = t.replace(day=t.day + 1)
+                return t
+        return None
+
+    def _add_alarm(self, alarm_dt):
+        """Add alarm to file and schedule QTimer."""
+        alarms = self._load_alarms_data()
+        alarms.append({"ts": alarm_dt.isoformat(), "text": "Час прокидатися!"})
+        self._save_alarms_data(alarms)
+        self._schedule_alarm_qt(alarm_dt, "Час прокидатися!")
+
+    def _schedule_alarm_qt(self, alarm_dt, alarm_text: str):
+        """Schedule a QTimer for alarm."""
+        now = datetime.now()
+        ms = max(0, int((alarm_dt - now).total_seconds() * 1000))
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(lambda: self._fire_alarm(alarm_text, alarm_dt))
+        timer.start(ms)
+        self._alarm_timers.append(timer)
+
+    def _fire_alarm(self, text: str, alarm_dt):
+        """Called when alarm fires."""
+        self.jarvis.play("alarm")
+        self.respond(f"⏰ Будильник! {text}")
+        self._tg_notify(f"⏰ <b>Будильник</b> ({alarm_dt.strftime('%H:%M')})\n{text}")
+        # Remove from file
+        alarms = [a for a in self._load_alarms_data()
+                  if a.get("ts") != alarm_dt.isoformat()]
+        self._save_alarms_data(alarms)
+
+    def _cancel_all_alarms(self):
+        for t in self._alarm_timers:
+            try:
+                t.stop()
+            except Exception:
+                pass
+        self._alarm_timers.clear()
+        self._save_alarms_data([])
+        self.respond_silent("⏰ Всі будильники скасовано")
+
+    def _list_alarms(self):
+        alarms = self._load_alarms_data()
+        if not alarms:
+            self.respond_silent("⏰ Будильників немає")
+            return
+        lines = ["⏰ <b>Мої будильники:</b>"]
+        for a in alarms:
+            try:
+                from datetime import datetime as _dt
+                t = _dt.fromisoformat(a["ts"]).strftime("%H:%M %d.%m")
+                lines.append(f"• {t} — {a.get('text','')}")
+            except Exception:
+                pass
+        self.respond_silent("\n".join(lines))
+
+    def _load_alarms_data(self) -> list:
+        try:
+            if self._alarms_file.exists():
+                return json.loads(self._alarms_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+        return []
+
+    def _save_alarms_data(self, alarms: list):
+        try:
+            USER_DATA_DIR.mkdir(exist_ok=True)
+            self._alarms_file.write_text(
+                json.dumps(alarms, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            print(f"[Alarm] save error: {e}")
+
+    def _load_and_schedule_alarms(self):
+        """Called at startup — load alarms and schedule pending ones."""
+        try:
+            alarms = self._load_alarms_data()
+            now = datetime.now()
+            future = []
+            for a in alarms:
+                try:
+                    from datetime import datetime as _dt
+                    dt = _dt.fromisoformat(a["ts"])
+                    if dt > now:
+                        future.append(a)
+                        # Need to schedule after QApplication is running
+                        QTimer.singleShot(100, lambda d=dt, t=a.get("text","Будильник!"):
+                                          self._schedule_alarm_qt(d, t))
+                except Exception:
+                    pass
+            if len(future) != len(alarms):
+                self._save_alarms_data(future)
+        except Exception as e:
+            print(f"[Alarm] startup load error: {e}")
+
+    # ═══════════════════════════════════════════════════════════
+    # SHUTDOWN TIMER
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_shutdown_timer(self, text: str, lower: str) -> bool:
+        cancel_kw = ["скасуй вимкнення", "cancel shutdown", "відмінити вимкнення",
+                     "shutdown /a", "скасувати вимкнення"]
+        set_kw    = ["вимкни через", "shutdown in", "вимкни пк через",
+                     "перезавантаж через", "виключи через", "виключи пк через",
+                     "вимкни комп через", "виключи комп через",
+                     "shutdown after", "вимкни зараз через"]
+
+        if any(k in lower for k in cancel_kw):
+            os.system("shutdown /a")
+            self.respond_silent("✅ Вимкнення скасовано")
+            self._tg_notify("✅ <b>Вимкнення скасовано</b>")
+            return True
+        if not any(k in lower for k in set_kw):
+            return False
+
+        seconds = self._parse_time_duration(lower)
+        if seconds is None:
+            self.respond_silent(
+                "💤 Не зрозумів час.\n"
+                "Приклади: «вимкни через 30 секунд» / «вимкни через 2 години» / «вимкни через 10 хвилин»"
+            )
+            return True
+
+        restart_kw = ["перезавантаж", "restart", "reboot"]
+        if any(k in lower for k in restart_kw):
+            os.system(f"shutdown /r /t {seconds}")
+            action = "перезавантаження"
+        else:
+            os.system(f"shutdown /s /t {seconds}")
+            action = "вимкнення"
+
+        # Build human-readable time string (supports seconds < 60)
+        h, rem = divmod(seconds, 3600)
+        m, s   = divmod(rem, 60)
+        if h and m:
+            time_str = f"{h}г {m}хв"
+        elif h:
+            time_str = f"{h} год"
+        elif m and s:
+            time_str = f"{m}хв {s}с"
+        elif m:
+            time_str = f"{m} хвилин"
+        else:
+            time_str = f"{s} секунд"
+
+        msg = f"💤 {action.capitalize()} через {time_str}\nСкасувати: «скасуй вимкнення»"
+        self.respond_silent(msg)
+        self._tg_notify(f"💤 <b>{action.capitalize()} через {time_str}</b>\nСкасувати: /cancel_shutdown")
+        return True
+
+    def _parse_time_duration(self, lower: str) -> int | None:
+        """Parse duration like '2 години', '30 хвилин', '1 годину 30 хвилин'."""
+        total = 0
+        # Hours
+        m = re.search(r'(\d+)\s*(?:годин|год|hour|hours|г(?!\w))', lower)
+        if m:
+            total += int(m.group(1)) * 3600
+        # Minutes
+        m = re.search(r'(\d+)\s*(?:хвилин|хв|min|minutes)', lower)
+        if m:
+            total += int(m.group(1)) * 60
+        # Seconds
+        m = re.search(r'(\d+)\s*(?:секунд|сек|sec|seconds)', lower)
+        if m:
+            total += int(m.group(1))
+        return total if total > 0 else None
+
+    # ═══════════════════════════════════════════════════════════
+    # AUTO-TYPING
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_autotype(self, text: str, lower: str) -> bool:
+        kw = ["надрукуй", "введи текст", "напиши у вікно", "type:", "autotype",
+              "напиши текст"]
+        if not any(k in lower for k in kw):
+            return False
+        # Extract text after keyword
+        type_text = text
+        for kw_item in ["надрукуй", "введи текст", "напиши у вікно",
+                        "type:", "autotype", "напиши текст"]:
+            idx = lower.find(kw_item.lower())
+            if idx != -1:
+                type_text = text[idx + len(kw_item):].strip()
+                break
+        if not type_text:
+            self.respond_silent("⌨ Після команди вкажіть текст для введення")
+            return True
+
+        try:
+            import pyautogui  # noqa: F401
+        except ImportError:
+            self.respond_silent("⌨ pyautogui не встановлено: pip install pyautogui")
+            return True
+
+        self.respond_silent(f"⌨ Введу через 1 секунду: «{type_text[:50]}»")
+
+        def _do_type():
+            import time as _time
+            import pyautogui as _pag
+            _pag.PAUSE = 0
+            _time.sleep(1)
+            try:
+                _pag.typewrite(type_text, interval=0.03)
+            except Exception as e:
+                self._respond_signal.emit(f"⌨ Помилка введення: {str(e)[:40]}")
+
+        threading.Thread(target=_do_type, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # SCREEN OCR
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_screen_ocr(self, text: str, lower: str) -> bool:
+        kw = ["що на екрані", "прочитай екран", "screen ocr",
+              "що написано на екрані", "аналізуй екран", "розпізнай екран"]
+        if not any(k in lower for k in kw):
+            return False
+
+        self.respond_silent("📸 Знімаю екран і аналізую...")
+
+        def _ocr_thread():
+            import tempfile
+            tmp_path = None
+            try:
+                # Take screenshot
+                try:
+                    from PIL import ImageGrab
+                    img = ImageGrab.grab()
+                    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+                        tmp_path = f.name
+                    img.save(tmp_path)
+                except Exception:
+                    try:
+                        import mss
+                        with mss.mss() as sct:
+                            mon = sct.monitors[1]
+                            sct_img = sct.grab(mon)
+                            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+                                tmp_path = f.name
+                            mss.tools.to_png(sct_img.rgb, sct_img.size, output=tmp_path)
+                    except Exception as ee:
+                        self._respond_signal.emit(f"📸 Не вдалось зробити скріншот: {ee}")
+                        return
+
+                if tmp_path is None:
+                    self._respond_signal.emit("📸 Не вдалось зробити скріншот")
+                    return
+
+                # Try Gemini Vision first
+                google_key = self.config.get("google_key", "")
+                if google_key:
+                    try:
+                        import google.generativeai as genai
+                        from pathlib import Path as _Path
+                        genai.configure(api_key=google_key)
+                        model = genai.GenerativeModel("gemini-1.5-flash")
+                        img_data = _Path(tmp_path).read_bytes()
+                        import base64 as _b64
+                        response = model.generate_content([
+                            {"mime_type": "image/png",
+                             "data": _b64.b64encode(img_data).decode()},
+                            "Що зображено на цьому екрані? Опиши детально українською."
+                        ])
+                        result = response.text
+                        self._respond_signal.emit(f"📸 <b>Аналіз екрану:</b>\n{result[:500]}")
+                        return
+                    except Exception:
+                        pass
+
+                # Fallback: pytesseract OCR
+                try:
+                    import pytesseract
+                    from PIL import Image as _Img
+                    img = _Img.open(tmp_path)
+                    ocr_text = pytesseract.image_to_string(img, lang="ukr+eng")
+                    if ocr_text.strip():
+                        self._respond_signal.emit(
+                            f"📸 <b>Текст на екрані:</b>\n{ocr_text[:500]}")
+                    else:
+                        self._respond_signal.emit("📸 Тексту на екрані не знайдено")
+                except ImportError:
+                    self._respond_signal.emit(
+                        "📸 Встанови pytesseract для OCR або налаштуй Google API")
+            finally:
+                if tmp_path:
+                    try:
+                        import os as _os
+                        _os.unlink(tmp_path)
+                    except Exception:
+                        pass
+
+        threading.Thread(target=_ocr_thread, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # INTERNET SPEED TEST
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_speedtest(self, text: str, lower: str) -> bool:
+        kw = ["швидкість інтернету", "internet speed", "перевір інтернет",
+              "speed test", "speedtest", "швидкість мережі"]
+        if not any(k in lower for k in kw):
+            return False
+
+        self.respond_silent("🌐 Перевіряю швидкість інтернету...")
+
+        def _speed_thread():
+            # Try speedtest-cli
+            try:
+                import speedtest as _st
+                s = _st.Speedtest()
+                s.get_best_server()
+                down = s.download() / 1e6
+                up   = s.upload()   / 1e6
+                ping = s.results.ping
+                self._respond_signal.emit(
+                    f"🌐 <b>Швидкість інтернету:</b>\n"
+                    f"⬇ Завантаження: <b>{down:.1f} Мбіт/с</b>\n"
+                    f"⬆ Вивантаження: <b>{up:.1f} Мбіт/с</b>\n"
+                    f"⚡ Пінг: <b>{ping:.0f} мс</b>")
+                return
+            except ImportError:
+                pass
+            except Exception as e:
+                print(f"[Speedtest] error: {e}")
+
+            # Fallback: time a Cloudflare download
+            if not HAS_REQUESTS:
+                self._respond_signal.emit("🌐 pip install speedtest-cli requests")
+                return
+            try:
+                import time as _t
+                url = "https://speed.cloudflare.com/__down?bytes=10000000"
+                start = _t.time()
+                r = _requests.get(url, timeout=30, stream=True)
+                total = 0
+                for chunk in r.iter_content(65536):
+                    total += len(chunk)
+                elapsed = _t.time() - start
+                mbps = (total * 8 / 1e6) / elapsed if elapsed > 0 else 0
+                self._respond_signal.emit(
+                    f"🌐 <b>Швидкість завантаження:</b> ~{mbps:.1f} Мбіт/с\n"
+                    f"(тест Cloudflare, {total//1024}KB за {elapsed:.1f}с)")
+            except Exception as e:
+                self._respond_signal.emit(f"🌐 Помилка тесту швидкості: {str(e)[:60]}")
+
+        threading.Thread(target=_speed_thread, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # WHO'S ON WIFI
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_wifi_devices(self, text: str, lower: str) -> bool:
+        kw = ["хто в мережі", "хто підключений", "wifi devices",
+              "пристрої в мережі", "сусіди по wifi", "хто в wifi"]
+        if not any(k in lower for k in kw):
+            return False
+
+        self.respond_silent("📡 Сканую мережу...")
+
+        def _arp_thread():
+            import subprocess
+            try:
+                result = subprocess.run(["arp", "-a"], capture_output=True,
+                                        text=True, timeout=15)
+                lines = result.stdout.strip().split("\n")
+                devices = []
+                for line in lines:
+                    # Match IP and MAC
+                    m = re.search(
+                        r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+'
+                        r'([0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}[:-][0-9a-fA-F]{2}'
+                        r'(?:[:-][0-9a-fA-F]{2}){3})',
+                        line)
+                    if m:
+                        ip, mac = m.group(1), m.group(2)
+                        if not ip.startswith("224.") and not ip.endswith(".255"):
+                            devices.append((ip, mac))
+                if devices:
+                    lines_out = [f"📡 <b>Пристрої в мережі ({len(devices)}):</b>"]
+                    for ip, mac in devices[:20]:
+                        lines_out.append(f"• {ip} — <code>{mac}</code>")
+                    self._respond_signal.emit("\n".join(lines_out))
+                else:
+                    self._respond_signal.emit("📡 Пристроїв не знайдено (або немає доступу)")
+            except Exception as e:
+                self._respond_signal.emit(f"📡 Помилка сканування: {str(e)[:60]}")
+
+        threading.Thread(target=_arp_thread, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # FILE SEARCH
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_file_search(self, text: str, lower: str) -> bool:
+        kw = ["знайди файл", "шукай файл", "find file",
+              "де файл", "знайди папку", "пошукай файл"]
+        if not any(k in lower for k in kw):
+            return False
+
+        # Extract filename
+        filename = text
+        for kw_item in ["знайди файл", "шукай файл", "find file",
+                        "де файл", "знайди папку", "пошукай файл"]:
+            idx = lower.find(kw_item.lower())
+            if idx != -1:
+                filename = text[idx + len(kw_item):].strip().strip("\"'")
+                break
+        if not filename:
+            self.respond_silent("🔍 Вкажіть ім'я файлу. Приклад: «знайди файл звіт.docx»")
+            return True
+
+        self.respond_silent(f"🔍 Шукаю: «{filename}»...")
+
+        def _search_thread():
+            import pathlib as _pl
+            home = _pl.Path.home()
+            search_dirs = [
+                home / "Desktop",
+                home / "Documents",
+                home / "Downloads",
+                home,
+            ]
+            found = []
+            fname_lower = filename.lower()
+            for sdir in search_dirs:
+                if not sdir.exists():
+                    continue
+                try:
+                    for root, dirs, files in os.walk(str(sdir)):
+                        # Limit depth to 4
+                        depth = len(_pl.Path(root).relative_to(sdir).parts)
+                        if depth > 4:
+                            dirs.clear()
+                            continue
+                        for f in files:
+                            if fname_lower in f.lower():
+                                found.append(str(_pl.Path(root) / f))
+                                if len(found) >= 5:
+                                    break
+                        if len(found) >= 5:
+                            break
+                except PermissionError:
+                    pass
+                if len(found) >= 5:
+                    break
+
+            if not found:
+                self._respond_signal.emit(
+                    f"🔍 Файл «{filename}» не знайдено в Desktop/Documents/Downloads")
+                return
+
+            lines = [f"🔍 <b>Знайдено ({len(found)}):</b>"]
+            for f in found:
+                lines.append(f"• <code>{f}</code>")
+            self._respond_signal.emit("\n".join(lines))
+            # Open first match
+            try:
+                os.startfile(found[0])
+                self._respond_signal.emit(f"📂 Відкриваю: {_pl.Path(found[0]).name}")
+            except Exception:
+                pass
+
+        threading.Thread(target=_search_thread, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # DAILY ACTIVITY SUMMARY
+    # ═══════════════════════════════════════════════════════════
+
+    # │  OCR, speedtest, wifi, file search, focus, pomodoro                    │
+    def _handle_daily_summary(self, text: str, lower: str) -> bool:
+        kw = ["що я робив сьогодні", "підсумок дня", "daily summary",
+              "звіт за день", "що зробив сьогодні", "підбий підсумок"]
+        if not any(k in lower for k in kw):
+            return False
+
+        self.respond_silent("📊 Збираю підсумок дня...")
+
+        def _summary_thread():
+            now = datetime.now()
+            today_str = now.strftime("%Y-%m-%d")
+            parts = [f"📊 <b>Підсумок дня — {now.strftime('%d.%m.%Y')}</b>\n"]
+
+            # Notes
+            try:
+                notes = []
+                if self._notes_file.exists():
+                    raw = json.loads(self._notes_file.read_text(encoding="utf-8"))
+                    notes = [n for n in (raw if isinstance(raw, list) else [])
+                             if today_str in n.get("ts", "")
+                             or today_str in n.get("date", "")]
+                if notes:
+                    parts.append(f"📝 Нотатки сьогодні ({len(notes)}): "
+                                 + ", ".join(n.get("text", "")[:30] for n in notes[:3]))
+            except Exception:
+                pass
+
+            # Tasks
+            try:
+                tasks_today = []
+                if self._todo_file.exists():
+                    raw = json.loads(self._todo_file.read_text(encoding="utf-8"))
+                    for t in (raw if isinstance(raw, list) else []):
+                        if today_str in t.get("ts", "") or today_str in t.get("date", ""):
+                            tasks_today.append(t)
+                if tasks_today:
+                    done = [t for t in tasks_today if t.get("done")]
+                    parts.append(f"✅ Завдань сьогодні: {len(tasks_today)} "
+                                 f"(виконано: {len(done)})")
+            except Exception:
+                pass
+
+            # Habits
+            try:
+                if self._habits_file.exists():
+                    raw = json.loads(self._habits_file.read_text(encoding="utf-8"))
+                    done_habits = [
+                        info.get("name", k) for k, info in raw.items()
+                        if today_str in info.get("done_dates", [])
+                    ]
+                    if done_habits:
+                        parts.append(f"🏆 Звички виконано: {', '.join(done_habits[:5])}")
+            except Exception:
+                pass
+
+            # Reminders today
+            try:
+                fired = [
+                    r.get("text", str(r)) if isinstance(r, dict) else str(r)
+                    for dt, r in self.reminders
+                    if dt.date() == now.date()
+                ]
+                if fired:
+                    parts.append(f"🔔 Нагадування: {', '.join(fired[:3])}")
+            except Exception:
+                pass
+
+            if len(parts) == 1:
+                parts.append("Сьогодні немає записів у нотатках, задачах чи звичках.")
+
+            summary = "\n".join(parts)
+            self._respond_signal.emit(summary[:600])
+            self._tg_notify(summary[:600])
+
+        threading.Thread(target=_summary_thread, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # FOCUS MODE
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_focus_mode(self, text: str, lower: str) -> bool:
+        enable_kw  = ["увімкни фокус", "режим фокусу", "focus mode",
+                      "не турбувати", "вимкни відволікання", "фокус на"]
+        disable_kw = ["вимкни фокус", "скасуй фокус", "exit focus",
+                      "вийти з фокусу", "вимкни режим фокусу"]
+
+        if any(k in lower for k in disable_kw):
+            self._stop_focus_mode()
+            return True
+        if not any(k in lower for k in enable_kw):
+            return False
+
+        # Parse duration
+        minutes = 25  # default pomodoro
+        m = re.search(r'(\d+)\s*(?:хвилин|хв|min)', lower)
+        if m:
+            minutes = int(m.group(1))
+        else:
+            m2 = re.search(r'(\d+)\s*(?:годин|год|h(?!\w))', lower)
+            if m2:
+                minutes = int(m2.group(1)) * 60
+            m3 = re.search(r'(\d+)\s*(?:годин|год)[^\d]+(\d+)\s*(?:хвилин|хв)', lower)
+            if m3:
+                minutes = int(m3.group(1)) * 60 + int(m3.group(2))
+
+        self._start_focus_mode(minutes)
+        return True
+
+    def _start_focus_mode(self, minutes: int):
+        """Enable focus mode for given minutes."""
+        self._focus_mode = True
+        # Stop existing timer
+        if self._focus_timer:
+            self._focus_timer.stop()
+
+        self._focus_timer = QTimer()
+        self._focus_timer.setSingleShot(True)
+        self._focus_timer.timeout.connect(self._stop_focus_mode_auto)
+        self._focus_timer.start(minutes * 60 * 1000)
+
+        msg = f"🎯 Фокус-режим: {minutes} хвилин. Вдалої роботи!"
+        self.respond_silent(msg)
+        self._tg_notify(f"🎯 <b>Фокус-режим увімкнено</b> на {minutes} хвилин")
+
+    def _stop_focus_mode(self):
+        """Manually disable focus mode."""
+        self._focus_mode = False
+        if self._focus_timer:
+            self._focus_timer.stop()
+            self._focus_timer = None
+        self.respond_silent("✅ Фокус-режим вимкнено")
+        self._tg_notify("✅ <b>Фокус-режим вимкнено</b>")
+
+    def _stop_focus_mode_auto(self):
+        """Called by timer when focus session ends."""
+        self._focus_mode = False
+        self._focus_timer = None
+        self.jarvis.play("confirm")
+        self.respond("🎯 Фокус-сесія завершена! Час відпочити.")
+        self._tg_notify("🎯 <b>Фокус-сесія завершена!</b> Час відпочити.")
+
+    # ═══════════════════════════════════════════════════════════
+    # CONVERSATION MEMORY
+    # ═══════════════════════════════════════════════════════════
+
+    # ┌─ sphere/memory.py ── контекст розмови ────────────────────────────────┐
+    def _load_memory(self) -> list:
+        """Load last 20 conversation pairs from memory.json."""
+        try:
+            if self._memory_file.exists():
+                data = json.loads(self._memory_file.read_text(encoding="utf-8"))
+                return data[-20:] if isinstance(data, list) else []
+        except Exception:
+            pass
+        return []
+
+    def _save_memory(self, user_text: str, ai_response: str):
+        """Append conversation pair to memory file, keep last 20."""
+        if not user_text or not ai_response:
+            return
+        try:
+            USER_DATA_DIR.mkdir(exist_ok=True)
+            data = self._load_memory()
+            data.append({
+                "user": user_text[:500],
+                "assistant": ai_response[:500],
+                "ts": int(datetime.now().timestamp())
+            })
+            data = data[-20:]
+            self._conversation_memory = data
+            self._memory_file.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            print(f"[Memory] save error: {e}")
+
+    def _handle_memory_query(self, text: str, lower: str) -> bool:
+        recall_kw = [
+            "пам'ятаєш ми", "пам'ятаєш як ми", "пам'ятаєш що ми",
+            "ми говорили про", "ми обговорювали", "що я казав про",
+            "нагадай про", "remember when we", "we talked about",
+        ]
+        general_kw = ["пам'ятаєш", "нагадай що", "memory",
+                      "що ми обговорювали", "попередні розмови"]
+
+        is_recall = any(k in lower for k in recall_kw)
+        is_general = any(k in lower for k in general_kw)
+
+        if not (is_recall or is_general):
+            return False
+
+        # Try topic-based convo memory first
+        try:
+            from core.convo_memory import search_conversations, build_recall_context
+            query = text
+            # Extract topic after recall keyword
+            for kw in recall_kw:
+                if kw in lower:
+                    query = text[lower.find(kw) + len(kw):].strip() or text
+                    break
+            results = search_conversations(query)
+            if results:
+                ctx = build_recall_context(query)
+                # Inject into current conversation and let AI answer
+                self._extra_context = ctx
+                return False  # Let MemoryThread.run() handle with injected ctx
+        except Exception:
+            pass
+
+        # Fallback: show recent pairs
+        mem = self._conversation_memory[-5:] if self._conversation_memory else []
+        if not mem:
+            self.respond_silent("💭 Пам'ять порожня — ще не було розмов. Скажи «запам'ятай» під час розмови!")
+            return True
+
+        lines = ["💭 <b>Останні розмови:</b>"]
+        for entry in mem:
+            from datetime import datetime as _dt
+            ts = entry.get("ts", 0)
+            dt_str = _dt.fromtimestamp(ts).strftime("%d.%m %H:%M") if ts else "?"
+            user_q = entry.get("user", "")[:60]
+            bot_a  = entry.get("assistant", "")[:80]
+            lines.append(f"\n🕐 {dt_str}\n👤 {user_q}\n🤖 {bot_a}")
+
+        self.respond_silent("\n".join(lines))
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # POMODORO VOICE COMMANDS
+    # ═══════════════════════════════════════════════════════════
+
+    # └─ sphere/memory.py ─────────────────────────────────────────────────────┘
+    def _handle_pomodoro(self, text: str, lower: str) -> bool:
+        start_kw  = ["старт помодоро", "почни помодоро", "start pomodoro",
+                     "запусти помодоро", "помодоро старт", "помодоро запуск",
+                     "запусти таймер помодоро"]
+        pause_kw  = ["стоп помодоро", "пауза помодоро", "pause pomodoro",
+                     "зупини помодоро", "помодоро пауза"]
+        stop_kw   = ["скинь помодоро", "reset pomodoro", "скидай помодоро",
+                     "обнули помодоро", "скинути помодоро"]
+        break_kw  = ["коротка перерва помодоро", "short break pomodoro",
+                     "перерва помодоро", "помодоро перерва"]
+        status_kw = ["скільки помодоро", "статус помодоро", "pomodoro status",
+                     "мій помодоро", "скільки сесій помодоро"]
+
+        if any(k in lower for k in start_kw):
+            action = 'start'
+            msg = "🍅 Помодоро запущено — 25 хвилин роботи!"
+        elif any(k in lower for k in pause_kw):
+            action = 'pause'
+            msg = "⏸ Помодоро на паузі"
+        elif any(k in lower for k in stop_kw):
+            action = 'stop'
+            msg = "🔄 Помодоро скинуто"
+        elif any(k in lower for k in break_kw):
+            action = 'break_short'
+            msg = "☕ Коротка перерва — 5 хвилин"
+        elif any(k in lower for k in status_kw):
+            action = 'status'
+            msg = None  # response comes back from JS via pomodoro_voice_status
+        else:
+            return False
+
+        if msg:
+            self.respond_silent(msg)
+            self._tg_notify(f"🍅 {msg}")
+
+        # Forward to Panel UI via stdout bridge
+        try:
+            import json as _j
+            print(f"__AXIS_PUSH__:pomodoro_voice_cmd:{_j.dumps({'action': action})}",
+                  flush=True)
+        except Exception:
+            pass
+
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # SCREENSHOT → TELEGRAM
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_screenshot_tg(self, text: str, lower: str) -> bool:
+        kw = ["зроби скрін і відправ", "скріншот в телеграм", "send screenshot",
+              "відправ скріншот", "зроби скрін телеграм", "screenshot telegram",
+              "надішли скріншот", "скрін в телеграм", "скріншот телеграм"]
+        if not any(k in lower for k in kw):
+            return False
+
+        target = self._tg_chat_id or self._tg_notify_chat_id
+        if not target:
+            self.respond_silent(
+                "📸 Telegram не підключено.\n"
+                "Надішли будь-яке повідомлення боту — і я запам'ятаю куди відправляти."
+            )
+            return True
+
+        if not (self._telegram_bot and self._telegram_bot.isRunning()):
+            self.respond_silent("📸 Telegram бот не запущений")
+            return True
+
+        self.respond_silent("📸 Роблю скріншот і відправляю...")
+
+        def _do_shot():
+            try:
+                import tempfile
+                img_path = None
+
+                # Try mss first (fast, no display driver needed)
+                try:
+                    import mss
+                    with mss.mss() as sct:
+                        shot = sct.grab(sct.monitors[0])
+                        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                        img_path = tmp.name
+                        tmp.close()
+                        from PIL import Image as _Img
+                        _Img.frombytes("RGB", shot.size, shot.rgb).save(img_path)
+                except Exception:
+                    pass
+
+                # Fallback: PIL ImageGrab
+                if not img_path or not os.path.exists(img_path):
+                    try:
+                        from PIL import ImageGrab
+                        img = ImageGrab.grab()
+                        tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+                        img_path = tmp.name
+                        tmp.close()
+                        img.save(img_path)
+                    except Exception:
+                        pass
+
+                if not img_path or not os.path.exists(img_path):
+                    self._respond_signal.emit(
+                        "📸 Не вдалося зробити скріншот.\n"
+                        "Встанови: pip install mss Pillow"
+                    )
+                    return
+
+                # Send photo to Telegram
+                try:
+                    with open(img_path, "rb") as f:
+                        from datetime import datetime as _dt
+                        caption = f"📸 Скріншот AXIS OS · {_dt.now().strftime('%H:%M:%S')}"
+                        r = self._telegram_bot._sess.post(
+                            f"{self._telegram_bot._base}/sendPhoto",
+                            data={"chat_id": target, "caption": caption},
+                            files={"photo": f},
+                            timeout=30,
+                        )
+                    if r.ok:
+                        self._respond_signal.emit("📸 Скріншот відправлено в Telegram!")
+                    else:
+                        self._respond_signal.emit(
+                            f"📸 Помилка відправки: {r.status_code} {r.text[:80]}"
+                        )
+                finally:
+                    try:
+                        os.unlink(img_path)
+                    except Exception:
+                        pass
+            except Exception as e:
+                self._respond_signal.emit(f"📸 Помилка: {str(e)[:80]}")
+
+        threading.Thread(target=_do_shot, daemon=True).start()
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # DAILY AUTO-BACKUP
+    # ═══════════════════════════════════════════════════════════
+
+    # └─ sphere/system.py (continued) ─────────────────────────────────────────┘
+    def _start_backup_scheduler(self):
+        """Start background thread that backs up data files daily at 23:50."""
+        def _backup_loop():
+            import time as _t
+            while True:
+                now = datetime.now()
+                # Target: 23:50 today (or tomorrow if already past)
+                target = now.replace(hour=23, minute=50, second=0, microsecond=0)
+                if target <= now:
+                    target = target + timedelta(days=1)
+                wait_secs = (target - now).total_seconds()
+                # Sleep in 1-hour chunks so we don't drift too much
+                while wait_secs > 0:
+                    _t.sleep(max(0, min(wait_secs, 3600)))
+                    wait_secs -= 3600
+                    if datetime.now() >= target:
+                        break
+                self._do_backup()
+
+        threading.Thread(target=_backup_loop, daemon=True).start()
+
+    def _do_backup(self):
+        """Zip notes/tasks/habits/memory into backups/YYYY-MM-DD.zip. Keep last 7."""
+        try:
+            import zipfile
+            backup_dir = USER_DATA_DIR / "backups"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            zip_path = backup_dir / f"{date_str}.zip"
+
+            files_to_backup = [
+                getattr(self, "_notes_file",   None),
+                getattr(self, "_todo_file",    None),
+                getattr(self, "_habits_file",  None),
+                getattr(self, "_memory_file",  None),
+                getattr(self, "_alarms_file",  None),
+            ]
+
+            backed_up = []
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for fp in files_to_backup:
+                    if fp and isinstance(fp, Path) and fp.exists():
+                        zf.write(fp, fp.name)
+                        backed_up.append(fp.name)
+
+            # Keep only last 7 backups
+            all_zips = sorted(backup_dir.glob("*.zip"))
+            while len(all_zips) > 7:
+                try:
+                    all_zips[0].unlink()
+                except Exception:
+                    pass
+                all_zips = all_zips[1:]
+
+            if backed_up:
+                print(f"[Backup] ✅ {zip_path.name}: {', '.join(backed_up)}")
+                self._tg_notify(
+                    f"💾 <b>Автобекап завершено</b>\n"
+                    f"📦 {zip_path.name}\n"
+                    f"📄 Файли: {', '.join(backed_up)}"
+                )
+        except Exception as e:
+            print(f"[Backup] ❌ помилка: {e}")
+
+    # ═══════════════════════════════════════════════════════════
+    # GOOGLE CALENDAR
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_calendar(self, text: str, lower: str) -> bool:
+        kw = ["що сьогодні в календарі", "мої зустрічі", "google calendar",
+              "заплановано на сьогодні", "додай подію", "календар",
+              "зустрічі сьогодні"]
+        if not any(k in lower for k in kw):
+            return False
+
+        creds_file = USER_DATA_DIR / "google_credentials.json"
+        if not creds_file.exists():
+            self.respond_silent(
+                "📅 Google Calendar не налаштовано.\n"
+                "Додай data/google_credentials.json — інструкція:\n"
+                "https://developers.google.com/calendar/api/quickstart/python")
+            return True
+
+        try:
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+        except ImportError:
+            self.respond_silent(
+                "📅 Встанови бібліотеки: pip install google-auth google-auth-oauthlib "
+                "google-auth-httplib2 google-api-python-client")
+            return True
+
+        self.respond_silent("📅 Завантажую події з Google Calendar...")
+
+        def _cal_thread():
+            try:
+                creds_data = json.loads(creds_file.read_text(encoding="utf-8"))
+                creds = Credentials.from_authorized_user_info(creds_data)
+                service = build("calendar", "v3", credentials=creds)
+                now_iso = datetime.utcnow().isoformat() + "Z"
+                # End of today
+                from datetime import datetime as _dt
+                eod = _dt.utcnow().replace(hour=23, minute=59, second=59)
+                eod_iso = eod.isoformat() + "Z"
+                events_result = service.events().list(
+                    calendarId="primary",
+                    timeMin=now_iso,
+                    timeMax=eod_iso,
+                    maxResults=10,
+                    singleEvents=True,
+                    orderBy="startTime",
+                ).execute()
+                events = events_result.get("items", [])
+                if not events:
+                    self._respond_signal.emit("📅 Сьогодні подій немає")
+                    return
+                lines = ["📅 <b>Сьогодні в календарі:</b>"]
+                for ev in events:
+                    start = ev["start"].get("dateTime", ev["start"].get("date", ""))
+                    try:
+                        t = _dt.fromisoformat(start.replace("Z", "+00:00"))
+                        t_str = t.strftime("%H:%M")
+                    except Exception:
+                        t_str = start
+                    lines.append(f"• {t_str} — {ev.get('summary', '(без назви)')}")
+                self._respond_signal.emit("\n".join(lines))
+            except Exception as e:
+                self._respond_signal.emit(f"📅 Помилка Calendar: {str(e)[:80]}")
+
+        threading.Thread(target=_cal_thread, daemon=True).start()
+        return True
 
     # ── Fuzzy command suggestions ─────────────────────────────────────────────
     def _fuzzy_suggestions(self, lower: str) -> list:
@@ -9067,9 +14656,16 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
         elif action == "none":
             pass  # свідомо нічого
 
+    # ┌─ sphere/tts.py ── черга TTS та рушії ─────────────────────────────────┐
     def respond(self, text):
         """Додає відповідь у чергу TTS — виконує послідовно, не накладаючи"""
         self.hologram_auto_gesture(text)
+        # Save to conversation memory
+        try:
+            if getattr(self, '_last_user_text', ''):
+                self._save_memory(self._last_user_text, text)
+        except Exception:
+            pass
 
         # ── Mode-aware behavior ──
         mode = getattr(self, '_mode', 'normal')
@@ -9115,12 +14711,18 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             self._tts_busy = False
             self._on_all_tts_done()
             return
-        
+
         self._tts_busy = True
         text = self._tts_queue.pop(0)
         self.state = self.SPEAKING
         self.response_text = text
-        
+
+        # Task 8: interrupt monitor — only if enabled in config (disabled by default
+        # because a second pyaudio stream during TTS causes PortAudio segfault on
+        # some Windows setups; enable with config "tts_interrupt_vad": true)
+        if self.config.get("tts_interrupt_vad", False):
+            self._start_interrupt_monitor()
+
         # Пауза wake word під час говоріння (щоб не чула сама себе)
         if self.wake_thread:
             self.wake_thread.pause()
@@ -9147,8 +14749,32 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             pass
         self._start_tts(text)
     
+    @staticmethod
+    def _strip_html_for_tts(text: str) -> str:
+        """Remove HTML tags and decode entities so TTS doesn't speak markup."""
+        # Remove all <tags>
+        clean = re.sub(r'<[^>]+>', ' ', text)
+        # Decode common HTML entities
+        clean = (clean
+                 .replace('&amp;',  '&')
+                 .replace('&lt;',   '<')
+                 .replace('&gt;',   '>')
+                 .replace('&nbsp;', ' ')
+                 .replace('&#39;',  "'")
+                 .replace('&quot;', '"')
+                 .replace('&mdash;', '—')
+                 .replace('&ndash;', '–'))
+        # Collapse whitespace
+        clean = re.sub(r'[ \t]+', ' ', clean).strip()
+        return clean
+
     def _start_tts(self, text):
         """Озвучка тексту — маршрутизація за tts_provider"""
+        # Strip HTML tags before any TTS engine receives the text
+        text = self._strip_html_for_tts(text)
+        if not text:
+            self._on_single_tts_done()
+            return
         if self.hologram_mode and getattr(self, '_holo_view', None):
             safe_text = text.replace("'", "\\'").replace("\n", " ")[:500]
             lang = self.config.get("language", "uk-UA")
@@ -9342,8 +14968,9 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
     
     def _on_single_tts_done(self):
         """Один TTS закінчився — переходимо до наступного в черзі"""
+        # Task 8: stop interrupt monitor when this TTS segment ends
+        self._stop_interrupt_monitor()
         if self._tts_queue:
-            # Є ще в черзі — продовжуємо
             QTimer.singleShot(300, self._play_next_tts)
         else:
             self._tts_busy = False
@@ -9374,6 +15001,7 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
             self.clear()
             self.hide_orb()
             
+    # └─ sphere/tts.py ────────────────────────────────────────────────────────┘
     def clear(self):
         if self.state == self.IDLE:
             self.user_text, self.response_text = "", ""
@@ -9387,15 +15015,17 @@ interface IAudioEndpointVolume {{ int _(int a);int _(int a);int SetMasterVolumeL
 # ═══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
+    print("[Sphere] ══ AIVON Sphere запускається ══", flush=True)
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-    
+
     # Іконка додатку
     icon_path = APP_DIR / "data" / "icon_sphere.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
-    
+
     sphere = AivonSphere()
     sphere.show()
-    
+    print("[Sphere] ══ Sphere готова ══", flush=True)
+
     sys.exit(app.exec())

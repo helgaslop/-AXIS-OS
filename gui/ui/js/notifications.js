@@ -5,6 +5,24 @@ var _notifications = [];
 var _notifMax = 50;
 var _notifUnread = 0;
 var _notifPanelOpen = false;
+var _NOTIF_STORAGE_KEY = 'axis_notifications_v2';
+
+// ── localStorage persistence ──────────────────────────────────────────────────
+function _saveNotifs() {
+  try {
+    localStorage.setItem(_NOTIF_STORAGE_KEY, JSON.stringify(_notifications.slice(0, _notifMax)));
+  } catch(e) {}
+}
+function _loadNotifs() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(_NOTIF_STORAGE_KEY) || '[]');
+    if (Array.isArray(saved) && saved.length) {
+      _notifications = saved;
+      _notifUnread = saved.filter(function(n){ return !n.read; }).length;
+    }
+  } catch(e) {}
+}
+_loadNotifs();
 
 // Category config
 var _notifCats = {
@@ -35,6 +53,7 @@ function addNotification(msg, category) {
   _notifUnread++;
   _updateNotifBadge();
   if (_notifPanelOpen) _renderNotifList();
+  _saveNotifs();
 }
 
 // ── Badge ─────────────────────────────────────────────────────────────────────
@@ -112,6 +131,7 @@ function _renderNotifList() {
 function deleteNotif(id, e) {
   if (e) e.stopPropagation();
   _notifications = _notifications.filter(function(n) { return n.id !== id; });
+  _saveNotifs();
   _renderNotifList();
 }
 
@@ -120,6 +140,7 @@ function clearAllNotifs() {
   _notifications = [];
   _notifUnread = 0;
   _updateNotifBadge();
+  _saveNotifs();
   _renderNotifList();
 }
 

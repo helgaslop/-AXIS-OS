@@ -80,7 +80,7 @@ function notesDelete() {
 function notesCopy() {
   var text = (_noteActive ? _noteActive.body : '');
   if (!text) return;
-  navigator.clipboard.writeText(text).then(function(){ showToast('📋 Скопійовано'); });
+  _copyText(text, '📋 Скопійовано');
 }
 
 function notesTogglePreview() {

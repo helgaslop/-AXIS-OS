@@ -34,10 +34,10 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), "data", "wake_config.json"
 DEFAULTS = {
     "telegram_token":       "",           # той самий що в сфері
     "telegram_allowed_ids": "",           # той самий chat id
-    "target_mac":           "74:04:F1:4F:B0:7D",  # MAC ноутбука
-    "target_ip":            "192.168.1.139",        # IP ноутбука (для ping)
-    "broadcast_ip":         "192.168.1.255",        # broadcast мережі
-    "hostname":             "DESKTOP-IOKHHQR",
+    "target_mac":           "",   # MAC-адреса цільового ПК (налаштуй в панелі)
+    "target_ip":            "",   # IP цільового ПК
+    "broadcast_ip":         "",   # broadcast мережі (напр. 192.168.1.255)
+    "hostname":             "",   # ім'я хоста (необов'язково)
 }
 
 

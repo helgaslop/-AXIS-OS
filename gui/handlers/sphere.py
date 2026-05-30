@@ -7,6 +7,45 @@ import threading
 
 _NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
+# ── Sphere log streamer ───────────────────────────────────────────────────────
+
+_AXIS_PUSH_PREFIX = "__AXIS_PUSH__:"
+
+def _stream_sphere_output(proc, push_fn):
+    """Read stdout + stderr from sphere process and push lines to Panel log viewer.
+    Runs in two background daemon threads (one per stream).
+    push_fn(level, msg) — same signature as log_bridge.
+
+    Special protocol: lines starting with __AXIS_PUSH__:type:json_data are forwarded
+    directly as axisPush events to the Panel JS (not shown as log lines).
+    """
+    def _reader(stream, level):
+        try:
+            for raw in stream:
+                try:
+                    line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                    if not line:
+                        continue
+                    if line.startswith(_AXIS_PUSH_PREFIX):
+                        # Format: __AXIS_PUSH__:event_type:json_data
+                        rest = line[len(_AXIS_PUSH_PREFIX):]
+                        sep = rest.find(":")
+                        if sep != -1:
+                            event_type = rest[:sep]
+                            event_data = rest[sep + 1:]
+                            push_fn("__push__", f"{event_type}:{event_data}")
+                    else:
+                        push_fn(level, f"[Sphere] {line}")
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    t_out = threading.Thread(target=_reader, args=(proc.stdout, "info"),  daemon=True)
+    t_err = threading.Thread(target=_reader, args=(proc.stderr, "error"), daemon=True)
+    t_out.start()
+    t_err.start()
+
 
 class SphereHandlerMixin:
     _SPHERE_VISUAL_KEYS = {
@@ -221,6 +260,34 @@ class SphereHandlerMixin:
             self.push_to_js.emit("toast", json.dumps({"msg": "🔮 Sphere вже запущена"}))
             self._sphere_status(None)
             return
+
+        # Build a push function that forwards sphere lines to the Panel log viewer.
+        # Lines tagged "__push__" are axisPush events forwarded to Panel JS directly.
+        def _push_log(level, msg):
+            try:
+                if level == "__push__":
+                    # msg = "event_type:json_data"
+                    sep = msg.find(":")
+                    if sep != -1:
+                        self.push_to_js.emit(msg[:sep], msg[sep + 1:])
+                else:
+                    self.push_to_js.emit("log_line", json.dumps({"level": level, "msg": msg}))
+            except Exception:
+                pass
+
+        # Force unbuffered UTF-8 output so lines arrive without encoding errors
+        import copy
+        sphere_env = copy.copy(os.environ)
+        sphere_env["PYTHONUNBUFFERED"]  = "1"
+        sphere_env["PYTHONIOENCODING"]  = "utf-8"
+        sphere_env["PYTHONUTF8"]        = "1"
+
+        pipe_kwargs = dict(
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=sphere_env,
+        )
+
         if getattr(sys, "frozen", False):
             # Frozen: exe dir = parent of sys.executable
             axis_dir = os.path.dirname(sys.executable)
@@ -229,7 +296,9 @@ class SphereHandlerMixin:
                 self.push_to_js.emit("toast",
                     json.dumps({"msg": f"⚠ AXIS_Sphere.exe не знайдено: {axis_dir}"}))
                 return
-            subprocess.Popen([sphere_exe], cwd=axis_dir, creationflags=_NO_WINDOW)
+            proc = subprocess.Popen(
+                [sphere_exe], cwd=axis_dir,
+                creationflags=_NO_WINDOW, **pipe_kwargs)
         else:
             # Dev mode: project root is 2 levels up from gui/handlers/
             axis_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -238,7 +307,14 @@ class SphereHandlerMixin:
                 self.push_to_js.emit("toast",
                     json.dumps({"msg": f"⚠ aivon_sphere.py не знайдено: {axis_dir}"}))
                 return
-            subprocess.Popen([sys.executable, sphere_script], cwd=axis_dir, creationflags=_NO_WINDOW)
+            proc = subprocess.Popen(
+                [sys.executable, "-u", sphere_script],   # -u = unbuffered stdout
+                cwd=axis_dir,
+                creationflags=_NO_WINDOW, **pipe_kwargs)
+
+        # Stream sphere output to Panel log viewer
+        _stream_sphere_output(proc, _push_log)
+
         self.push_to_js.emit("toast", json.dumps({"msg": "🔮 AIVON Sphere запускається..."}))
         # Check status at 3s and again at 6s (sphere can be slow to start)
         threading.Thread(target=self._push_status_after, args=(3.0,), daemon=True).start()
