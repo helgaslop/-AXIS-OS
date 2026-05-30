@@ -11,5 +11,11 @@
   for = "/.netlify/functions/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "POST, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, x-admin-secret"
+
+# Required environment variables (set in Netlify → Site settings → Env vars):
+#   GMAIL_USER    = axis.os.assistant@gmail.com
+#   GMAIL_PASS    = app-password-from-google
+#   OWNER_EMAIL   = your-real@email.com   ← owner gets order notifications here
+#   ADMIN_SECRET  = strong-password       ← protects /admin panel and license-admin API
