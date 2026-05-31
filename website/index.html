@@ -2194,7 +2194,11 @@ function genOrderRef() {
 
 let _oPlan = null, _oPayMethod = null, _oRef = '';
 
+// Anti-bot: track time when order modal is opened
+var _orderOpenedAt = 0;
+
 function openOrder(plan) {
+  _orderOpenedAt = Date.now();
   _oPlan = plan || null;
   _oPayMethod = null;
   _oRef = '';
@@ -2343,6 +2347,11 @@ function copyVal(text, btn) {
 async function confirmPayment() {
   const btn = document.getElementById('confirmBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Надсилаємо...'; }
+  // Anti-bot: minimum 3 seconds between opening modal and confirming
+  if (Date.now() - _orderOpenedAt < 3000) {
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Я оплатив'; }
+    return;
+  }
   const email    = (document.getElementById('orderEmailInput').value||'').trim();
   const name     = (document.getElementById('orderNameInput').value||'').trim();
   const surname  = (document.getElementById('orderSurnameInput').value||'').trim();

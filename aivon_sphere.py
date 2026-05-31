@@ -1709,6 +1709,18 @@ class TelegramBotThread(QThread):
             print(f"[Telegram] BLOCKED: {chat_id}")
             return
 
+        # ── Rate limit: max 30 commands per minute per user ───────────────────
+        _now = time.time()
+        if not hasattr(self, '_cmd_rate'):
+            self._cmd_rate = {}
+        user_times = self._cmd_rate.get(chat_id, [])
+        user_times = [t for t in user_times if _now - t < 60]  # keep last 60s
+        if len(user_times) >= 30:
+            self.send_message(chat_id, "⚠️ Забагато команд. Зачекайте хвилину.")
+            return
+        user_times.append(_now)
+        self._cmd_rate[chat_id] = user_times
+
         # ── Фото-повідомлення → Gemini Vision ────────────────────────────────
         photos = msg.get("photo")
         if photos and not raw_text:
@@ -2766,10 +2778,11 @@ def _key_up(vk):
 class MacroEngine:
     """Движок макросів — як Voice Attack"""
 
-    def __init__(self):
+    def __init__(self, app_launcher=None):
         self.macros = []
         self.profiles = ["default"]
         self.active_profile = "default"
+        self.app_launcher = app_launcher  # used for safe app/cmd resolution
         self.load()
 
     # ── Завантаження / Збереження ──
@@ -2960,13 +2973,45 @@ class MacroEngine:
             webbrowser.open(value)
 
         elif stype == "app":
-            try:
-                subprocess.Popen(value, shell=True, creationflags=_NO_WINDOW)
-            except Exception:
-                os.startfile(value)
+            # Security: only run absolute paths to existing files, or resolve via app_launcher
+            _resolved_app = None
+            if os.path.isabs(value) and os.path.isfile(value):
+                _resolved_app = value
+            elif self.app_launcher:
+                try:
+                    _found = self.app_launcher.find_multi(value)
+                    if _found:
+                        _resolved_app = _found[0][1]
+                except Exception:
+                    pass
+            if _resolved_app:
+                try:
+                    subprocess.Popen([_resolved_app], creationflags=_NO_WINDOW)
+                except Exception:
+                    os.startfile(_resolved_app)
+            else:
+                print(f"[Security] Macro 'app' step blocked — unresolved value: {value!r}")
+                if self._speak_cb:
+                    self._speak_cb("команда заблокована з міркувань безпеки")
 
         elif stype == "cmd":
-            subprocess.Popen(value, shell=True, creationflags=_NO_WINDOW)
+            # Security: only run absolute paths to existing executables, or resolve via app_launcher
+            _resolved_cmd = None
+            if os.path.isabs(value) and os.path.isfile(value):
+                _resolved_cmd = value
+            elif self.app_launcher:
+                try:
+                    _found_cmd_list = self.app_launcher.find_multi(value)
+                    if _found_cmd_list:
+                        _resolved_cmd = _found_cmd_list[0][1]
+                except Exception:
+                    pass
+            if _resolved_cmd:
+                subprocess.Popen([_resolved_cmd], creationflags=_NO_WINDOW)
+            else:
+                print(f"[Security] Macro 'cmd' step blocked — unresolved value: {value!r}")
+                if self._speak_cb:
+                    self._speak_cb("команда заблокована з міркувань безпеки")
 
         elif stype == "mouse_move":
             parts = value.split(",")
@@ -5984,7 +6029,7 @@ class AivonSphere(QWidget):
         # Нові системи
         self.jarvis = JarvisSound()
         self.app_launcher = AppLauncher()
-        self.macro_engine = MacroEngine()
+        self.macro_engine = MacroEngine(app_launcher=self.app_launcher)
         self.memory_enabled = self.config.get("memory_enabled", True)
         self.reminders = []  # [(datetime, reminder_dict), ...] where reminder_dict has keys: text, repeat, repeat_days
         self._reminders_lock = threading.Lock()
@@ -10549,14 +10594,10 @@ $w.Stop()
         found_apps = self.app_launcher.find_multi(app_phrase)
 
         if not found_apps:
-            # Жодного не знайшли — спробуємо запустити як shell команду
-            self.respond_silent(f"🔍 Не знайшов «{app_phrase}»…")
-            try:
-                subprocess.Popen(app_phrase, shell=True, creationflags=_NO_WINDOW)
-                self.jarvis.play("confirm")
-                return True
-            except Exception:
-                return False
+            # Жодного не знайшли — повідомляємо користувача (НЕ запускаємо голосовий ввід як shell-команду)
+            print(f"[AppLaunch] Blocked raw shell exec of voice input: {app_phrase!r}")
+            self.respond_silent(f"не знайшов «{app_phrase}»")
+            return False
 
         # ── Запускаємо всі знайдені додатки ──
         names = [n for n, _ in found_apps]

@@ -10,7 +10,7 @@ function initMacros(){
   var list=R('macroList');
   if(!list) return;
   list.innerHTML=macros.map(function(m){
-    return '<div class="macro-card"><div class="macro-ico">'+m.ico+'</div><div class="macro-info"><div class="macro-name">'+m.name+'</div><div class="macro-key"><span class="hotkey">'+m.key+'</span></div></div><button class="btn btn-sm" onclick="event.stopPropagation();runMacro(this)" data-cmd="'+m.command+'" data-type="'+m.type+'" data-name="'+m.name+'">▶</button></div>';
+    return '<div class="macro-card"><div class="macro-ico">'+escH(m.ico||'')+'</div><div class="macro-info"><div class="macro-name">'+escH(m.name||'')+'</div><div class="macro-key"><span class="hotkey">'+escH(m.key||'')+'</span></div></div><button class="btn btn-sm" onclick="event.stopPropagation();runMacro(this)" data-cmd="'+escH(m.command||'')+'" data-type="'+escH(m.type||'')+'" data-name="'+escH(m.name||'')+'">▶</button></div>';
   }).join('');
 }
 
@@ -58,7 +58,7 @@ function closePalette(e){ if(e.target===R('paletteOverlay')) R('paletteOverlay')
 function renderPalette(items){
   palFiltered=items; palIdx=0;
   R('paletteList').innerHTML=items.map(function(c,i){
-    return '<div class="palette-item'+(i===0?' pal-active':'')+'" onclick="runPalCmd('+palCmds.indexOf(c)+')"><span class="palette-item-ico">'+c.ico+'</span>'+c.label+'</div>';
+    return '<div class="palette-item'+(i===0?' pal-active':'')+'" onclick="runPalCmd('+palCmds.indexOf(c)+')"><span class="palette-item-ico">'+escH(c.ico||'')+'</span>'+escH(c.label||'')+'</div>';
   }).join('');
 }
 function filterPalette(q){
@@ -886,17 +886,17 @@ function renderTemplates(list) {
   body.innerHTML = Object.keys(cats).map(function(cat, ci) {
     var items = cats[cat].map(function(entry){
       return '<div class="tpl-item" data-tpl-idx="'+entry.i+'">'
-        + '<div class="tpl-item-ico">'+entry.t.ico+'</div>'
+        + '<div class="tpl-item-ico">'+escH(entry.t.ico||'')+'</div>'
         + '<div style="min-width:0;">'
-        +   '<div class="tpl-item-name">'+entry.t.name+'</div>'
-        +   '<div class="tpl-item-desc">'+entry.t.desc+'</div>'
-        +   '<span class="tpl-item-type">'+entry.t.type+'</span>'
+        +   '<div class="tpl-item-name">'+escH(entry.t.name||'')+'</div>'
+        +   '<div class="tpl-item-desc">'+escH(entry.t.desc||'')+'</div>'
+        +   '<span class="tpl-item-type">'+escH(entry.t.type||'')+'</span>'
         + '</div></div>';
     }).join('');
     var isFirst = ci === 0;
     return '<div class="tpl-cat">'
       + '<div class="tpl-cat-hdr'+(isFirst?' open':'')+'" onclick="toggleTplCat(this)">'
-      + cat+'<span class="tpl-arrow">▼</span></div>'
+      + escH(cat)+'<span class="tpl-arrow">▼</span></div>'
       + '<div class="tpl-cat-items'+(isFirst?'':' hidden')+'">'+items+'</div>'
       + '</div>';
   }).join('');

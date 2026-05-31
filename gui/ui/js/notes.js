@@ -1,4 +1,5 @@
 /* AXIS OS ? Notes */
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 // ═══ NOTES ═══
 var _notes = JSON.parse(localStorage.getItem('axis_notes') || '[]');
 var _noteActive = null;
@@ -25,11 +26,11 @@ function notesRenderList() {
   el.innerHTML = filtered.map(function(n){
     var active = _noteActive && _noteActive.id === n.id ? ' active' : '';
     var preview = n.body.replace(/[#*`\n]/g,' ').trim().slice(0,60);
-    var tag = n.tag ? '<span class="note-tag">'+n.tag+'</span>' : '';
+    var tag = n.tag ? '<span class="note-tag">'+escH(n.tag)+'</span>' : '';
     var date = new Date(n.updatedAt).toLocaleDateString('uk-UA',{day:'2-digit',month:'2-digit'});
     return '<div class="note-item'+active+'" onclick="notesOpen('+n.id+')">'
-      + '<div class="note-item-title">'+(n.title||'Без назви')+'</div>'
-      + '<div class="note-item-preview">'+(preview||'Порожня нотатка')+'</div>'
+      + '<div class="note-item-title">'+escH(n.title||'Без назви')+'</div>'
+      + '<div class="note-item-preview">'+escH(preview||'Порожня нотатка')+'</div>'
       + '<div class="note-item-meta">'+tag+'<span class="note-date">'+date+'</span></div>'
       + '</div>';
   }).join('');

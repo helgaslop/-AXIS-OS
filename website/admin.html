@@ -348,6 +348,7 @@ function renderTable() {
             ? `<button class="btn btn-sm btn-blue" onclick="quickSend('${escAttr(l.key)}','${escAttr(l.email)}')">📧 Надіслати</button>`
             : ''
           }
+          <button class="btn btn-sm btn-gray" onclick="resetDevice('${escAttr(l.key)}')" title="Скинути прив'язку пристрою (для легального re-activate)">🔄 Пристрій</button>
         </div>
       </td>
     </tr>`;
@@ -425,6 +426,14 @@ async function restoreKey(key) {
   await loadLicenses();
 }
 
+async function resetDevice(key) {
+  const reason = prompt('Причина скидання пристрою (для логу):');
+  if (reason === null) return; // cancelled
+  const data = await api('POST', { action: 'reset-device', key, reason });
+  if (data.ok) { toast('🔄 Прив\'язку пристрою скинуто'); await loadLicenses(); }
+  else alert('Помилка: ' + (data.error || 'невідома'));
+}
+
 function copyText(text) {
   navigator.clipboard.writeText(text).catch(()=>{
     const t=document.createElement('textarea');t.value=text;
@@ -440,6 +449,29 @@ function toast(msg) {
   clearTimeout(el._t);
   el._t = setTimeout(() => el.classList.remove('show'), 2500);
 }
+
+// ── Auto-logout after 30 min inactivity ──────────────────────────────────
+var _adminLastActivity = Date.now();
+var _ADMIN_TIMEOUT_MS  = 30 * 60 * 1000; // 30 minutes
+
+function _resetAdminActivity() { _adminLastActivity = Date.now(); }
+['mousemove','keydown','click'].forEach(function(ev) {
+  document.addEventListener(ev, _resetAdminActivity, { passive: true });
+});
+
+setInterval(function() {
+  if (document.getElementById('app').style.display !== 'none' &&
+      Date.now() - _adminLastActivity > _ADMIN_TIMEOUT_MS) {
+    _secret = '';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('secret-input').value = '';
+    var err = document.getElementById('login-err');
+    err.textContent = '⏰ Сесія завершена через 30 хв неактивності';
+    err.style.color = '#f0a83e';
+    err.style.display = 'block';
+  }
+}, 60000); // check every minute
 
 // ── On load ───────────────────────────────────────────────────────────────
 document.getElementById('secret-input').focus();

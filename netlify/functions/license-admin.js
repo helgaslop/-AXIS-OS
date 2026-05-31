@@ -47,6 +47,11 @@ function escHtml(s) {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
 
+  const bodyLen = (event.body || '').length;
+  if (event.httpMethod === 'POST' && bodyLen > 10240) {
+    return { statusCode: 413, headers: CORS, body: JSON.stringify({ error: 'Payload too large' }) };
+  }
+
   // Auth check
   const adminSecret = process.env.ADMIN_SECRET;
   const reqSecret   = event.headers['x-admin-secret'] || '';
@@ -127,6 +132,23 @@ exports.handler = async (event) => {
     if (!db.licenses[key]) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Key not found' }) };
     db.licenses[key].status = db.licenses[key].activatedAt ? 'active' : 'pending';
     delete db.licenses[key].revokedAt;
+    await saveDb(store, db);
+    return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
+  }
+
+  // ── POST reset-device — allows legitimate user to re-activate on new device ──
+  if (action === 'reset-device') {
+    const { key, reason = '' } = body;
+    const db = await getDb(store);
+    if (!db.licenses[key]) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Key not found' }) };
+    const lic = db.licenses[key];
+    if (lic.status === 'revoked') return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Cannot reset revoked key' }) };
+    lic.activatedDeviceId = null;
+    lic.activatedAt       = null;
+    lic.status            = 'active'; // stays active, just unbound from device
+    lic.deviceResetAt     = new Date().toISOString();
+    lic.deviceResetReason = String(reason).slice(0, 200);
+    db.licenses[key] = lic;
     await saveDb(store, db);
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
   }

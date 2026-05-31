@@ -16,17 +16,25 @@ function isValidEmail(e) {
 }
 
 async function saveOrder(order) {
-  try {
-    const store = getStore('axis-licenses');
-    const db    = (await store.get('db', { type:'json' })) || { licenses:{}, orders:{} };
-    if (!db.orders) db.orders = {};
-    db.orders[order.ref] = order;
-    await store.setJSON('db', db);
-  } catch(e) { console.error('[Order] Blobs save failed:', e.message); }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const store = getStore('axis-licenses');
+      const db    = (await store.get('db', { type:'json' })) || { licenses:{}, orders:{} };
+      if (!db.orders) db.orders = {};
+      db.orders[order.ref] = order;
+      await store.setJSON('db', db);
+      return true;
+    } catch(e) {
+      console.error(`[Order] Blobs save attempt ${attempt} failed:`, e.message);
+      if (attempt < 3) await new Promise(r => setTimeout(r, 500 * attempt));
+    }
+  }
+  console.error('[Order] All 3 save attempts failed for ref:', order.ref);
+  return false;
 }
 
 const CORS = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin': process.env.URL || 'https://axis-os.netlify.app',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json'
@@ -35,6 +43,12 @@ const CORS = {
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode:200, headers:CORS, body:'' };
   if (event.httpMethod !== 'POST')    return { statusCode:405, headers:CORS, body:'Method Not Allowed' };
+
+  // Reject oversized payloads (max 10KB)
+  const bodyLen = (event.body || '').length;
+  if (bodyLen > 10240) {
+    return { statusCode: 413, headers: CORS, body: JSON.stringify({ error: 'Payload too large' }) };
+  }
 
   const gmailUser  = process.env.GMAIL_USER  || 'axis.os.assistant@gmail.com';
   const gmailPass  = process.env.GMAIL_PASS;
