@@ -153,7 +153,7 @@ tbody td{padding:10px 12px;vertical-align:middle;}
     <button class="filter-btn"        data-f="pending"  onclick="setFilter(this,'pending')">Очікують</button>
     <button class="filter-btn"        data-f="active"   onclick="setFilter(this,'active')">Активні</button>
     <button class="filter-btn"        data-f="revoked"  onclick="setFilter(this,'revoked')">Відкликані</button>
-    <button class="btn btn-sm btn-gray" onclick="loadLicenses()" style="margin-left:auto;">🔄 Оновити</button>
+    <button class="btn btn-sm btn-gray" onclick="throttledReload(this)" style="margin-left:auto;">🔄 Оновити</button>
   </div>
 
   <!-- Table -->
@@ -210,16 +210,26 @@ async function doLogin() {
   }
 }
 
-// ── API ───────────────────────────────────────────────────────────────────
+// ── API (з timeout 15с) ───────────────────────────────────────────────────
 async function api(method, body) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), 15000);
   const opts = {
     method,
-    headers: { 'Content-Type': 'application/json', 'x-admin-secret': _secret }
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': _secret },
+    signal:  ctrl.signal
   };
   if (body) opts.body = JSON.stringify(body);
-  const r = await fetch('/.netlify/functions/license-admin', opts);
-  if (!r.ok && r.status !== 401) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+  try {
+    const r = await fetch('/.netlify/functions/license-admin', opts);
+    if (!r.ok && r.status !== 401) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  } catch(e) {
+    if (e.name === 'AbortError') throw new Error('Timeout: сервер не відповів за 15с');
+    throw e;
+  } finally {
+    clearTimeout(tid);
+  }
 }
 
 async function loadLicenses() {
@@ -302,11 +312,14 @@ function fmt(iso) {
 function planBadge(plan) {
   const m = {monthly:'📅 Місячний',yearly:'🌟 Річний',lifetime:'♾️ Lifetime'};
   const c = {monthly:'plan-monthly',yearly:'plan-yearly',lifetime:'plan-lifetime'};
-  return `<span class="${c[plan]||''}">${m[plan]||plan}</span>`;
+  // Use only known CSS classes; escape fallback text
+  return `<span class="${c[plan]||''}">${m[plan] || escHtml(plan)}</span>`;
 }
 function statusBadge(s) {
   const m = {active:'✅ Активний',pending:'⏳ Очікує',revoked:'🚫 Відкликано'};
-  return `<span class="badge badge-${s}">${m[s]||s}</span>`;
+  // Only allow known status values in CSS class; escape fallback text
+  const safeClass = ['active','pending','revoked'].includes(s) ? s : 'unknown';
+  return `<span class="badge badge-${safeClass}">${m[s] || escHtml(s)}</span>`;
 }
 
 function renderTable() {
@@ -326,8 +339,22 @@ function renderTable() {
     return;
   }
 
+  // Pagination — show max 100 rows at a time to prevent browser freeze
+  const PAGE_SIZE = 100;
+  if (rows.length > PAGE_SIZE) {
+    const hidden = rows.length - PAGE_SIZE;
+    rows = rows.slice(0, PAGE_SIZE);
+    setTimeout(() => {
+      const note = document.createElement('tr');
+      note.innerHTML = `<td colspan="8" style="text-align:center;padding:12px;color:var(--text3);font-size:12px;">
+        ⚠️ Показано перші ${PAGE_SIZE} з ${rows.length + hidden}. Використайте пошук для фільтрації.</td>`;
+      tbody.appendChild(note);
+    }, 0);
+  }
+
   tbody.innerHTML = rows.map(l => {
-    const devTip = l.activatedDeviceId ? `title="Device: ${l.activatedDeviceId}"` : '';
+    // Escape deviceId before inserting into HTML attribute
+    const devTip = l.activatedDeviceId ? `title="Device: ${escAttr(l.activatedDeviceId)}"` : '';
     return `<tr>
       <td><span class="key-cell">${escHtml(l.key)}</span>
           <button class="copy-btn" onclick="copyText('${escAttr(l.key)}')" title="Копіювати ключ">📋</button></td>
@@ -396,6 +423,10 @@ async function sendKeyEmail() {
   const email = document.getElementById('gen-email').value.trim();
   const name  = document.getElementById('gen-name').value.trim();
   if (!email) { alert('Введіть email для відправки'); return; }
+  // Validate email format before sending API request
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    alert('Невірний формат email'); return;
+  }
   const btn = document.getElementById('send-btn');
   btn.textContent = '⏳ Відправляємо...';
   btn.disabled = true;
@@ -415,15 +446,20 @@ async function quickSend(key, email) {
 
 async function revokeKey(key) {
   if (!confirm(`Відкликати ключ ${key}?\nКористувач більше не зможе ним активуватися.`)) return;
-  await api('POST', { action: 'revoke', key });
-  toast('🚫 Ключ відкликано');
-  await loadLicenses();
+  try {
+    const data = await api('POST', { action: 'revoke', key });
+    if (data.ok) { toast('🚫 Ключ відкликано'); await loadLicenses(); }
+    else alert('Помилка відкликання: ' + (data.error || 'невідома'));
+  } catch(e) { alert('Помилка: ' + e.message); }
 }
 
 async function restoreKey(key) {
-  await api('POST', { action: 'restore', key });
-  toast('✅ Ключ відновлено');
-  await loadLicenses();
+  if (!confirm(`Відновити ключ ${key}?\nКористувач зможе знову ним активуватися.`)) return;
+  try {
+    const data = await api('POST', { action: 'restore', key });
+    if (data.ok) { toast('✅ Ключ відновлено'); await loadLicenses(); }
+    else alert('Помилка відновлення: ' + (data.error || 'невідома'));
+  } catch(e) { alert('Помилка: ' + e.message); }
 }
 
 async function resetDevice(key) {
@@ -472,6 +508,20 @@ setInterval(function() {
     err.style.display = 'block';
   }
 }, 60000); // check every minute
+
+// ── Throttled reload (debounce 2s) ────────────────────────────────────────
+var _reloadBusy = false;
+async function throttledReload(btn) {
+  if (_reloadBusy) return;
+  _reloadBusy = true;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try { await loadLicenses(); } finally {
+    setTimeout(function() {
+      _reloadBusy = false;
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 Оновити'; }
+    }, 2000);
+  }
+}
 
 // ── On load ───────────────────────────────────────────────────────────────
 document.getElementById('secret-input').focus();
