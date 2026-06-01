@@ -6,6 +6,8 @@
 
 [build.environment]
   NODE_VERSION = "18"
+  # GMAIL_USER appears in index.html as public contact email — not a secret
+  SECRETS_SCAN_OMIT_KEYS = "GMAIL_USER"
 
 [[headers]]
   for = "/*"
