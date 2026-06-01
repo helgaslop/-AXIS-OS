@@ -37,9 +37,11 @@
       if (!s) return;
       // Only restore if saved less than 2 hours ago and timer was NOT running
       if (Date.now() - s.savedAt > 7200000) return;
-      _mode = s.mode || 'work'; _remaining = s.remaining || WORK_MIN * 60;
-      _session = s.session || 0; _todayCount = s.todayCount || 0;
-      _todayMinutes = s.todayMinutes || 0;
+      _mode = (s.mode === 'work' || s.mode === 'short' || s.mode === 'long') ? s.mode : 'work';
+      _remaining = (typeof s.remaining === 'number' && !isNaN(s.remaining) && s.remaining >= 0) ? s.remaining : WORK_MIN * 60;
+      _session      = (typeof s.session      === 'number' && !isNaN(s.session))      ? s.session      : 0;
+      _todayCount   = (typeof s.todayCount   === 'number' && !isNaN(s.todayCount))   ? s.todayCount   : 0;
+      _todayMinutes = (typeof s.todayMinutes === 'number' && !isNaN(s.todayMinutes)) ? s.todayMinutes : 0;
       // Note: _running is NOT restored — user must manually restart
     } catch(e) {}
   }
@@ -148,6 +150,7 @@
 
   // ── UI Rendering ─────────────────────────────────────────────────────────────
   function _fmt(secs) {
+    secs = (typeof secs === 'number' && !isNaN(secs) && secs >= 0) ? Math.floor(secs) : 0;
     var m = Math.floor(secs / 60);
     var s = secs % 60;
     return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
@@ -162,7 +165,9 @@
     // SVG circular progress
     el = R('pomArc');
     if (el) {
-      var pct = _total > 0 ? (_remaining / _total) : 1;
+      var remaining = (typeof _remaining === 'number' && !isNaN(_remaining)) ? _remaining : 0;
+      var total     = (typeof _total     === 'number' && !isNaN(_total) && _total > 0) ? _total : 1;
+      var pct = remaining / total;
       var r   = 90;
       var circ = 2 * Math.PI * r;
       el.style.strokeDasharray  = circ;

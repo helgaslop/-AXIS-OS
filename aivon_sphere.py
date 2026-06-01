@@ -2281,8 +2281,12 @@ class MemoryThread(threading.Thread):
                 self.error_callback(f"HTTP {r.status_code}")
                 return
 
-            choice = r.json()["choices"][0]
-            msg    = choice["message"]
+            try:
+                choice = r.json()["choices"][0]
+                msg    = choice["message"]
+            except (KeyError, IndexError, ValueError) as parse_err:
+                self.error_callback(f"OpenAI: unexpected response ({parse_err})")
+                return
             text   = (msg.get("content") or "").strip()
 
             # ── Handle tool calls ─────────────────────────────────────────────
@@ -2336,10 +2340,12 @@ class PerplexitySearchThread(QThread):
     citations = pyqtSignal(list)  # Список URL цитат
     error = pyqtSignal(str)
     
+    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
+
     def __init__(self, config, query, search_type="general"):
         super().__init__()
         self.config = config
-        self.query = query
+        self.query = query[:self._MAX_QUERY_LEN]
         self.search_type = search_type  # general, news
     
     def run(self):
@@ -2373,8 +2379,12 @@ class PerplexitySearchThread(QThread):
             )
             
             if r.status_code == 200:
-                data = r.json()
-                text = data["choices"][0]["message"]["content"]
+                try:
+                    data = r.json()
+                    text = data["choices"][0]["message"]["content"]
+                except (KeyError, IndexError, ValueError) as parse_err:
+                    self.error.emit(f"Perplexity: unexpected response ({parse_err})")
+                    return
                 cites = data.get("citations", [])
                 self.response.emit(text)
                 if cites:
@@ -2405,15 +2415,18 @@ class WeatherThread(QThread):
             url = f"https://api.openweathermap.org/data/2.5/weather?q={self.city}&appid={self.api_key}&units=metric&lang=uk"
             r = requests.get(url, timeout=8)
             if r.status_code == 200:
-                d = r.json()
-                temp = d["main"]["temp"]
-                feels = d["main"]["feels_like"]
-                desc = d["weather"][0]["description"]
-                humid = d["main"]["humidity"]
-                wind = d["wind"]["speed"]
-                city = d["name"]
-                text = f"🌤 {city}: {temp:.0f}°C (відчувається {feels:.0f}°C), {desc}, вітер {wind:.0f} м/с, вологість {humid}%"
-                self.result.emit(text)
+                try:
+                    d = r.json()
+                    temp = d["main"]["temp"]
+                    feels = d["main"]["feels_like"]
+                    desc = d["weather"][0]["description"]
+                    humid = d["main"]["humidity"]
+                    wind = d["wind"]["speed"]
+                    city = d["name"]
+                    text = f"🌤 {city}: {temp:.0f}°C (відчувається {feels:.0f}°C), {desc}, вітер {wind:.0f} м/с, вологість {humid}%"
+                    self.result.emit(text)
+                except (KeyError, IndexError, ValueError) as parse_err:
+                    self.error.emit(f"OpenWeather: unexpected response ({parse_err})")
             else:
                 self.error.emit(f"OpenWeather {r.status_code}")
         except Exception as e:
@@ -2430,10 +2443,12 @@ class TavilySearchThread(QThread):
     sources = pyqtSignal(list)
     error = pyqtSignal(str)
     
+    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
+
     def __init__(self, api_key, query, max_results=3):
         super().__init__()
         self.api_key = api_key
-        self.query = query
+        self.query = query[:self._MAX_QUERY_LEN]
         self.max_results = max_results
     
     def run(self):
@@ -2477,11 +2492,13 @@ class SerperSearchThread(QThread):
     result = pyqtSignal(str)
     sources = pyqtSignal(list)
     error = pyqtSignal(str)
-    
+
+    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
+
     def __init__(self, api_key, query, num_results=3):
         super().__init__()
         self.api_key = api_key
-        self.query = query
+        self.query = query[:self._MAX_QUERY_LEN]
         self.num_results = num_results
     
     def run(self):
@@ -4712,9 +4729,11 @@ class SearchThread(QThread):
         "калькулятор", "блокнот", "notepad", "calc",
     ]
 
+    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
+
     def __init__(self, text: str):
         super().__init__()
-        self.text = text.strip().lower()
+        self.text = text.strip().lower()[:self._MAX_QUERY_LEN]
 
     # ────────────────────────────────────────────────────
     # detect()  — статичний, зручний для перевірки снаружі

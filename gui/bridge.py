@@ -165,6 +165,9 @@ class AxisBridge(
 
         fn = handlers.get(cmd)
         if fn:
-            fn(payload)
+            try:
+                fn(payload)
+            except Exception as e:
+                print(f"[Bridge] Handler {cmd!r} raised: {e}")
         else:
-            print(f"[AXIS bridge] unknown command: {cmd}")
+            print(f"[Bridge] Unknown command: {cmd!r}")

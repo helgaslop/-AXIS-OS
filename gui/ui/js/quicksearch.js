@@ -151,7 +151,7 @@ function _qsRenderResults(items, q) {
   var html = '';
   var globalIdx = 0;
   order.forEach(function(cat) {
-    html += '<div class="qs-cat">' + cat + '</div>';
+    html += '<div class="qs-cat">' + _escHtml(cat) + '</div>';
     groups[cat].forEach(function(item) {
       var idx = globalIdx++;
       var subHtml = item.sub ? '<div class="qs-result-sub">' + _escHtml(item.sub) + '</div>' : '';

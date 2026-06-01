@@ -114,13 +114,17 @@ function _renderNotifList() {
   var html = '';
   _notifications.forEach(function(n) {
     var cat = _notifCats[n.category] || _notifCats.info;
-    html += '<div class="notif-item' + (n.read ? '' : ' notif-unread') + '" data-id="' + n.id + '">'
+    // Sanitise values that come from localStorage / untrusted sources
+    var safeId  = parseFloat(n.id) || 0;
+    var safeCat = /^[a-z_]+$/.test(n.category) ? n.category : 'info';
+    var safeTs  = _escHtml(String(n.ts || ''));
+    html += '<div class="notif-item' + (n.read ? '' : ' notif-unread') + '" data-id="' + safeId + '">'
       + '<div class="notif-cat-dot" style="background:' + cat.color + '">' + cat.icon + '</div>'
       + '<div class="notif-body">'
       + '<div class="notif-msg">' + _escHtml(n.msg) + '</div>'
-      + '<div class="notif-meta"><span class="notif-badge notif-cat-' + n.category + '">' + n.category + '</span><span class="notif-ts">' + n.ts + '</span></div>'
+      + '<div class="notif-meta"><span class="notif-badge notif-cat-' + safeCat + '">' + safeCat + '</span><span class="notif-ts">' + safeTs + '</span></div>'
       + '</div>'
-      + '<button class="notif-del" onclick="deleteNotif(' + n.id + ',event)" title="Видалити">✕</button>'
+      + '<button class="notif-del" onclick="deleteNotif(' + safeId + ',event)" title="Видалити">✕</button>'
       + '</div>';
   });
 
@@ -130,7 +134,8 @@ function _renderNotifList() {
 // ── Delete single ─────────────────────────────────────────────────────────────
 function deleteNotif(id, e) {
   if (e) e.stopPropagation();
-  _notifications = _notifications.filter(function(n) { return n.id !== id; });
+  id = parseFloat(id);
+  _notifications = _notifications.filter(function(n) { return parseFloat(n.id) !== id; });
   _saveNotifs();
   _renderNotifList();
 }

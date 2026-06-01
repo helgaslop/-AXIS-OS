@@ -17,9 +17,14 @@ function notesInit() {
 function notesRenderList() {
   var q = (R('notesSearch') ? R('notesSearch').value : '').toLowerCase();
   var el = R('notesList'); if (!el) return;
-  var filtered = _notes.filter(function(n){
-    return !q || (n.title+n.body).toLowerCase().includes(q);
-  }).sort(function(a,b){ return b.updatedAt - a.updatedAt; });
+  var filtered;
+  try {
+    filtered = _notes.filter(function(n){
+      return !q || (n.title+n.body).toLowerCase().includes(q);
+    }).sort(function(a,b){ return b.updatedAt - a.updatedAt; });
+  } catch(e) {
+    filtered = _notes.slice().sort(function(a,b){ return b.updatedAt - a.updatedAt; });
+  }
   if (!filtered.length) {
     el.innerHTML = '<div class="notes-empty">Нічого не знайдено</div>'; return;
   }
@@ -55,10 +60,17 @@ function notesNew() {
   setTimeout(function(){ if(R('noteTitle')) R('noteTitle').focus(); }, 50);
 }
 
+var _NOTES_BODY_MAX = 50000;
+
 function notesSave() {
   if (!_noteActive) return;
+  var body = R('noteBody') ? R('noteBody').value : '';
+  if (body.length > _NOTES_BODY_MAX) {
+    showToast('⚠ Нотатка занадто велика (макс. 50 000 символів)');
+    return;
+  }
   _noteActive.title     = R('noteTitle') ? R('noteTitle').value : '';
-  _noteActive.body      = R('noteBody')  ? R('noteBody').value  : '';
+  _noteActive.body      = body;
   _noteActive.tag       = R('noteTag')   ? R('noteTag').value   : '';
   _noteActive.updatedAt = Date.now();
   notesPersist();
@@ -101,7 +113,12 @@ function notesAutoPreview() {
 function notesRenderPreview() {
   var p = R('notesPreview'); if (!p) return;
   var body = R('noteBody') ? R('noteBody').value : '';
-  p.innerHTML = typeof marked !== 'undefined' ? marked.parse(body) : body.replace(/\n/g,'<br>');
+  if (typeof marked !== 'undefined') {
+    p.innerHTML = marked.parse(body);
+  } else {
+    // No markdown renderer — escape HTML then convert newlines to <br>
+    p.innerHTML = escH(body).replace(/\n/g, '<br>');
+  }
 }
 
 function notesUpdateMeta() {
