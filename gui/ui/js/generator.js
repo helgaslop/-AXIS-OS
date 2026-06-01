@@ -391,7 +391,11 @@ function handleGenDone(d) {
   // Show preview
   var empty = R('genPreviewEmpty'); if (empty) empty.style.display='none';
   var frame = R('genPreviewFrame');
-  if (frame && code) { frame.style.display='block'; frame.srcdoc=code; }
+  if (frame && code) {
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+    frame.style.display='block';
+    frame.srcdoc=code;
+  }
 
   // Switch to preview
   var firstTab = document.querySelector('.gen-right-tab');
@@ -564,15 +568,23 @@ function handleImageReady(d) {
 function downloadGenImage() {
   // Open the saved file folder in Explorer
   if (_imgSavedPath) {
-    pyCall('run_macro', JSON.stringify({command: 'explorer /select,"' + _imgSavedPath + '"', type: 'shell'}));
+    // Security: validate path — only allow absolute Windows paths, no shell metacharacters
+    var safePath = _imgSavedPath.replace(/[&|;<>`${}!]/g, '');
+    if (safePath && /^[A-Za-z]:\\/.test(safePath)) {
+      pyCall('run_macro', JSON.stringify({command: 'explorer /select,"' + safePath + '"', type: 'shell'}));
+    } else {
+      pyCall('open_folder', JSON.stringify({path: _imgSavedPath}));
+    }
     showToast('📂 Відкриваю папку...');
     return;
   }
-  // Fallback: download via browser
+  // Fallback: download via browser — use correct extension based on detected mime
   if (!_imgResultB64) return;
+  var mime = _imgResultB64.startsWith('/9j/') ? 'image/jpeg' : 'image/png';
+  var ext  = mime === 'image/jpeg' ? '.jpg' : '.png';
   var a = document.createElement('a');
-  a.href = 'data:image/png;base64,' + _imgResultB64;
-  a.download = 'axis_image_' + Date.now() + '.png';
+  a.href = 'data:' + mime + ';base64,' + _imgResultB64;
+  a.download = 'axis_image_' + Date.now() + ext;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   showToast('✓ Зображення завантажено');
 }
