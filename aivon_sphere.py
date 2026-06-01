@@ -3895,6 +3895,7 @@ class VoiceThread(QThread):
         r.dynamic_energy_threshold = True
         r.pause_threshold         = 0.8
         r.non_speaking_duration   = 0.5
+        r.operation_timeout       = 10  # Google STT HTTP timeout (seconds)
 
         use_whisper = (
             self.config.get("stt_provider", "google") == "whisper"
@@ -12455,6 +12456,11 @@ $w.Stop()
             prov_name = VOICE_PROVIDER_NAMES.get(provider, provider)
             self.respond(f"Додайте ключ для {prov_name} в налаштуваннях")
             return
+
+        # Hard cap: max 50 turns to prevent runaway token accumulation
+        _MAX_DIALOG_TURNS = 50
+        if len(self.dialog_history) >= _MAX_DIALOG_TURNS * 2:
+            self.dialog_history = self.dialog_history[-(_MAX_DIALOG_TURNS):]
 
         # Додаємо в історію (пам'ять діалогу)
         self.dialog_history.append({"role": "user", "content": text})

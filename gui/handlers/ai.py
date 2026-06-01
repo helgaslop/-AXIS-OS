@@ -1,6 +1,7 @@
 """AI, image & video generation handlers + config/key management."""
 import json
 import os
+import re
 import threading
 
 from core.secrets import get_all_keys, set_key as _secrets_set, migrate_from_config
@@ -40,6 +41,23 @@ class AiHandlerMixin:
                 base[prov] = self._cfg[flat]
         return get_all_keys(base)
 
+    _MODEL_RE = re.compile(r'^[a-zA-Z0-9._/\-]{1,100}$')
+    _DEFAULT_MODELS = {
+        "openai": "gpt-4o",
+        "anthropic": "claude-3-5-sonnet-20241022",
+        "google": "gemini-2.5-flash",
+        "xai": "grok-3",
+        "deepseek": "deepseek-chat",
+        "perplexity": "sonar",
+        "ollama": "llama3",
+    }
+
+    def _sanitize_model(self, model: str, provider: str) -> str:
+        """Return model if valid, otherwise the provider default or a safe fallback."""
+        if model and self._MODEL_RE.match(model):
+            return model
+        return self._DEFAULT_MODELS.get(provider, "gpt-4o")
+
     # ── AI chat ───────────────────────────────────────────────────────────────
     def _ai_send(self, p: dict):
         result = _get_license().consume("ai_messages")
@@ -47,9 +65,10 @@ class AiHandlerMixin:
             req_id = p.get("id", "req")
             self.push_to_js.emit("ai_error", json.dumps({"id": req_id, "error": result["msg"]}))
             return
+        provider = p.get("provider", "openai")
+        model = self._sanitize_model(p.get("model", "gpt-4o"), provider)
         self._ai.send(
-            p.get("id", "req"), p.get("provider", "openai"),
-            p.get("model", "gpt-4o"), p.get("messages", []),
+            p.get("id", "req"), provider, model, p.get("messages", []),
             p.get("system", "Ти корисний AI асистент AXIS OS."),
         )
 
@@ -59,9 +78,10 @@ class AiHandlerMixin:
             req_id = p.get("id", "req")
             self.push_to_js.emit("ai_error", json.dumps({"id": req_id, "error": result["msg"]}))
             return
+        provider = p.get("provider", "openai")
+        model = self._sanitize_model(p.get("model", "gpt-4o"), provider)
         self._ai.send_stream(
-            p.get("id", "req"), p.get("provider", "openai"),
-            p.get("model", "gpt-4o"), p.get("messages", []),
+            p.get("id", "req"), provider, model, p.get("messages", []),
             p.get("system", "Ти корисний AI асистент AXIS OS."),
         )
 

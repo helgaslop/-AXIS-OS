@@ -260,7 +260,7 @@ class SpotifyHandlerMixin:
                 return
             try:
                 res   = sp.search(q=query, type="track", limit=8)
-                items = res["tracks"]["items"]
+                items = (res or {}).get("tracks", {}).get("items") or []
                 tracks = [{
                     "name":   t["name"],
                     "artist": (t.get("artists") or [{}])[0].get("name", ""),
