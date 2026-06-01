@@ -7,6 +7,15 @@ const nodemailer   = require('nodemailer');
 const { getStore } = require('@netlify/blobs');
 const crypto       = require('crypto');
 
+function _store(name) {
+  const opts = { name };
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
+  const token  = process.env.NETLIFY_TOKEN   || process.env.NETLIFY_API_TOKEN || '';
+  if (siteID) opts.siteID = siteID;
+  if (token)  opts.token  = token;
+  return getStore(opts);
+}
+
 function escHtml(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -18,7 +27,7 @@ function isValidEmail(e) {
 async function saveOrder(order) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const store = getStore('axis-licenses');
+      const store = _store('axis-licenses');
       const db    = (await store.get('db', { type:'json' })) || { licenses:{}, orders:{} };
       if (!db.orders) db.orders = {};
       db.orders[order.ref] = order;
@@ -64,7 +73,7 @@ exports.handler = async (event) => {
   const ip = (event.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
   if (gmailPass) { // only rate-limit if email sending is active
     try {
-      const rlStore = getStore('axis-licenses');
+      const rlStore = _store('axis-licenses');
       const now = Date.now();
       const key  = `ratelimit:order:${ip}`;
       const rl   = (await rlStore.get(key, { type: 'json' })) || { count: 0, window: now };

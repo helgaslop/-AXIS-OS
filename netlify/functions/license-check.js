@@ -5,6 +5,15 @@
 
 const { getStore } = require('@netlify/blobs');
 
+function _store(name) {
+  const opts = { name };
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
+  const token  = process.env.NETLIFY_TOKEN   || process.env.NETLIFY_API_TOKEN || '';
+  if (siteID) opts.siteID = siteID;
+  if (token)  opts.token  = token;
+  return getStore(opts);
+}
+
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'Content-Type',
@@ -26,7 +35,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ valid: false, error: 'Невірний формат ключа' }) };
   }
 
-  const store = getStore('axis-licenses');
+  const store = _store('axis-licenses');
   const db    = (await store.get('db', { type: 'json' })) || { licenses: {} };
   const lic   = db.licenses[key];
 

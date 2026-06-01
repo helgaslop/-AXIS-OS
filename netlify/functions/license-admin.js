@@ -10,6 +10,16 @@ const { getStore }  = require('@netlify/blobs');
 const nodemailer    = require('nodemailer');
 const crypto        = require('crypto');
 
+// ── Blobs helper: pass siteID explicitly so it works outside Netlify CI context ──
+function _store(name) {
+  const opts = { name };
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
+  const token  = process.env.NETLIFY_TOKEN   || process.env.NETLIFY_API_TOKEN || '';
+  if (siteID) opts.siteID = siteID;
+  if (token)  opts.token  = token;
+  return getStore(opts);
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CORS = {
   'Access-Control-Allow-Origin':  process.env.URL || 'https://axis-os-app.netlify.app',
@@ -64,13 +74,13 @@ exports.handler = async (event) => {
     return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
   }
 
-  const store = getStore('axis-licenses');
+  const store = _store('axis-licenses');
 
   // Rate limit: max 20 requests per IP per minute
   const ip = ((event.headers['x-forwarded-for'] || '').split(',')[0].trim() || event.headers['client-ip'] || 'unknown').replace(/[^0-9a-fA-F.:]/g, '_').slice(0, 45);
   const rateLimitKey = `ratelimit:admin:${ip}`;
   try {
-    const rlStore = getStore('axis-ratelimits');
+    const rlStore = _store('axis-ratelimits');
     const now = Date.now();
     const rl = (await rlStore.get(rateLimitKey, { type: 'json' })) || { count: 0, window: now };
     if (now - rl.window > 60000) { rl.count = 0; rl.window = now; }
