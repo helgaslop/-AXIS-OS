@@ -589,7 +589,7 @@ function testTtsVoice() {
 
 // ═══ LICENSE ══════════════════════════════════════════════════════════════════
 // URL can be overridden in config via license_api_url key
-var LICENSE_API_DEFAULT = 'https://helgaslop-axis-os.netlify.app/.netlify/functions/license-check';
+var LICENSE_API_DEFAULT = 'https://axis-os-app.netlify.app/.netlify/functions/license-check';
 var LICENSE_API = (typeof _savedCfg !== 'undefined' && _savedCfg && _savedCfg.license_api_url)
   ? _savedCfg.license_api_url
   : LICENSE_API_DEFAULT;

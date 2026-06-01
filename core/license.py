@@ -236,7 +236,7 @@ class LicenseManager:
         import urllib.request, urllib.error, json as _json
         license_url = os.environ.get(
             "AXIS_LICENSE_CHECK_URL",
-            "https://helgaslop-axis-os.netlify.app/.netlify/functions/license-check"
+            "https://axis-os-app.netlify.app/.netlify/functions/license-check"
         )
         try:
             payload = _json.dumps({
