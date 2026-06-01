@@ -3,6 +3,10 @@
 // Local escH fallback in case commands.js loads late
 var _escH = typeof escH === 'function' ? escH : function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
 
+// Local fallback for _escHtml (defined in utils.js, but may not be loaded yet)
+var _escHtml = typeof _escHtml === 'function' ? _escHtml
+  : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+
 // ═══ API KEYS ═══
 var apiProviders = {
   ai: [
@@ -198,6 +202,9 @@ function ghRepoChanged() {
   var err  = R('ghErrorCard'); if (err)  err.style.display  = 'none';
   var lbl  = R('ghStatusLbl'); if (lbl)  lbl.textContent    = '';
   _ghPending = null;
+  _ghChangelogVisible = false;
+  var logBtn = R('ghChangelogBtn');
+  if (logBtn) logBtn.textContent = 'Показати changelog';
 }
 
 function saveAutoUpdate(enabled) {
@@ -530,6 +537,10 @@ function saveMicSettings() {
     sensitivity: sens ? parseInt(sens.value) : 50,
   };
   localStorage.setItem('axis_mic', JSON.stringify(_micSettings));
+  pyCall('save_config', JSON.stringify({
+    mic_device_index: _micSettings.deviceIndex,
+    mic_sensitivity:  _micSettings.sensitivity
+  }));
 }
 
 function loadMicSettingsUI() {
@@ -546,6 +557,7 @@ function setAppVolume(val) {
   R('appVolVal').textContent = val;
   localStorage.setItem('axis_app_volume', String(_appVolume));
   document.querySelectorAll('audio,video').forEach(function(el){ el.volume = _appVolume/100; });
+  pyCall('save_config', JSON.stringify({ app_volume: _appVolume }));
 }
 
 function loadAppVolumeUI() {
@@ -706,12 +718,55 @@ function importAllData(input) {
   reader.onload = function(e) {
     try {
       var data = JSON.parse(e.target.result);
-      if (data.commands) localStorage.setItem('axis_commands', JSON.stringify(data.commands));
-      if (data.roles)    localStorage.setItem('axis_roles',    JSON.stringify(data.roles));
-      if (data.macros)   localStorage.setItem('axis_macros',   JSON.stringify(data.macros));
-      if (data.notif)    { _notifSettings = data.notif; localStorage.setItem('axis_notif', JSON.stringify(data.notif)); loadNotifSettings(); }
-      if (data.hotkeys)  { _hotkeys = data.hotkeys; localStorage.setItem('axis_hotkeys', JSON.stringify(data.hotkeys)); loadHotkeyInputs(); }
+
+      // Type safety — validate imported data shape before applying to runtime objects
+      if (data.hotkeys && typeof data.hotkeys === 'object' && !Array.isArray(data.hotkeys)) {
+        // Validate each hotkey value is a string
+        var safeHotkeys = {};
+        Object.keys(data.hotkeys).forEach(function(k) {
+          if (typeof data.hotkeys[k] === 'string') safeHotkeys[k] = data.hotkeys[k].slice(0, 50);
+        });
+        _hotkeys = safeHotkeys;
+        localStorage.setItem('axis_hotkeys', JSON.stringify(safeHotkeys));
+        loadHotkeyInputs();
+      }
+      if (data.commands && Array.isArray(data.commands)) {
+        // Already validated by importCmds() — cap at 500 entries
+        data.commands = data.commands.slice(0, 500);
+        localStorage.setItem('axis_commands', JSON.stringify(data.commands));
+      }
+      if (data.roles && Array.isArray(data.roles)) {
+        data.roles = data.roles.slice(0, 100);
+        localStorage.setItem('axis_roles', JSON.stringify(data.roles));
+      }
+      if (data.macros && Array.isArray(data.macros)) {
+        localStorage.setItem('axis_macros', JSON.stringify(data.macros));
+      }
+      if (data.notif && typeof data.notif === 'object' && 'ai' in data.notif) {
+        _notifSettings = Object.assign({}, _notifSettings, data.notif);
+        localStorage.setItem('axis_notif', JSON.stringify(_notifSettings));
+        loadNotifSettings();
+      }
       if (data.autosleep){ _autoSleepCfg = data.autosleep; localStorage.setItem('axis_autosleep', JSON.stringify(data.autosleep)); loadAutoSleepSettings(); }
+
+      // Restore chat settings (previously exported but never restored)
+      if (data.chat_cfg && typeof data.chat_cfg === 'object') {
+        try {
+          localStorage.setItem('axis_chat_settings', JSON.stringify(data.chat_cfg));
+          if (typeof _chatSettings !== 'undefined') {
+            Object.assign(_chatSettings, data.chat_cfg);
+          }
+        } catch(e) {}
+      }
+      // Restore global config settings
+      if (data.settings && typeof data.settings === 'object') {
+        try {
+          var existing = JSON.parse(localStorage.getItem('axis_config') || '{}');
+          Object.assign(existing, data.settings);
+          localStorage.setItem('axis_config', JSON.stringify(existing));
+        } catch(e) {}
+      }
+
       showToast('✓ Дані імпортовано. Перезапустіть для повного застосування.');
     } catch(ex) { showToast('⚠ Помилка читання файлу'); }
   };

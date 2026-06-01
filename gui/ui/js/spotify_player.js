@@ -108,14 +108,14 @@ function handleSpotifySearch(items) {
     return;
   }
   box.innerHTML = items.map(function(t) {
-    return '<div class="sp-row" onclick="spPlayUri(\'' + t.uri + '\',\'' +
+    return '<div class="sp-row" onclick="spPlayUri(\'' + _spEscUri(t.uri) + '\',\'' +
       _spEsc(t.name) + '\',\'' + _spEsc(t.artist) + '\')">'
-      + (t.cover ? '<img src="'+t.cover+'" class="sp-row-img">' : '<div class="sp-row-img sp-row-no-img">🎵</div>')
+      + (t.cover ? '<img src="'+_spEscUrl(t.cover)+'" class="sp-row-img">' : '<div class="sp-row-img sp-row-no-img">🎵</div>')
       + '<div class="sp-row-info"><div class="sp-row-name">' + _spEsc(t.name) + '</div>'
       + '<div class="sp-row-artist">' + _spEsc(t.artist) + '</div></div>'
       + '<div class="sp-row-dur">' + _spFmtMs(t.ms || 0) + '</div>'
-      + '<button class="sp-fav-btn" onclick="event.stopPropagation();spAddFav(\'' + t.uri + '\',\'' +
-        _spEsc(t.name) + '\',\'' + _spEsc(t.artist) + '\',\'' + (t.cover||'') + '\')" title="В вибране">⭐</button>'
+      + '<button class="sp-fav-btn" onclick="event.stopPropagation();spAddFav(\'' + _spEscUri(t.uri) + '\',\'' +
+        _spEsc(t.name) + '\',\'' + _spEsc(t.artist) + '\',\'' + _spEscUrl(t.cover||'') + '\')" title="В вибране">⭐</button>'
       + '</div>';
   }).join('');
 }
@@ -192,12 +192,12 @@ function spRenderFavorites() {
     return;
   }
   box.innerHTML = _spFavorites.map(function(t) {
-    return '<div class="sp-row" onclick="spPlayUri(\'' + t.uri + '\',\'' +
+    return '<div class="sp-row" onclick="spPlayUri(\'' + _spEscUri(t.uri) + '\',\'' +
       _spEsc(t.name) + '\',\'' + _spEsc(t.artist) + '\')">'
-      + (t.cover ? '<img src="'+t.cover+'" class="sp-row-img">' : '<div class="sp-row-img sp-row-no-img">🎵</div>')
+      + (t.cover ? '<img src="'+_spEscUrl(t.cover)+'" class="sp-row-img">' : '<div class="sp-row-img sp-row-no-img">🎵</div>')
       + '<div class="sp-row-info"><div class="sp-row-name">' + _spEsc(t.name) + '</div>'
       + '<div class="sp-row-artist">' + _spEsc(t.artist) + '</div></div>'
-      + '<button class="sp-fav-btn sp-fav-remove" onclick="event.stopPropagation();spRemoveFav(\'' + t.uri + '\')" title="Видалити">✕</button>'
+      + '<button class="sp-fav-btn sp-fav-remove" onclick="event.stopPropagation();spRemoveFav(\'' + _spEscUri(t.uri) + '\')" title="Видалити">✕</button>'
       + '</div>';
   }).join('');
 }
@@ -209,4 +209,10 @@ function _spFmtMs(ms) {
 }
 function _spEsc(s) {
   return (s || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+function _spEscUri(s) {
+  return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+}
+function _spEscUrl(u) {
+  return String(u||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }

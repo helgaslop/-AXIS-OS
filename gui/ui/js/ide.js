@@ -1,4 +1,7 @@
 /* AXIS OS ? IDE & AI editor */
+function _ideEscAttr(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 // ═══ IDE ═══
 var ideEditor = null;
 var ideCurrentPath = null;
@@ -54,6 +57,7 @@ function runCode(){
     // Show HTML preview
     switchIdeRight(document.querySelector('.ide-right-tab'), 'preview');
     var frame=document.createElement('iframe');
+    frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
     frame.style.cssText='flex:1;border:none;width:100%;height:100%;';
     var pane=R('ide-pane-preview'); pane.innerHTML='';
     pane.appendChild(frame);
@@ -109,7 +113,11 @@ function switchIdeRight(el, id){
 function sendIdeAi(){
   var inp=R('ideAiInput'); var msg=inp.value.trim(); if(!msg) return;
   var chat=R('ideAiChat');
-  chat.innerHTML+='<div style="background:rgba(34,197,94,.07);border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px;">'+msg+'</div>';
+  var msgDiv=document.createElement('div');
+  msgDiv.style.cssText='background:rgba(34,197,94,.07);border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px;';
+  msgDiv.textContent=msg;  // safe: textContent never executes HTML
+  chat.appendChild(msgDiv);
+  chat.scrollTop=chat.scrollHeight;
   inp.value='';
   var code=ideEditor?ideEditor.getValue():'';
   var reqId='ide_'+Date.now();
@@ -341,8 +349,14 @@ function ideRunInTerm(){
   if(f.lang==='python'){
     pyCall('run_code', JSON.stringify({code:ideEditor.getValue(), lang:'python', file:f.name}));
   } else if(f.lang==='javascript'){
-    try { var r=eval(ideEditor.getValue()); if(out) out.textContent='axis@os:~$ node '+f.name+'\n'+String(r===undefined?'':r)+'\naxis@os:~$ _'; }
-    catch(e){ if(out) out.textContent='axis@os:~$ node '+f.name+'\n⚠ '+e.message+'\naxis@os:~$ _'; }
+    // SECURITY: never eval() editor content in renderer context
+    // Send to Python for execution in a subprocess instead
+    pyCall('ide_run_code', JSON.stringify({
+      code: ideEditor.getValue(),
+      lang: 'js',
+      filename: f.name
+    }));
+    // Show result in terminal when Python responds via axisPush
   } else { if(out) out.textContent='axis@os:~$ '+f.name+'\n⚠ Запуск підтримується для Python та JS\naxis@os:~$ _'; }
 }
 
@@ -361,7 +375,7 @@ function _ideRenderRecentFiles(){
   var icoMap={py:'🐍',js:'📜',ts:'💙',html:'🌐',css:'🎨',json:'⚙',md:'📄',jsx:'⚛',tsx:'⚛'};
   el.innerHTML=_ideRecentHistory.map(function(r){
     var ext=r.name.split('.').pop().toLowerCase();
-    return '<div class="ide-file" style="font-size:10px;padding:3px 6px;" onclick="pyCall(\'open_file_path\',JSON.stringify({path:'+JSON.stringify(r.path)+'}));" title="'+r.path+'">'+(icoMap[ext]||'📄')+' '+r.name+'</div>';
+    return '<div class="ide-file" style="font-size:10px;padding:3px 6px;" onclick="pyCall(\'open_file_path\',JSON.stringify({path:'+JSON.stringify(r.path)+'}));" title="'+_ideEscAttr(r.path)+'">'+(icoMap[ext]||'📄')+' '+r.name+'</div>';
   }).join('');
 }
 _ideRenderRecentFiles();
@@ -369,7 +383,7 @@ _ideRenderRecentFiles();
 /* ── Ctrl+K keyboard shortcut ────────────────────────────── */
 document.addEventListener('keydown',function(e){
   if(e.ctrlKey && e.key==='k'){
-    var pg=R('page-ide'); if(pg && pg.classList.contains('active')){ e.preventDefault(); toggleIdeAiBar(); }
+    var pg=R('page-agents'); if(pg && pg.classList.contains('active')){ e.preventDefault(); toggleIdeAiBar(); }
   }
 });
 
@@ -473,7 +487,7 @@ function ideRenderRecent(list){
     return;
   }
   el.innerHTML = list.slice(0,6).map(function(p){
-    var name = p.split(/[\/]/).pop() || p;
+    var name = p.split(/[\/\\]/).pop() || p;
     return '<div class="idectl-recent-item" onclick="ideLaunchProject('+JSON.stringify(p)+')">'
       + '<span style="font-size:14px;">📁</span>'
       + '<span class="idectl-recent-path" title="'+p+'">'+name+'</span>'
@@ -483,7 +497,7 @@ function ideRenderRecent(list){
 
 function ideLaunchProject(path){
   pyCall('launch_ide', JSON.stringify({project_path: path}));
-  showToast('Открываю: ' + path.split(/[\/]/).pop());
+  showToast('Открываю: ' + (path.split(/[\/\\]/).pop() || path));
   setTimeout(function(){ pyCall('get_ide_status'); }, 2500);
 }
 

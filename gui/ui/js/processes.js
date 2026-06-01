@@ -75,14 +75,14 @@
       var cpuColor  = p.cpu > 50 ? 'color:var(--red)' : p.cpu > 20 ? 'color:var(--orange)' : 'color:var(--text2)';
       var ramColor  = p.ram > 500 ? 'color:var(--red)' : p.ram > 200 ? 'color:var(--orange)' : 'color:var(--text2)';
       var statusColor = p.status === 'running' ? 'var(--accent)' : p.status === 'sleeping' ? 'var(--text3)' : 'var(--orange)';
-      var catLabel = CAT_LABELS[p.category] || p.category;
+      var catLabel = CAT_LABELS[p.category] || _escH(p.category || '');
 
       return '<tr class="proc-tr" style="' + highlight + '">'
         + '<td style="font-family:var(--mono);font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + _escH(p.name) + '">' + _escH(p.name) + '</td>'
         + '<td style="color:var(--text3);font-size:11px;font-family:var(--mono);">' + p.pid + '</td>'
         + '<td style="' + cpuColor + ';font-size:12px;font-weight:700;font-family:var(--mono);">' + p.cpu.toFixed(1) + '%</td>'
         + '<td style="' + ramColor + ';font-size:11px;font-family:var(--mono);">' + p.ram.toFixed(1) + ' MB</td>'
-        + '<td><span style="font-size:9px;font-weight:700;color:' + statusColor + ';background:' + statusColor + '22;padding:2px 7px;border-radius:10px;">' + p.status + '</span></td>'
+        + '<td><span style="font-size:9px;font-weight:700;color:' + statusColor + ';background:' + statusColor + '22;padding:2px 7px;border-radius:10px;">' + _escH(p.status) + '</span></td>'
         + '<td><span style="font-size:9px;color:var(--text3);">' + catLabel + '</span></td>'
         + '<td><button class="btn btn-sm btn-d" style="padding:2px 8px;font-size:10px;" onclick="procKill(' + p.pid + ',\'' + _escH(p.name) + '\')">Kill</button></td>'
         + '</tr>';

@@ -325,7 +325,10 @@ function testTelegramBot() {
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(res) {
-        if(d.ok) res.textContent = '✅ @' + d.result.username + ' — бот знайдено!';
+        if(d.ok) {
+          var username = (d.result && d.result.username) ? d.result.username : 'bot';
+          res.textContent = '✅ @' + username + ' — бот знайдено!';
+        }
         else     res.textContent = '❌ Невірний токен: ' + (d.description||'');
       }
     })
@@ -529,6 +532,11 @@ function onTtsProviderChange(prov) {
   currentTtsProv = prov;
   currentTtsVoice = '';
   var sel  = R('ttsVoiceSel');
+  if (!sel) {
+    currentTtsProv  = prov;
+    currentTtsVoice = '';
+    return;
+  }
   var note = R('ttsApiNote');
   var lbl  = R('ttsVoiceLabel');
   if (prov === 'openai') {
@@ -637,7 +645,8 @@ function checkLicenseStatus() {
       ico.textContent  = '✅';
       txt.textContent  = 'Ліцензія активна';
       txt.style.color  = '#3fb950';
-      sub.textContent  = '📦 План: ' + (planNames[d.plan] || d.plan) + (d.name ? '  |  👤 ' + d.name : '');
+      var planDisplay0 = planNames[d.plan] || d.plan || '—';
+      sub.textContent  = '📦 План: ' + planDisplay0 + (d.name ? '  |  👤 ' + d.name : '');
       if (msg) msg.textContent = '';
     } else {
       ico.textContent  = '❌';
@@ -683,9 +692,11 @@ function activateLicense() {
       var planNames = { monthly:'Місячний', yearly:'Річний', lifetime:'Lifetime (Назавжди)' };
       if (ico) { ico.textContent = '✅'; }
       if (txt) { txt.textContent = 'Ліцензія активована!'; txt.style.color = '#3fb950'; }
-      if (sub) sub.textContent = '📦 ' + (planNames[d.plan] || d.plan);
+      var planDisplay1 = planNames[d.plan] || d.plan || '—';
+      if (sub) sub.textContent = '📦 ' + planDisplay1;
       if (msg) { msg.textContent = '✅ Ключ прийнято і збережено'; msg.style.color = '#3fb950'; }
-      showToast('🔑 Ліцензію активовано: ' + (planNames[d.plan] || d.plan));
+      var planDisplay2 = planNames[d.plan] || d.plan || '—';
+      showToast('🔑 Ліцензію активовано: ' + planDisplay2);
     } else {
       if (ico) ico.textContent = '❌';
       if (txt) { txt.textContent = 'Ключ не прийнято'; txt.style.color = '#f85149'; }

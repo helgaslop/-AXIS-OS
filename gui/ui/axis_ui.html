@@ -652,10 +652,9 @@
 
       </div><!-- /widget-grid -->
 
-      <!-- Keep legacy IDs for dashboard.js compatibility (hidden) -->
+      <!-- Hidden legacy IDs for dashboard.js compatibility -->
       <div style="display:none;">
         <span id="cpuSub"></span>
-        <span id="diskSub_legacy"></span>
         <span id="recentCmdsList"></span>
       </div>
     </div>
@@ -1835,7 +1834,7 @@
                   <span>⚠ Залиш поле порожнім — бот відповідатиме ВСІМ (небезпечно!)</span>
                 </div>
                 <div class="srow" style="padding-top:4px;">
-                  <button class="btn-sm" onclick="testTelegramBot()" style="font-size:12px;">🔗 Перевірити підключення</button>
+                  <button class="btn btn-sm" onclick="testTelegramBot()" style="font-size:12px;">🔗 Перевірити підключення</button>
                   <span id="tg_test_result" style="font-size:11px;margin-left:8px;opacity:.7;"></span>
                 </div>
 
@@ -1853,9 +1852,9 @@
 
                   <!-- Кнопки керування -->
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                    <button class="btn-sm" onclick="tgCmdAdd()" style="font-size:12px;">＋ Додати кнопку</button>
-                    <button class="btn-sm" onclick="tgCmdAddDefaults()" style="font-size:12px;opacity:.7;">📋 Стандартні</button>
-                    <button class="btn-sm" onclick="tgCmdClear()" style="font-size:12px;opacity:.5;">🗑 Очистити всі</button>
+                    <button class="btn btn-sm" onclick="tgCmdAdd()" style="font-size:12px;">＋ Додати кнопку</button>
+                    <button class="btn btn-sm" onclick="tgCmdAddDefaults()" style="font-size:12px;opacity:.7;">📋 Стандартні</button>
+                    <button class="btn btn-sm" onclick="tgCmdClear()" style="font-size:12px;opacity:.5;">🗑 Очистити всі</button>
                   </div>
                   <div style="font-size:11px;opacity:.45;line-height:1.5;">
                     💡 <b>Назва кнопки</b> — текст на кнопці в Telegram (emoji + назва)<br>
@@ -3172,26 +3171,36 @@ function importBackup(input) {
 // Register push handlers for backup results
 (function() {
   var _origPush2 = window.axisPush;
+  var _axisPushDepth = 0;
   window.axisPush = function(type, jsonStr) {
-    _origPush2 && _origPush2(type, jsonStr);
+    if (_axisPushDepth > 3) {
+      console.error('[AXIS] axisPush recursion depth exceeded for type:', type);
+      return;
+    }
+    _axisPushDepth++;
     try {
-      var d = JSON.parse(jsonStr);
-      if (type === 'backup_status') {
-        var op = d.op || '';
-        var msg = d.msg || '';
-        if (op === 'export') {
-          var st = R('backupExportStatus');
-          if (st) st.textContent = msg;
-        } else if (op === 'import') {
-          var st2 = R('backupImportStatus');
-          if (st2) st2.textContent = msg;
-          if (d.ok) {
-            // Reload config after import
-            pyCall('get_sphere');
+      try {
+        var d = JSON.parse(jsonStr);
+        if (type === 'backup_status') {
+          var op = d.op || '';
+          var msg = d.msg || '';
+          if (op === 'export') {
+            var st = R('backupExportStatus');
+            if (st) st.textContent = msg;
+          } else if (op === 'import') {
+            var st2 = R('backupImportStatus');
+            if (st2) st2.textContent = msg;
+            if (d.ok) {
+              // Reload config after import
+              pyCall('get_sphere');
+            }
           }
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+      _origPush2 && _origPush2(type, jsonStr);
+    } finally {
+      _axisPushDepth--;
+    }
   };
 })();
 </script>

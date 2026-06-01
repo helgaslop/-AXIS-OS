@@ -57,8 +57,17 @@
 
   // Load from localStorage on startup (before Python config arrives)
   (function _init() {
+    var VALID_THEMES = ['dark', 'light', 'midnight', 'ocean', 'forest', 'sunset'];
     var saved = 'dark';
-    try { saved = localStorage.getItem(THEME_KEY) || 'dark'; } catch(e){}
+    try {
+      var savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme && !VALID_THEMES.includes(savedTheme)) {
+        console.warn('[AXIS] Invalid theme in localStorage:', savedTheme, '— resetting to dark');
+        savedTheme = 'dark';
+        localStorage.setItem(THEME_KEY, 'dark');
+      }
+      saved = savedTheme || 'dark';
+    } catch(e){}
     _applyTheme(saved);
   })();
 
