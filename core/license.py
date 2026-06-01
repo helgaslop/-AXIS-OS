@@ -97,11 +97,21 @@ class LicenseManager:
 
     def activate(self, key: str) -> dict:
         """Activate license key.
-        Returns {"ok": True/False, "tier": ..., "message": ...}
-        TODO: swap _validate_local → _validate_server when backend ready.
+        Tries Netlify server first (new AXIS-XXXX format),
+        falls back to local HMAC (old AXIS-T-DDD format).
         """
+        k = key.strip().upper().replace("-", "").replace(" ", "")
+        if k.startswith("AXIS"):
+            k = k[4:]
+        # New-format key: first char is NOT a tier char → server validation
+        if not k or k[0] not in ("M", "Y", "L", "T"):
+            result = self._validate_server(key)
+            if result.get("ok"):
+                return result
+            # If server unreachable, try local (for dev/offline)
+            return result
+        # Old HMAC key
         return self._validate_local(key)
-        # return self._validate_server(key)   # ← uncomment when server ready
 
     def days_left(self) -> int:
         st = self.get_status()
@@ -220,32 +230,56 @@ class LicenseManager:
         except Exception as e:
             return {"ok": False, "message": f"Помилка: {e}"}
 
-    # ── Server validation placeholder ─────────────────────────────────────────
-    # def _validate_server(self, key: str) -> dict:
-    #     """Online key validation against AXIS OS license server.
-    #     Uncomment and set _SERVER_URL when backend is ready.
-    #     """
-    #     import requests
-    #     try:
-    #         r = requests.post(
-    #             f"{_SERVER_URL}/api/v1/activate",
-    #             json={"key": key, "machine_id": self._machine_id()},
-    #             timeout=10,
-    #         )
-    #         data = r.json()
-    #         if data.get("ok"):
-    #             self._data.update({
-    #                 "tier":    data["tier"],
-    #                 "key":     key,
-    #                 "expires": data.get("expires"),
-    #             })
-    #             self._save()
-    #         return data
-    #     except requests.exceptions.ConnectionError:
-    #         # Fallback to offline validation if server unreachable
-    #         return self._validate_local(key)
-    #     except Exception as e:
-    #         return {"ok": False, "message": str(e)}
+    # ── Server validation (Netlify license-check function) ────────────────────
+    def _validate_server(self, key: str) -> dict:
+        """Online key validation against Netlify license-check function."""
+        import urllib.request, urllib.error, json as _json
+        license_url = os.environ.get(
+            "AXIS_LICENSE_CHECK_URL",
+            "https://helgaslop-axis-os.netlify.app/.netlify/functions/license-check"
+        )
+        try:
+            payload = _json.dumps({
+                "key": key.strip().upper(),
+                "deviceId": self._machine_id()
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                license_url,
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = _json.loads(r.read().decode("utf-8"))
+
+            if data.get("valid"):
+                tier = data.get("plan", "monthly")
+                # Map plan → expiry
+                from datetime import timedelta
+                days_map = {"monthly": 30, "yearly": 365, "lifetime": -1}
+                days = days_map.get(tier, 30)
+                if days > 0:
+                    expires_iso = (datetime.now() + timedelta(days=days)).isoformat()
+                else:
+                    expires_iso = None
+                self._data.update({
+                    "tier":    tier,
+                    "key":     key.strip().upper(),
+                    "expires": expires_iso,
+                })
+                self._save()
+                tier_name = TIERS.get(tier, {}).get("name", tier)
+                return {"ok": True, "tier": tier,
+                        "message": f"✅ Активовано: {tier_name}!"}
+            else:
+                error = data.get("error", "Ключ недійсний")
+                return {"ok": False, "message": f"❌ {error}"}
+
+        except urllib.error.URLError:
+            return {"ok": False,
+                    "message": "🌐 Немає з'єднання з сервером ліцензій. Перевірте інтернет."}
+        except Exception as e:
+            return {"ok": False, "message": f"Помилка: {str(e)[:80]}"}
 
     # ── Key generator (admin tool) ─────────────────────────────────────────────
     @classmethod
