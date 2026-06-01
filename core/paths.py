@@ -16,8 +16,14 @@ def _get_app_dir() -> Path:
 
 
 def _get_user_data_dir() -> Path:
-    appdata = os.environ.get("APPDATA") or os.path.expanduser("~")
-    d = Path(appdata) / "AXIS OS"
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        d = Path(appdata) / "AXIS OS"
+    else:
+        # Instead of writing config to home root, use a .axis_os subfolder
+        fallback = os.path.join(os.path.expanduser("~"), ".axis_os")
+        os.makedirs(fallback, exist_ok=True)
+        d = Path(fallback)
     d.mkdir(parents=True, exist_ok=True)
     return d
 

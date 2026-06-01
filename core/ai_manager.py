@@ -205,8 +205,12 @@ class AIManager(QObject):
                     self.response_ready.emit(request_id, text)
                     return
             except Exception as e:
-                last_err = str(e)
-                print(f"[AI] {prov} failed: {e} — trying next…")
+                err_msg = str(e)
+                # Redact anything that looks like an API key (long alphanumeric strings)
+                import re
+                err_msg = re.sub(r'\b(sk-[A-Za-z0-9\-_]{20,}|[A-Za-z0-9]{32,})\b', '***REDACTED***', err_msg)
+                last_err = err_msg
+                print(f"[AI] {prov} failed: {err_msg} — trying next…")
                 continue
 
         self.response_error.emit(request_id,

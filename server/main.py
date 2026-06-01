@@ -22,7 +22,11 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 
 # ── Config ─────────────────────────────────────────────────────────────────
-LICENSE_SECRET = os.environ.get("AXIS_LICENSE_SECRET", "AXIS-OS-LICENSE-2024-V1")
+LICENSE_SECRET = os.environ.get("AXIS_LICENSE_SECRET", "")
+if not LICENSE_SECRET:
+    import secrets as _sec
+    LICENSE_SECRET = _sec.token_hex(32)
+    print("[SERVER] WARNING: AXIS_LICENSE_SECRET not set — using random secret (licenses won't persist across restarts)")
 
 # Your provider API keys (set as env vars on Railway/Render — never commit!)
 PROVIDER_KEYS = {
@@ -72,13 +76,13 @@ def validate_license(raw_key: str) -> dict:
     # Strip the human-readable "AXIS" prefix produced by generate_key()
     if key.startswith("AXIS"):
         key = key[4:]
-    if len(key) < 16:
+    if len(key) < 28:
         return {"ok": False, "error": "Invalid key format"}
 
     tier_char  = key[0]
     days_hex   = key[1:4]
     expiry_hex = key[4:12]
-    checksum   = key[12:16]
+    checksum   = key[12:28]  # 16 hex chars = 64-bit entropy minimum
 
     tier = _TIER_CHAR.get(tier_char)
     if not tier:
@@ -87,7 +91,7 @@ def validate_license(raw_key: str) -> dict:
     payload  = f"{tier_char}{days_hex}{expiry_hex}"
     expected = hmac.new(
         LICENSE_SECRET.encode(), payload.encode(), hashlib.sha256
-    ).hexdigest()[:4].upper()
+    ).hexdigest()[:16].upper()
 
     if not hmac.compare_digest(expected, checksum):
         return {"ok": False, "error": "Invalid license key"}
@@ -100,6 +104,8 @@ def validate_license(raw_key: str) -> dict:
 
 
 # ── Usage & spending tracking (in-memory) ────────────────────────────────────
+# NOTE: Usage limits are in-memory only — reset on server restart
+# TODO: persist to database for production use
 # Per-license daily usage
 _usage: dict[str, dict] = {}   # key_id → {date, count}
 
@@ -156,9 +162,13 @@ def check_and_increment(raw_key: str, tier: str) -> tuple[bool, str]:
 # ── FastAPI app ─────────────────────────────────────────────────────────────
 app = FastAPI(title="AXIS OS Proxy", version="1.0.0")
 
+_allowed_origins = os.environ.get("ALLOWED_ORIGINS", "").split(",")
+if not _allowed_origins or _allowed_origins == [""]:
+    _allowed_origins = ["http://localhost", "http://127.0.0.1"]  # desktop app only
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -392,12 +402,12 @@ async def generate_video(body: VideoRequest, authorization: str = Header(None)):
 
 # ── Admin stats endpoint ──────────────────────────────────────────────────────
 @app.get("/api/v1/admin/stats")
-def admin_stats(authorization: str = Header(None)):
+def admin_stats(request: Request, authorization: str = Header(None)):
     """Returns monthly spending per provider. Protected by ADMIN_KEY."""
-    if ADMIN_KEY:
-        provided = (authorization or "").replace("Bearer ", "").strip()
-        if not hmac.compare_digest(provided, ADMIN_KEY):
-            raise HTTPException(status_code=403, detail="Invalid admin key")
+    if not ADMIN_KEY:
+        raise HTTPException(status_code=503, detail="Admin endpoint disabled — ADMIN_KEY not configured")
+    if request.headers.get("x-admin-key") != ADMIN_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     month = _this_month()
     providers = _monthly.get("providers", {}) if _monthly.get("month") == month else {}

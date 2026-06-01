@@ -12895,8 +12895,7 @@ $w.Stop()
                 habit_query = text[idx + len(kw):].strip().strip(":").strip()
                 data = self._load_habits()
                 today = datetime.now().strftime("%Y-%m-%d")
-                yesterday = (datetime.now().replace(day=datetime.now().day - 1)
-                             .strftime("%Y-%m-%d") if datetime.now().day > 1 else "")
+                yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
                 matched = None
                 if habit_query:
                     for key in data:
@@ -13038,6 +13037,23 @@ $w.Stop()
 
         if not os.path.exists(file_path):
             self.respond(f"Файл не знайдено: {file_path}")
+            return True
+
+        # Security: block path traversal outside allowed directories
+        import pathlib as _pathlib
+        try:
+            resolved = _pathlib.Path(file_path).resolve()
+            allowed_roots = [
+                _pathlib.Path.home(),
+                _pathlib.Path.home() / 'Documents',
+                _pathlib.Path.home() / 'Desktop',
+                _pathlib.Path.home() / 'Downloads',
+            ]
+            if not any(str(resolved).startswith(str(r)) for r in allowed_roots):
+                self.respond(f"⚠️ Доступ до файлу заборонений: {file_path}")
+                return True
+        except Exception:
+            self.respond("⚠️ Невірний шлях файлу")
             return True
 
         self.state = self.THINKING
@@ -13390,11 +13406,14 @@ $w.Stop()
         self._clipboard_tracker_running = True
         def _track():
             last = ""
+            MAX_CLIP = 5000
             while getattr(self, '_clipboard_tracker_running', True):
                 try:
                     from PyQt6.QtWidgets import QApplication as _QApp
                     current = _QApp.clipboard().text()
-                    if current and current != last and len(current) < 5000:
+                    if len(current) > MAX_CLIP:
+                        current = current[:MAX_CLIP]
+                    if current and current != last:
                         last = current
                         hist = self._clipboard_history
                         if not hist or hist[-1] != current:
@@ -13411,7 +13430,10 @@ $w.Stop()
         try:
             from PyQt6.QtWidgets import QApplication as _QApp
             current = _QApp.clipboard().text()
-            if current and len(current) < 5000:
+            MAX_CLIP = 5000
+            if len(current) > MAX_CLIP:
+                current = current[:MAX_CLIP]
+            if current:
                 hist = self._clipboard_history
                 if not hist or hist[-1] != current:
                     hist.append(current)
@@ -13574,8 +13596,9 @@ $w.Stop()
         expr = re.sub(r'sqrt\(([^)]+)\)', r'math.sqrt(\1)', expr)
         expr = re.sub(r'корінь\s+(\d+)', r'math.sqrt(\1)', expr)
         expr = expr.replace(",", ".")
-        # Remove non-safe chars
-        allowed = re.sub(r'[^0-9+\-*/(). _mathqrts]', '', expr)
+        # Remove non-safe chars — only allow digits, operators, parens, dot, space, 'e' (scientific notation),
+        # and letters needed for math function names (math, sqrt, sin, cos, abs, pi, log, etc.)
+        allowed = re.sub(r'[^0-9+\-*/(). eabcdfghijklmnopqrstuvwxyz_]', '', expr)
         try:
             result = eval(allowed, {"__builtins__": {}, "math": _math})  # noqa: S307
             self._respond_signal.emit(f"🔢 {allowed.strip()} = <b>{result}</b>")
@@ -13747,7 +13770,7 @@ $w.Stop()
             if 0 <= h <= 23 and 0 <= mi <= 59:
                 t = now.replace(hour=h, minute=mi, second=0, microsecond=0)
                 if t <= now:
-                    t = t.replace(day=t.day + 1)
+                    t = t + timedelta(days=1)
                 return t
         # "в 7 ранку" / "о 8 ранку" / "в 22 вечора"
         m2 = re.search(r'(?:в|о)\s+(\d{1,2})\s*(ранку|вечора|дня|ночі)?', lower)
@@ -13761,7 +13784,7 @@ $w.Stop()
             if 0 <= h <= 23:
                 t = now.replace(hour=h, minute=0, second=0, microsecond=0)
                 if t <= now:
-                    t = t.replace(day=t.day + 1)
+                    t = t + timedelta(days=1)
                 return t
         return None
 
@@ -13882,6 +13905,11 @@ $w.Stop()
                 "Приклади: «вимкни через 30 секунд» / «вимкни через 2 години» / «вимкни через 10 хвилин»"
             )
             return True
+
+        MAX_SHUTDOWN_DELAY = 86400  # 24 hours max
+        seconds = min(int(seconds), MAX_SHUTDOWN_DELAY)
+        if seconds < 0:
+            seconds = 0
 
         restart_kw = ["перезавантаж", "restart", "reboot"]
         if any(k in lower for k in restart_kw):

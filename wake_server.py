@@ -161,7 +161,12 @@ class WakeBot:
         first   = msg.get("from", {}).get("first_name", "") or ""
 
         # Перевірка дозволів
-        if self.allowed and chat_id not in self.allowed:
+        # SECURITY: if no allowed IDs configured, deny ALL requests
+        if not self.allowed:
+            print(f"[WakeServer] ⚠ No allowed_ids configured — rejecting request from {chat_id}")
+            self.send(chat_id, "⛔ Немає доступу")
+            return
+        if chat_id not in self.allowed:
             self.send(chat_id, "⛔ Немає доступу")
             return
 

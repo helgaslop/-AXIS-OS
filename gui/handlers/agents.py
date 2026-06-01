@@ -63,8 +63,14 @@ class AgentsHandlerMixin:
     def _save_chat_session(self):
         """Persist _chat_history to disk so it survives IDE restarts."""
         try:
-            with open(self._SESSION_FILE, "w", encoding="utf-8") as f:
+            path = self._SESSION_FILE
+            with open(path, "w", encoding="utf-8") as f:
                 json.dump(self._chat_history[-40:], f, ensure_ascii=False, indent=2)
+            import stat
+            try:
+                os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)  # 0o600 — owner read/write only
+            except Exception:
+                pass
         except Exception as e:
             print(f"[Session] save error: {e}", flush=True)
 
