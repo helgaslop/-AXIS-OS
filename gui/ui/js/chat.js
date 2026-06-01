@@ -761,6 +761,8 @@ function handleAiResponse(d){
 }
 
 function handleAiError(d){
+  // Always reset send-pending flag so the user can send again after any error
+  _sendPending = false;
   var id = d.id || '';
   if (id.startsWith('acp_')) {
     if(typeof acpThinkingEl !== 'undefined' && acpThinkingEl){ acpThinkingEl.remove(); acpThinkingEl=null; }
@@ -795,6 +797,14 @@ function handleAiError(d){
     return;
   }
   if(thinkingEl){ thinkingEl.remove(); thinkingEl=null; }
+  pendingReqId = null;
+  // Clean up any partial stream bubble
+  if (_streamBubble) {
+    var _partialErr = _streamBubble.closest('.chat-msg');
+    if (_partialErr) _partialErr.remove();
+    _streamBubble = null;
+    _streamBubbleRaw = '';
+  }
   var errMsg = d.error || 'невідома помилка';
   addChatMsg('ai',
     '⚠ **Всі провайдери недоступні**\n\n' + errMsg +

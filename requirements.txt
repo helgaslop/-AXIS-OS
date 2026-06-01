@@ -15,3 +15,13 @@ pygetwindow>=0.0.9
 pyautogui>=0.9.54
 urllib3>=2.0.0
 keyring>=24.0.0
+# Optional — voice assistant enhanced features
+audioop-lts>=0.2.1        # audioop replacement for Python 3.13+
+edge-tts>=6.1.9           # Microsoft Edge TTS engine
+faster-whisper>=1.0.0     # Faster Whisper STT (uses ctranslate2)
+ctranslate2>=4.0.0        # Required by faster-whisper
+numpy>=1.26.0             # Required by faster-whisper / audio processing
+torch>=2.2.0              # Required by Silero VAD
+# Optional — gesture recognition (install manually if needed)
+# opencv-python>=4.9.0
+# mediapipe>=0.10.0

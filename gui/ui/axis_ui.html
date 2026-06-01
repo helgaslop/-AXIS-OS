@@ -2231,7 +2231,7 @@
               <div class="srow">
                 <label>Ліцензійний ключ</label>
                 <div style="display:flex;gap:6px;align-items:center;">
-                  <input id="licKeyInput" type="text" style="max-width:240px;font-family:monospace;letter-spacing:.06em;font-size:13px;"
+                  <input id="licKeyInput" type="password" style="max-width:240px;font-family:monospace;letter-spacing:.06em;font-size:13px;"
                          placeholder="AXIS-XXXX-XXXX-XXXX-XXXX" autocomplete="off"
                          oninput="this.value=this.value.toUpperCase()">
                   <button class="btn btn-sm" onclick="activateLicense()">✅ Активувати</button>
@@ -2588,7 +2588,7 @@
         <!-- Activation section -->
         <div id="licActivateSection" class="lic-activate-section">
           <div class="lic-activate-row">
-            <input id="licKeyInput2" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" maxlength="24">
+            <input id="licKeyInput2" type="password" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" maxlength="24" autocomplete="off">
             <button class="btn btn-p" onclick="licActivate()">Активувати</button>
           </div>
           <div id="licActivateMsg" class="lic-activate-msg"></div>
@@ -3075,7 +3075,7 @@
         <div class="ob-lic-opt">
           <div style="font-weight:700;margin-bottom:4px;">🔑 Є ключ активації?</div>
           <div style="display:flex;gap:8px;">
-            <input id="obLicKeyInput" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" style="flex:1;">
+            <input id="obLicKeyInput" type="password" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" style="flex:1;" autocomplete="off">
             <button class="btn btn-p" onclick="obActivateLicense()">Активувати</button>
           </div>
         </div>

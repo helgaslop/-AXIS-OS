@@ -4897,10 +4897,14 @@ class AIThread(QThread):
         # Все інше → швидка дешева модель
         return "gpt-4o-mini"
 
+    # Maximum input length sent to any AI provider (prevents context-window abuse / cost spikes)
+    _MAX_INPUT_CHARS = 50_000
+
     def __init__(self, config: dict, msg: str, system_override: str = ""):
         super().__init__()
         self.config           = config
-        self.msg              = msg
+        # Truncate overly long input before it reaches any API
+        self.msg              = msg[:self._MAX_INPUT_CHARS] if len(msg) > self._MAX_INPUT_CHARS else msg
         self.model            = self.pick_model(msg, config)
         self._system_override = system_override
         # Task 1: abort event — set by abort() to cancel in-flight streaming
@@ -5034,7 +5038,11 @@ class AIThread(QThread):
                         _emit_result(result)
                         return
                 except Exception as e:
-                    print(f"[Dialog] {preferred} error: {e}")
+                    # Redact API key from exception message before logging
+                    _safe_err = str(e)
+                    if key and len(key) > 8:
+                        _safe_err = _safe_err.replace(key, key[:4] + "****")
+                    print(f"[Dialog] {preferred} error: {_safe_err}")
 
         # Fallback — інші провайдери
         fallback_order = ["openai", "anthropic", "google", "xai", "perplexity"]
@@ -5052,7 +5060,11 @@ class AIThread(QThread):
                         _emit_result(result)
                         return
                 except Exception as e:
-                    print(f"[Dialog] {prov} fallback error: {e}")
+                    # Redact API key from exception message before logging
+                    _safe_err = str(e)
+                    if key and len(key) > 8:
+                        _safe_err = _safe_err.replace(key, key[:4] + "****")
+                    print(f"[Dialog] {prov} fallback error: {_safe_err}")
                     continue
         self.error.emit("Немає API ключів. Додайте у панелі → API Ключі.")
 
@@ -5093,13 +5105,20 @@ class AIThread(QThread):
                     buf       += token
                     full_text += token
                     buf = self._flush_sentences(buf)
+        except anthropic.RateLimitError:
+            self.error.emit("Anthropic Claude: ліміт запитів (429). Спробуйте через хвилину.")
+            return None
         except Exception:
             # Fallback: non-streaming
-            res = anthropic.Anthropic(api_key=key).messages.create(
-                model="claude-sonnet-4-20250514", max_tokens=max_tok,
-                system=self.SYSTEM, messages=_history_snapshot)
-            full_text = res.content[0].text
-            buf       = full_text
+            try:
+                res = anthropic.Anthropic(api_key=key).messages.create(
+                    model="claude-sonnet-4-20250514", max_tokens=max_tok,
+                    system=self.SYSTEM, messages=_history_snapshot)
+                full_text = res.content[0].text
+                buf       = full_text
+            except anthropic.RateLimitError:
+                self.error.emit("Anthropic Claude: ліміт запитів (429). Спробуйте через хвилину.")
+                return None
 
         # flush remainder
         if buf.strip() and not self._abort_event.is_set():
@@ -5297,6 +5316,10 @@ class AIThread(QThread):
         """OpenAI with streaming (Task 1). Handles tool calls + clarify (Tasks 4, 5)."""
         import json as _j
         from openai import OpenAI
+        try:
+            from openai import RateLimitError as _OAIRateLimit
+        except ImportError:
+            _OAIRateLimit = Exception
         client = OpenAI(api_key=key)
         with AIThread._history_lock:
             msgs   = [{"role": "system", "content": self.SYSTEM}] + list(AIThread._history)
@@ -5311,10 +5334,14 @@ class AIThread(QThread):
         print(f"[AI] model={self.model} max_tokens={max_tok} long={getattr(self,'_long_response',False)}")
 
         # ── Phase 1: streaming with tool-call accumulation ────────────────────
-        stream = client.chat.completions.create(
-            model=self.model, max_tokens=max_tok, messages=msgs,
-            tools=AIThread.TOOLS, tool_choice="auto", stream=True,
-        )
+        try:
+            stream = client.chat.completions.create(
+                model=self.model, max_tokens=max_tok, messages=msgs,
+                tools=AIThread.TOOLS, tool_choice="auto", stream=True,
+            )
+        except _OAIRateLimit:
+            self.error.emit("OpenAI: ліміт запитів (429). Спробуйте через хвилину.")
+            return None
 
         buf       = ""
         full_text = ""
@@ -5394,9 +5421,13 @@ class AIThread(QThread):
 
         # Stream final response after tool results
         buf2 = ""
-        stream2 = client.chat.completions.create(
-            model=self.model, max_tokens=max_tok, messages=msgs, stream=True,
-        )
+        try:
+            stream2 = client.chat.completions.create(
+                model=self.model, max_tokens=max_tok, messages=msgs, stream=True,
+            )
+        except _OAIRateLimit:
+            self.error.emit("OpenAI: ліміт запитів (429). Спробуйте через хвилину.")
+            return full_text or None
         for chunk in stream2:
             if self._abort_event.is_set():
                 try: stream2.close()
@@ -5432,6 +5463,9 @@ class AIThread(QThread):
                       {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
                       {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
                   ]}, timeout=15)
+        if r.status_code == 429:
+            self.error.emit("Google Gemini: ліміт запитів (429). Спробуйте через хвилину.")
+            return None
         if r.status_code == 200:
             parts = r.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
             return parts[0]["text"] if parts else None
@@ -5439,12 +5473,20 @@ class AIThread(QThread):
 
     def _xai(self, key):
         from openai import OpenAI
+        try:
+            from openai import RateLimitError as _RateLimitError
+        except ImportError:
+            _RateLimitError = Exception
         client = OpenAI(api_key=key, base_url="https://api.x.ai/v1")
         with AIThread._history_lock:
             msgs = [{"role": "system", "content": _GROK_PREFIX + self.SYSTEM}] + list(AIThread._history)
-        res = client.chat.completions.create(
-            model="grok-2-latest", max_tokens=500, messages=msgs)
-        return res.choices[0].message.content
+        try:
+            res = client.chat.completions.create(
+                model="grok-2-latest", max_tokens=500, messages=msgs)
+            return res.choices[0].message.content
+        except _RateLimitError:
+            self.error.emit("xAI Grok: ліміт запитів (429). Спробуйте через хвилину.")
+            return None
 
     def _perplexity(self, key):
         import requests
@@ -5453,6 +5495,9 @@ class AIThread(QThread):
         r = requests.post("https://api.perplexity.ai/chat/completions",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
             json={"model": "sonar", "max_tokens": 500, "messages": msgs}, timeout=15)
+        if r.status_code == 429:
+            self.error.emit("Perplexity: ліміт запитів (429). Спробуйте через хвилину.")
+            return None
         if r.status_code == 200:
             return r.json()["choices"][0]["message"]["content"]
         return None

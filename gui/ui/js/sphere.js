@@ -630,7 +630,7 @@ function checkLicenseStatus() {
     return;
   }
 
-  if (inp) inp.value = saved;
+  // Don't populate the input with the saved key — leave it empty so the key stays masked
   ico.textContent = '⏳'; txt.textContent = 'Перевірка ключа...'; sub.textContent = '';
 
   fetch(LICENSE_API, {
@@ -697,6 +697,8 @@ function activateLicense() {
       if (msg) { msg.textContent = '✅ Ключ прийнято і збережено'; msg.style.color = '#3fb950'; }
       var planDisplay2 = planNames[d.plan] || d.plan || '—';
       showToast('🔑 Ліцензію активовано: ' + planDisplay2);
+      // Clear the input so the key is no longer visible
+      if (inp) inp.value = '';
     } else {
       if (ico) ico.textContent = '❌';
       if (txt) { txt.textContent = 'Ключ не прийнято'; txt.style.color = '#f85149'; }
