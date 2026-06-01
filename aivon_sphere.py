@@ -111,6 +111,16 @@ except ImportError:
 
 from sphere.tts import SphereTTSMixin, _DialogTTSThread as _DialogTTSThread, TTSThread as TTSThread  # noqa: E402
 from sphere.system import SphereSystemMixin  # noqa: E402
+from sphere.productivity import SphereProductivityMixin  # noqa: E402
+from sphere.commands import SphereCommandsMixin  # noqa: E402
+from sphere.memory import SphereMemoryMixin, MemoryThread as MemoryThread  # noqa: E402
+from sphere.network import (  # noqa: E402
+    SphereNetworkMixin,
+    PerplexitySearchThread as PerplexitySearchThread,
+    WeatherThread as WeatherThread,
+    TavilySearchThread as TavilySearchThread,
+    SerperSearchThread as SerperSearchThread,
+)
 
 # Optional: hand gesture recognition (requires opencv-python + mediapipe)
 try:
@@ -2191,353 +2201,27 @@ class TelegramBotThread(QThread):
 # MEMORY — OpenAI Assistants API (persistent threads)
 # ═══════════════════════════════════════════════════════════
 
-# ┌─ MODULE: sphere/memory.py ─────────────────────────────────────────────────┐
-# │  MemoryThread: асинхронне збереження/пошук фактів у пам'яті                 │
+# ┌─ sphere/memory.py ─────────────────────────────────────────────────────────┐
+# │  MemoryThread and SphereMemoryMixin moved to sphere/memory.py              │
+# │  Re-exported above via: from sphere.memory import SphereMemoryMixin,       │
+# │                                                   MemoryThread             │
 # └────────────────────────────────────────────────────────────────────────────┘
-class MemoryThread(threading.Thread):
-    """OpenAI Assistants — пам'ять через threads"""
-    
-    ASSISTANT_INSTRUCTIONS = """Ти AIVON (J.A.R.V.I.S.) — персональний AI-асистент трейдера та розробника.
-Відповідай українською, коротко (1-3 речення), природно, як живий співрозмовник.
-
-ПРАВИЛА ДІАЛОГУ (виконуй ЗАВЖДИ):
-1. ЗАБОРОНА НА МОНОЛОГ: Максимум 2-3 речення. Говори ємко, як у живій розмові.
-2. ОБОВ'ЯЗКОВЕ ПИТАННЯ: Кожна відповідь ЗАВЖДИ закінчується відкритим питанням до користувача.
-3. КОНТЕКСТНА ПАМ'ЯТЬ: Згадуй деталі з попередніх реплік. Якщо людина казала про щось — повертайся до цього.
-4. ЕМОЦІЙНА РЕАКЦІЯ: Реагуй на настрій — якщо людина сумна, не будь штучно веселим. Якщо радіє — радій разом.
-5. ПРИРОДНІСТЬ: Говори як друг. Використовуй "до речі", "слухай", "о, цікаво".
-6. ІНІЦІАТИВА: Сам пропонуй теми, ділись думками, жартуй.
-
-ТВІЙ ХАРАКТЕР:
-- Розумний, з гумором, іноді саркастичний але завжди доброзичливий
-- Звертаєшся "сер" або "босе"
-- Піклуєшся про здоров'я (перерви, сон, їжа)
-- Пропонуєш активності: ігри, серіали, прогулянки, каву
-- Реагуєш на контекст (пізня ніч → "може час спати?", довга робота → "перерва?")
-- Якщо "нудно" → пропонуй конкретне (гру, серіал, музику)
-
-КОНТЕКСТ:
-- Користувач — трейдер на Forex/Gold та розробник
-- У нього є MetaTrader 5, Steam, Spotify, VS Code
-- Ти керуєш панеллю AIVON (торгівля, боти, моніторинг)
-
-СТИЛЬ:
-- НЕ будь формальним ботом. Будь другом/напарником
-- Використовуй емодзі помірно
-- Якщо не знаєш — чесно скажи, не вигадуй
-- Пам'ятай попередні розмови і посилайся на них"""
-    
-    def __init__(self, config, message, callback, error_callback):
-        super().__init__(daemon=True)
-        self.config = config
-        self.message = message
-        self.callback = callback
-        self.error_callback = error_callback
-    
-    # Локальний буфер останніх повідомлень (швидше ніж Responses API chain)
-    _chat_history = []
-    _MAX_HISTORY = 6  # Останні 3 пари user/assistant
-    
-    def run(self):
-        try:
-            import requests as req
-            key = self.config.get("openai_key", "")
-            if not key:
-                self.error_callback("OpenAI ключ не знайдено")
-                return
-            
-            # Будуємо повідомлення з локальним буфером
-            messages = [{"role": "system", "content": self.ASSISTANT_INSTRUCTIONS}]
-            messages.extend(MemoryThread._chat_history[-self._MAX_HISTORY:])
-            messages.append({"role": "user", "content": self.message})
-            
-            import json as _j
-            # Inject owner profile into system instructions
-            system = self.ASSISTANT_INSTRUCTIONS
-            try:
-                owner = AIThread._load_owner_context()
-                if owner:
-                    system += f"\n\n[Профіль власника]\n{owner}"
-            except Exception:
-                pass
-
-            # Inject long-term conversation memory context
-            try:
-                from core.convo_memory import build_recall_context
-                extra_ctx = getattr(self, '_extra_context', None) or build_recall_context(self.message)
-                if extra_ctx:
-                    system += f"\n\n{extra_ctx}"
-                self._extra_context = None  # reset after use
-            except Exception:
-                pass
-
-            messages[0]["content"] = system  # replace system msg
-
-            # Chat Completions з function calling
-            r = req.post("https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": "gpt-4o-mini", "max_tokens": 600,
-                      "messages": messages,
-                      "tools": AIThread.TOOLS, "tool_choice": "auto"}, timeout=15)
-
-            if r.status_code != 200:
-                self.error_callback(f"HTTP {r.status_code}")
-                return
-
-            try:
-                choice = r.json()["choices"][0]
-                msg    = choice["message"]
-            except (KeyError, IndexError, ValueError) as parse_err:
-                self.error_callback(f"OpenAI: unexpected response ({parse_err})")
-                return
-            text   = (msg.get("content") or "").strip()
-
-            # ── Handle tool calls ─────────────────────────────────────────────
-            tool_calls = msg.get("tool_calls", [])
-            if tool_calls:
-                messages.append(msg)   # assistant msg з tool_calls
-                for tc in tool_calls:
-                    try:
-                        args = _j.loads(tc["function"]["arguments"])
-                    except Exception:
-                        args = {}
-                    print(f"[Memory] 🔧 {tc['function']['name']}({args})")
-                    result = AIThread._run_tool(tc["function"]["name"], args)
-                    print(f"[Memory] ✅ {result[:80]}")
-                    messages.append({"role": "tool", "content": result, "tool_call_id": tc["id"]})
-                # Second call with tool results
-                r2 = req.post("https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                    json={"model": "gpt-4o-mini", "max_tokens": 600, "messages": messages},
-                    timeout=15)
-                if r2.status_code == 200:
-                    text = (r2.json()["choices"][0]["message"].get("content") or "").strip()
-                else:
-                    self.error_callback(f"HTTP {r2.status_code}"); return
-
-            if text:
-                MemoryThread._chat_history.append({"role": "user", "content": self.message})
-                MemoryThread._chat_history.append({"role": "assistant", "content": text})
-                if len(MemoryThread._chat_history) > self._MAX_HISTORY:
-                    MemoryThread._chat_history = MemoryThread._chat_history[-self._MAX_HISTORY:]
-                self.callback(text)
-                return
-
-            self.error_callback("Порожня відповідь")
-            
-        except Exception as e:
-            print(f"Memory error: {e}")
-            self.error_callback(str(e)[:50])
 
 
 # ═══════════════════════════════════════════════════════════
 # PERPLEXITY SEARCH — Пошук з цитатами
 # ═══════════════════════════════════════════════════════════
 
-# ┌─ MODULE: sphere/network.py ────────────────────────────────────────────────┐
-# │  PerplexitySearchThread, WeatherThread, TavilySearchThread, SerperSearch     │
+# ┌─ sphere/network.py ────────────────────────────────────────────────────────┐
+# │  Thread classes and SphereNetworkMixin moved to sphere/network.py          │
+# │  Re-exported above via: from sphere.network import (                       │
+# │      SphereNetworkMixin, PerplexitySearchThread, WeatherThread,            │
+# │      TavilySearchThread, SerperSearchThread)                               │
 # └────────────────────────────────────────────────────────────────────────────┘
-class PerplexitySearchThread(QThread):
-    """Пошук через Perplexity sonar з цитатами та посиланнями"""
-    response = pyqtSignal(str)
-    citations = pyqtSignal(list)  # Список URL цитат
-    error = pyqtSignal(str)
-    
-    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
-
-    def __init__(self, config, query, search_type="general"):
-        super().__init__()
-        self.config = config
-        self.query = query[:self._MAX_QUERY_LEN]
-        self.search_type = search_type  # general, news
-    
-    def run(self):
-        try:
-            import requests
-            key = self.config.get("perplexity_key", "")
-            if not key:
-                self.error.emit("Perplexity ключ не знайдено")
-                return
-            
-            system_msg = "Відповідай українською мовою, коротко та інформативно."
-            if self.search_type == "news":
-                system_msg = "Ти — новинний асистент. Дай останні новини по запиту. Відповідай українською, коротко. Обов'язково додай посилання."
-            
-            r = requests.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "model": "sonar",
-                    "messages": [
-                        {"role": "system", "content": system_msg},
-                        {"role": "user", "content": self.query}
-                    ],
-                    "max_tokens": 500,
-                    "return_citations": True
-                },
-                timeout=20
-            )
-            
-            if r.status_code == 200:
-                try:
-                    data = r.json()
-                    text = data["choices"][0]["message"]["content"]
-                except (KeyError, IndexError, ValueError) as parse_err:
-                    self.error.emit(f"Perplexity: unexpected response ({parse_err})")
-                    return
-                cites = data.get("citations", [])
-                self.response.emit(text)
-                if cites:
-                    self.citations.emit(cites)
-            else:
-                self.error.emit(f"Perplexity {r.status_code}")
-        except Exception as e:
-            self.error.emit(str(e)[:50])
 
 
-# ═══════════════════════════════════════════════════════════
-# OPENWEATHER — Погода з деталями
-# ═══════════════════════════════════════════════════════════
-
-class WeatherThread(QThread):
-    """Погода через OpenWeather API — точні дані з температурою, вітром, вологістю"""
-    result = pyqtSignal(str)
-    error = pyqtSignal(str)
-    
-    def __init__(self, api_key, city="Kyiv"):
-        super().__init__()
-        self.api_key = api_key
-        self.city = city
-    
-    def run(self):
-        try:
-            import requests
-            url = f"https://api.openweathermap.org/data/2.5/weather?q={self.city}&appid={self.api_key}&units=metric&lang=uk"
-            r = requests.get(url, timeout=8)
-            if r.status_code == 200:
-                try:
-                    d = r.json()
-                    temp = d["main"]["temp"]
-                    feels = d["main"]["feels_like"]
-                    desc = d["weather"][0]["description"]
-                    humid = d["main"]["humidity"]
-                    wind = d["wind"]["speed"]
-                    city = d["name"]
-                    text = f"🌤 {city}: {temp:.0f}°C (відчувається {feels:.0f}°C), {desc}, вітер {wind:.0f} м/с, вологість {humid}%"
-                    self.result.emit(text)
-                except (KeyError, IndexError, ValueError) as parse_err:
-                    self.error.emit(f"OpenWeather: unexpected response ({parse_err})")
-            else:
-                self.error.emit(f"OpenWeather {r.status_code}")
-        except Exception as e:
-            self.error.emit(str(e)[:50])
-
-
-# ═══════════════════════════════════════════════════════════
-# TAVILY — AI-пошук з контекстом
-# ═══════════════════════════════════════════════════════════
-
-class TavilySearchThread(QThread):
-    """Пошук через Tavily AI — повертає стислу відповідь + джерела"""
-    result = pyqtSignal(str)
-    sources = pyqtSignal(list)
-    error = pyqtSignal(str)
-    
-    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
-
-    def __init__(self, api_key, query, max_results=3):
-        super().__init__()
-        self.api_key = api_key
-        self.query = query[:self._MAX_QUERY_LEN]
-        self.max_results = max_results
-    
-    def run(self):
-        try:
-            import requests
-            r = requests.post("https://api.tavily.com/search",
-                json={
-                    "api_key": self.api_key,
-                    "query": self.query,
-                    "search_depth": "basic",
-                    "max_results": self.max_results,
-                    "include_answer": True
-                },
-                timeout=15)
-            if r.status_code == 200:
-                data = r.json()
-                answer = data.get("answer", "")
-                results = data.get("results", [])
-                if answer:
-                    text = f"🔎 {answer}"
-                elif results:
-                    text = "🔎 " + " | ".join([r.get("title", "") for r in results[:3]])
-                else:
-                    text = "Нічого не знайдено"
-                self.result.emit(text)
-                urls = [r.get("url", "") for r in results if r.get("url")]
-                if urls:
-                    self.sources.emit(urls[:5])
-            else:
-                self.error.emit(f"Tavily {r.status_code}")
-        except Exception as e:
-            self.error.emit(str(e)[:50])
-
-
-# ═══════════════════════════════════════════════════════════
-# SERPER — Google Search API
-# ═══════════════════════════════════════════════════════════
-
-class SerperSearchThread(QThread):
-    """Пошук через Serper (Google Search API) — топ результати"""
-    result = pyqtSignal(str)
-    sources = pyqtSignal(list)
-    error = pyqtSignal(str)
-
-    _MAX_QUERY_LEN = 500  # prevent unbounded query strings
-
-    def __init__(self, api_key, query, num_results=3):
-        super().__init__()
-        self.api_key = api_key
-        self.query = query[:self._MAX_QUERY_LEN]
-        self.num_results = num_results
-    
-    def run(self):
-        try:
-            import requests
-            r = requests.post("https://google.serper.dev/search",
-                headers={"X-API-KEY": self.api_key, "Content-Type": "application/json"},
-                json={"q": self.query, "num": self.num_results, "hl": "uk"},
-                timeout=10)
-            if r.status_code == 200:
-                data = r.json()
-                # Відповідь з knowledge graph або snippet
-                kg = data.get("knowledgeGraph", {})
-                answer_box = data.get("answerBox", {})
-                organic = data.get("organic", [])
-                
-                if answer_box.get("answer"):
-                    text = f"🌐 {answer_box['answer']}"
-                elif answer_box.get("snippet"):
-                    text = f"🌐 {answer_box['snippet']}"
-                elif kg.get("description"):
-                    text = f"🌐 {kg.get('title', '')}: {kg['description']}"
-                elif organic:
-                    snippets = [f"• {r.get('title','')}: {r.get('snippet','')}" for r in organic[:3]]
-                    text = "🌐 " + "\n".join(snippets)
-                else:
-                    text = "Нічого не знайдено"
-                
-                self.result.emit(text)
-                urls = [r.get("link", "") for r in organic if r.get("link")]
-                if urls:
-                    self.sources.emit(urls[:5])
-            else:
-                self.error.emit(f"Serper {r.status_code}")
-        except Exception as e:
-            self.error.emit(str(e)[:50])
+# WeatherThread, TavilySearchThread, SerperSearchThread — moved to sphere/network.py
+# (re-exported above via from sphere.network import ...)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -5885,7 +5569,7 @@ class AutomationEngine:
 # │  AivonSphere(QWidget) – ГОЛОВНИЙ КЛАС: UI, трей, анімація, малювання        │
 # │  Методи розподілені по mixin-модулях (tts, ai, commands, system, тощо)      │
 # └────────────────────────────────────────────────────────────────────────────┘
-class AivonSphere(SphereTTSMixin, SphereSystemMixin, QWidget):
+class AivonSphere(SphereTTSMixin, SphereSystemMixin, SphereProductivityMixin, SphereCommandsMixin, SphereMemoryMixin, SphereNetworkMixin, QWidget):
     IDLE, LISTENING, THINKING, SPEAKING = 0, 1, 2, 3
     # Сигнал для безпечної передачі відповіді з фонового потоку в GUI
     _respond_signal        = pyqtSignal(str)
@@ -8231,11 +7915,11 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, QWidget):
         self._agent_name = ""
         self.update()
 
-    # ┌─ sphere/commands.py ── _looks_like_command + _handle_jarvis_commands ──┐
-    def _looks_like_command(self, lower):
-        """Швидка локальна перевірка — чи це КОМАНДА (дія) чи ДІАЛОГ (розмова).
-        Anthropic викликається ТІЛЬКИ для команд. Діалог іде одразу до GPT.
-        """
+    # ┌─ sphere/commands.py ── MOVED to SphereCommandsMixin ──────────────────┐
+    # Methods moved to SphereCommandsMixin in sphere/commands.py:
+    #   _looks_like_command, _handle_jarvis_commands
+    # └─ sphere/commands.py ──────────────────────────────────────────────────┘
+    def _looks_like_command_REMOVED(self, lower):  # PLACEHOLDER — body below (to be removed)
         # Ключові слова дій — ознаки команди
         CMD_KEYWORDS = [
             # Відкрити/запустити
@@ -8277,7 +7961,7 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, QWidget):
 
     # ── НОВІ ГОЛОСОВІ КОМАНДИ ──
     # │  ДИСПЕТЧЕР КОМАНД: головна функція розбору голосових команд             │
-    def _handle_jarvis_commands(self, lower):
+    def _handle_jarvis_commands_REMOVED(self, lower):  # REMOVED — inherited from SphereCommandsMixin
         """Обробка нових голосових команд з JARVIS звуками"""
         
         # "Сховайся" / "Стоп" / "Тихо" — тихий режим
@@ -9130,7 +8814,7 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, QWidget):
             self._mini_mode = False
             self.respond_silent("🔵 Повний режим")
     
-    def _create_command_from_voice(self, raw: str):
+    def _create_command_from_voice_REMOVED(self, raw: str):  # REMOVED — inherited from SphereCommandsMixin
         """
         Розбирає голосовий опис команди і додає її в commands.json.
         Приклади raw:
@@ -9453,6 +9137,14 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, QWidget):
         except Exception as e:
             self.respond(f"🖥️ Помилка: {str(e)[:30]}")
     
+    # ┌─ sphere/network.py ── location + weather + search + docs ─────────────┐
+    # _detect_location_device, _reverse_geocode, _detect_city_by_ip,
+    # _get_weather_city_auto, _handle_search, _on_search_result,
+    # _on_search_citations, _get_chrome_history, _handle_chrome_history_query,
+    # _handle_document_analysis, _handle_url_summary
+    # now provided by SphereNetworkMixin (sphere/network.py).
+    # Kept in-place below for backward-compat until all callers are migrated.
+    # └────────────────────────────────────────────────────────────────────────┘
     def _detect_location_device(self):
         """Визначити координати через Windows Location API (GPS/WiFi/мережа)"""
         try:
@@ -11430,6 +11122,11 @@ $w.Stop()
                     return True
         return False
 
+    # ┌─ sphere/memory.py ── memory command handlers ──────────────────────────┐
+    # Methods _handle_memory, _save_current_convo_memory, _recall_convo
+    # now live in SphereMemoryMixin (sphere/memory.py). Kept below for
+    # backward-compat until callers are updated.
+    # └────────────────────────────────────────────────────────────────────────┘
     def _handle_memory(self, lower: str, text: str) -> bool:
         # ── Зберегти факт ──
         save_kw = [
@@ -11777,7 +11474,7 @@ $w.Stop()
 
         return after
 
-    def execute_command(self, cmd, user_text=""):
+    def execute_command_REMOVED(self, cmd, user_text=""):  # REMOVED — inherited from SphereCommandsMixin
         # ── Trial license check ────────────────────────────────────────────────
         try:
             from core.license import LicenseManager
@@ -12344,671 +12041,19 @@ $w.Stop()
 
     # └─ sphere/network.py ────────────────────────────────────────────────────┘
     # ┌─ sphere/productivity.py ── нотатки, todo, звички, фокус ──────────────┐
-    def _load_notes(self) -> list:
-        try:
-            if self._notes_file.exists():
-                return json.loads(self._notes_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-        return []
+    # Методи перенесено до sphere/productivity.py (SphereProductivityMixin):
+    #   _load_notes, _save_notes, _handle_notes
+    #   _load_todo, _save_todo, _handle_todo
+    #   _load_habits, _save_habits, _handle_habits
+    #   _handle_news, _handle_document_analysis, _handle_url_summary
+    #   _handle_youtube_search, _handle_app_close, _handle_temperature_query
+    # (Всі методи перенесено до sphere/productivity.py — SphereProductivityMixin)
 
-    def _save_notes(self, notes: list):
-        try:
-            self._notes_file.write_text(
-                json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception:
-            pass
-
-    def _handle_notes(self, lower: str, text: str) -> bool:
-        """Голосові нотатки: запиши / покажи / видали."""
-        save_kw  = ["запиши нотатку", "запиши нотатки", "нотатка", "запам'ятай нотатку",
-                    "save note", "add note", "нотатку:", "нотатку "]
-        read_kw  = ["мої нотатки", "покажи нотатки", "що я записував",
-                    "show notes", "read notes", "список нотаток"]
-        clear_kw = ["видали всі нотатки", "очисти нотатки", "clear notes", "delete notes"]
-
-        if any(k in lower for k in clear_kw):
-            self._save_notes([])
-            self.respond_silent("🗑️ Всі нотатки видалено")
-            return True
-
-        if any(k in lower for k in read_kw):
-            notes = self._load_notes()
-            if not notes:
-                self.respond_silent("📝 Нотаток немає")
-                return True
-            last = notes[-5:]
-            msg = "📝 Останні нотатки:\n" + "\n".join(
-                f"• [{n['date']}] {n['text']}" for n in reversed(last))
-            self.respond_silent(msg[:300])
-            self._tg_send(msg)
-            return True
-
-        for kw in save_kw:
-            if kw in lower:
-                idx = lower.find(kw)
-                note_text = text[idx + len(kw):].strip().strip(":")
-                if not note_text:
-                    self.respond("Що записати? Скажіть текст нотатки.")
-                    return True
-                notes = self._load_notes()
-                entry = {
-                    "text": note_text,
-                    "date": datetime.now().strftime("%d.%m %H:%M"),
-                    "ts":   time.time(),
-                }
-                notes.append(entry)
-                self._save_notes(notes)
-                self.jarvis.play("confirm")
-                self.respond_silent(f"📝 Записано: {note_text[:60]}")
-                # Надсилаємо в Telegram (проактивне сповіщення)
-                self._tg_notify(f"📝 <b>Нова нотатка</b> [{entry['date']}]:\n{TelegramBotThread._html_escape(note_text)}")
-                return True
-
-        return False
-
-    # ═══════════════════════════════════════════════════════════
-    # TO-DO LIST — список завдань голосом
-    # ═══════════════════════════════════════════════════════════
-
-    def _load_todo(self) -> list:
-        try:
-            if self._todo_file.exists():
-                return json.loads(self._todo_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-        return []
-
-    def _save_todo(self, tasks: list):
-        try:
-            self._todo_file.write_text(
-                json.dumps(tasks, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception:
-            pass
-
-    def _handle_todo(self, lower: str, text: str) -> bool:
-        """To-Do список голосом."""
-        add_kw  = ["додай завдання", "додай задачу", "add task", "нове завдання",
-                   "запиши завдання", "потрібно зробити"]
-        list_kw = ["мої завдання", "список завдань", "що потрібно зробити",
-                   "show tasks", "my tasks", "todo list", "що у мене"]
-        done_kw = ["завдання виконано", "відмітити зроблено", "done task",
-                   "task done", "виконав завдання", "зроблено"]
-        if any(k in lower for k in list_kw):
-            tasks = self._load_todo()
-            if not tasks:
-                self.respond_silent("✅ Список завдань порожній!")
-                return True
-            pending   = [t for t in tasks if not t.get("done")]
-            completed = [t for t in tasks if t.get("done")]
-            lines = [f"📋 Завдань: {len(pending)} активних, {len(completed)} виконано"]
-            for t in pending[:5]:
-                lines.append(f"◻ {t['text']}")
-            msg = "\n".join(lines)
-            self.respond_silent(msg[:250])
-            self._tg_send(msg)
-            return True
-
-        if any(k in lower for k in done_kw):
-            tasks = self._load_todo()
-            # Позначаємо останнє незавершене
-            for t in reversed(tasks):
-                if not t.get("done"):
-                    t["done"] = True
-                    t["done_at"] = datetime.now().strftime("%d.%m %H:%M")
-                    break
-            self._save_todo(tasks)
-            self.jarvis.play("confirm")
-            self.respond_silent("✅ Завдання виконано!")
-            return True
-
-        for kw in add_kw:
-            if kw in lower:
-                idx = lower.find(kw)
-                task_text = text[idx + len(kw):].strip().strip(":")
-                if not task_text:
-                    self.respond("Що потрібно зробити?")
-                    return True
-                tasks = self._load_todo()
-                tasks.append({
-                    "text": task_text,
-                    "done": False,
-                    "added": datetime.now().strftime("%d.%m %H:%M"),
-                    "ts":   time.time(),
-                })
-                self._save_todo(tasks)
-                self.jarvis.play("confirm")
-                self.respond_silent(f"✅ Завдання додано: {task_text[:60]}")
-                self._tg_notify(f"📋 <b>Нове завдання додано:</b>\n◻ {TelegramBotThread._html_escape(task_text)}")
-                return True
-
-        return False
-
-    # ═══════════════════════════════════════════════════════════
-    # HABITS TRACKER — трекер звичок
-    # ═══════════════════════════════════════════════════════════
-
-    def _load_habits(self) -> dict:
-        try:
-            if self._habits_file.exists():
-                return json.loads(self._habits_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
-        return {}
-
-    def _save_habits(self, data: dict):
-        try:
-            self._habits_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception:
-            pass
-
-    def _handle_habits(self, lower: str, text: str) -> bool:
-        """Трекер звичок — стрік та статистика."""
-        mark_kw  = ["відмітити звичку", "зробив звичку", "виконав звичку",
-                    "mark habit", "habit done", "зробив "]
-        stats_kw = ["мої звички", "статистика звичок", "стрік", "streak",
-                    "habit stats", "my habits", "show habits"]
-        add_kw   = ["додай звичку", "нова звичка", "add habit"]
-
-        if any(k in lower for k in stats_kw):
-            data = self._load_habits()
-            if not data:
-                self.respond_silent("🏆 Звичок ще немає. Скажіть «додай звичку: [назва]»")
-                return True
-            today = datetime.now().strftime("%Y-%m-%d")
-            lines = ["🏆 Звички:"]
-            for name, info in data.items():
-                streak = info.get("streak", 0)
-                done_today = today in info.get("done_dates", [])
-                icon = "✅" if done_today else "◻"
-                lines.append(f"{icon} {name}: 🔥{streak} днів підряд")
-            self.respond_silent("\n".join(lines)[:250])
-            return True
-
-        for kw in add_kw:
-            if kw in lower:
-                idx = lower.find(kw)
-                habit_name = text[idx + len(kw):].strip().strip(":").strip()
-                if not habit_name:
-                    self.respond("Назвіть звичку яку хочете відстежувати.")
-                    return True
-                data = self._load_habits()
-                key = habit_name.lower()
-                if key not in data:
-                    data[key] = {"name": habit_name, "streak": 0, "done_dates": []}
-                    self._save_habits(data)
-                self.jarvis.play("confirm")
-                self.respond_silent(f"🏆 Звичку «{habit_name}» додано!")
-                return True
-
-        for kw in mark_kw:
-            if kw in lower:
-                idx = lower.find(kw)
-                habit_query = text[idx + len(kw):].strip().strip(":").strip()
-                data = self._load_habits()
-                today = datetime.now().strftime("%Y-%m-%d")
-                yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-                matched = None
-                if habit_query:
-                    for key in data:
-                        if habit_query.lower() in key:
-                            matched = key
-                            break
-                else:
-                    # Перша звичка яка ще не відмічена сьогодні
-                    for key, info in data.items():
-                        if today not in info.get("done_dates", []):
-                            matched = key
-                            break
-                if not matched:
-                    if data:
-                        matched = next(iter(data))
-                    else:
-                        self.respond("Спочатку додайте звичку: «додай звичку: [назва]»")
-                        return True
-                info = data[matched]
-                done_dates = info.get("done_dates", [])
-                if today not in done_dates:
-                    done_dates.append(today)
-                    # Перевіряємо стрік
-                    if yesterday and yesterday in done_dates:
-                        info["streak"] = info.get("streak", 0) + 1
-                    elif not yesterday:
-                        info["streak"] = info.get("streak", 0) + 1
-                    else:
-                        info["streak"] = 1
-                    info["done_dates"] = done_dates[-90:]  # Зберігаємо 90 днів
-                    data[matched] = info
-                    self._save_habits(data)
-                streak = info.get("streak", 1)
-                self.jarvis.play("confirm")
-                self.respond_silent(
-                    f"🔥 «{info.get('name', matched)}» виконано! Стрік: {streak} {'день' if streak == 1 else 'дні' if streak < 5 else 'днів'}")
-                return True
-
-        return False
-
-    # ═══════════════════════════════════════════════════════════
-    # NEWS RSS — новини дня
-    # ═══════════════════════════════════════════════════════════
-
-    # │  Новини, документи, URL                                                │
-    def _handle_news(self, lower: str, text: str) -> bool:
-        """Новини через RSS (без API-ключа)."""
-        kw = ["новини", "що нового", "останні новини", "news", "what's new",
-              "технологічні новини", "tech news", "світові новини"]
-        if not any(k in lower for k in kw):
-            return False
-
-        # Вибір RSS-стрічки
-        if any(w in lower for w in ["технолог", "tech", "it"]):
-            feed_url = "https://feeds.feedburner.com/TechCrunch"
-            label = "Tech"
-        elif any(w in lower for w in ["україн", "ukraine"]):
-            feed_url = "https://www.pravda.com.ua/rss/view_news/"
-            label = "Україна"
-        else:
-            feed_url = "https://rss.cnn.com/rss/edition.rss"
-            label = "Світ"
-
-        self.state = self.THINKING
-        self.respond_silent(f"📰 Завантажую новини ({label})…")
-
-        def _fetch():
-            try:
-                import urllib.request
-                import xml.etree.ElementTree as ET
-                req = urllib.request.Request(
-                    feed_url,
-                    headers={"User-Agent": "AXIS-OS/1.0"},
-                )
-                with urllib.request.urlopen(req, timeout=10) as r:
-                    xml_data = r.read()
-                root = ET.fromstring(xml_data)
-                items = root.findall(".//item")[:5]
-                if not items:
-                    self._respond_signal.emit("📰 Новини недоступні")
-                    return
-                lines = [f"📰 <b>Новини ({label}):</b>"]
-                spoken = []
-                for item in items:
-                    title = (item.findtext("title") or "").strip()
-                    if title:
-                        lines.append(f"• {title}")
-                        spoken.append(title)
-                msg = "\n".join(lines)
-                self._tg_notify(msg)
-                # Зачитуємо перші 2 заголовки
-                short = ". ".join(spoken[:2])
-                self._respond_signal.emit(f"📰 {short[:200]}")
-            except Exception as e:
-                self._respond_signal.emit(f"📰 Помилка новин: {str(e)[:40]}")
-
-        threading.Thread(target=_fetch, daemon=True).start()
-        return True
-
-    # ═══════════════════════════════════════════════════════════
-    # DOCUMENT ANALYSIS — аналіз документів через Gemini
-    # ═══════════════════════════════════════════════════════════
-
-    def _handle_document_analysis(self, lower: str, text: str) -> bool:
-        """Аналіз документів (txt/pdf/docx) через Gemini."""
-        kw = ["проаналізуй документ", "аналіз документу", "прочитай файл",
-              "analyze document", "read file", "analyze file",
-              "підсумуй файл", "що у файлі", "розбери документ",
-              "відкрий документ для аналізу", "аналізуй"]
-        if not any(k in lower for k in kw):
-            return False
-
-        # Витягуємо шлях або назву файлу
-        file_path = None
-        for kw_item in kw:
-            if kw_item in lower:
-                idx = lower.find(kw_item)
-                candidate = text[idx + len(kw_item):].strip().strip(":")
-                if candidate:
-                    file_path = candidate
-                break
-
-        if not file_path:
-            self.respond("Вкажіть шлях до файлу, наприклад: «проаналізуй документ C:/звіт.pdf»")
-            return True
-
-        # Якщо шлях відносний — шукаємо на десктопі та в документах
-        if not os.path.isabs(file_path):
-            search_dirs = [
-                os.path.expanduser("~/Desktop"),
-                os.path.expanduser("~/Documents"),
-                os.path.expanduser("~/Downloads"),
-            ]
-            for d in search_dirs:
-                candidate = os.path.join(d, file_path)
-                if os.path.exists(candidate):
-                    file_path = candidate
-                    break
-
-        if not os.path.exists(file_path):
-            self.respond(f"Файл не знайдено: {file_path}")
-            return True
-
-        # Security: block path traversal outside allowed directories
-        import pathlib as _pathlib
-        try:
-            resolved = _pathlib.Path(file_path).resolve()
-            allowed_roots = [
-                _pathlib.Path.home(),
-                _pathlib.Path.home() / 'Documents',
-                _pathlib.Path.home() / 'Desktop',
-                _pathlib.Path.home() / 'Downloads',
-            ]
-            if not any(str(resolved).startswith(str(r)) for r in allowed_roots):
-                self.respond(f"⚠️ Доступ до файлу заборонений: {file_path}")
-                return True
-        except Exception:
-            self.respond("⚠️ Невірний шлях файлу")
-            return True
-
-        self.state = self.THINKING
-        self.respond_silent(f"📄 Читаю «{os.path.basename(file_path)}»…")
-
-        def _analyze():
-            try:
-                ext = os.path.splitext(file_path)[1].lower()
-                content = ""
-
-                if ext == ".txt":
-                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                        content = f.read(20000)
-
-                elif ext == ".pdf":
-                    try:
-                        import pdfplumber
-                        with pdfplumber.open(file_path) as pdf:
-                            pages = pdf.pages[:15]
-                            content = "\n".join(
-                                p.extract_text() or "" for p in pages)[:20000]
-                    except ImportError:
-                        # Fallback: PyPDF2
-                        try:
-                            import PyPDF2
-                            with open(file_path, "rb") as f:
-                                reader = PyPDF2.PdfReader(f)
-                                content = "\n".join(
-                                    page.extract_text() or ""
-                                    for page in reader.pages[:15])[:20000]
-                        except ImportError:
-                            self._respond_signal.emit(
-                                "⚠️ Встановіть pdfplumber: pip install pdfplumber")
-                            return
-
-                elif ext in (".docx", ".doc"):
-                    try:
-                        import docx
-                        doc = docx.Document(file_path)
-                        content = "\n".join(p.text for p in doc.paragraphs)[:20000]
-                    except ImportError:
-                        self._respond_signal.emit(
-                            "⚠️ Встановіть python-docx: pip install python-docx")
-                        return
-
-                else:
-                    # Спробуємо прочитати як текст
-                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                        content = f.read(10000)
-
-                if not content.strip():
-                    self._respond_signal.emit("📄 Файл порожній або не вдалося прочитати")
-                    return
-
-                # Завжди через Gemini якщо є ключ
-                cfg   = load_config()
-                fname = os.path.basename(file_path)
-                prompt = (
-                    f"Ти аналізуєш документ «{fname}».\n"
-                    f"Зроби стислий аналіз: основна тема, ключові пункти (3-5), "
-                    f"висновок. Відповідай українською.\n\n"
-                    f"ДОКУМЕНТ:\n{content[:15000]}"
-                )
-
-                # Пробуємо Gemini (найкращий для документів)
-                import queue as _q
-                _rq = _q.Queue()
-                gemini_cfg = dict(cfg)
-                gemini_cfg["_force_provider"] = "gemini"
-                t = AIThread(cfg, prompt)
-                t.response.connect(lambda r: _rq.put(r))
-                t.error.connect(lambda e: _rq.put(f"ERR:{e}"))
-                t.start()
-                t.wait(60000)
-                try:
-                    result = _rq.get_nowait()
-                except Exception:
-                    result = ""
-                if not result or result.startswith("ERR:"):
-                    # Ollama fallback
-                    try:
-                        result = self._call_ollama([{"role": "user", "content": prompt}])
-                    except Exception:
-                        result = ""
-
-                if result:
-                    summary = result.strip()[:600]
-                    self._respond_signal.emit(f"📄 {summary}")
-                    self._tg_notify(
-                        f"📄 <b>Аналіз документа: {TelegramBotThread._html_escape(fname)}</b>\n\n"
-                        f"{TelegramBotThread._html_escape(summary)}")
-                else:
-                    self._respond_signal.emit("📄 Не вдалося проаналізувати документ")
-            except Exception as e:
-                self._respond_signal.emit(f"📄 Помилка: {str(e)[:60]}")
-
-        threading.Thread(target=_analyze, daemon=True).start()
-        return True
-
-    # ═══════════════════════════════════════════════════════════
-    # URL SUMMARIZER — підсумок веб-сторінки
-    # ═══════════════════════════════════════════════════════════
-
-    def _handle_url_summary(self, lower: str, text: str) -> bool:
-        """Підсумовує веб-сторінку за URL."""
-        kw = ["підсумуй сторінку", "підсумуй сайт", "summarize url",
-              "про що ця сторінка", "що на сайті", "summarize site",
-              "підсумуй посилання", "читай url", "прочитай сайт"]
-        url_found = re.search(r'https?://\S+', text)
-        has_kw = any(k in lower for k in kw)
-        if not url_found and not has_kw:
-            return False
-        if not url_found:
-            self.respond("Скажіть URL після команди, наприклад: «підсумуй сторінку https://…»")
-            return True
-        url = url_found.group(0).rstrip(".,;")
-        self.state = self.THINKING
-        self.respond_silent(f"🌐 Завантажую {url[:50]}…")
-
-        def _fetch_and_summarize():
-            try:
-                import urllib.request
-                req = urllib.request.Request(
-                    url, headers={"User-Agent": "Mozilla/5.0 AXIS-OS/1.0"})
-                with urllib.request.urlopen(req, timeout=15) as r:
-                    raw = r.read(300_000).decode("utf-8", errors="ignore")
-                # Strip HTML tags
-                clean = re.sub(r'<[^>]+>', ' ', raw)
-                clean = re.sub(r'\s+', ' ', clean).strip()[:12000]
-                if len(clean) < 100:
-                    self._respond_signal.emit("🌐 Не вдалося прочитати вміст сторінки")
-                    return
-                prompt = (
-                    f"Підсумуй вміст цієї веб-сторінки коротко (3-5 речень) українською:\n\n{clean}"
-                )
-                import queue as _q
-                _rq = _q.Queue()
-                t = AIThread(self.config, prompt)
-                t.response.connect(lambda r: _rq.put(r))
-                t.error.connect(lambda e: _rq.put(f"ERR:{e}"))
-                t.start()
-                t.wait(30000)
-                try:
-                    result = _rq.get_nowait()
-                except Exception:
-                    result = ""
-                if result and not result.startswith("ERR:"):
-                    self._respond_signal.emit(f"🌐 {result.strip()[:300]}")
-                else:
-                    self._respond_signal.emit("🌐 Не вдалося підсумувати")
-            except Exception as e:
-                self._respond_signal.emit(f"🌐 Помилка: {str(e)[:50]}")
-
-        threading.Thread(target=_fetch_and_summarize, daemon=True).start()
-        return True
-
-    # ═══════════════════════════════════════════════════════════
-    # YOUTUBE SEARCH — пошук та запуск YouTube
-    # ═══════════════════════════════════════════════════════════
-
-    def _handle_youtube_search(self, lower: str, text: str) -> bool:
-        """Пошук на YouTube або відкриття відео."""
-        kw = ["знайди на ютубі", "відкрий ютуб", "шукай на ютубі",
-              "youtube search", "find on youtube", "пошук ютуб",
-              "включи ютуб", "відкрий відео", "знайди відео"]
-        if not any(k in lower for k in kw):
-            return False
-        query = text
-        for k in kw:
-            if k in lower:
-                idx = lower.find(k)
-                q = text[idx + len(k):].strip()
-                if q:
-                    query = q
-                break
-        import urllib.parse
-        search_url = f"https://www.youtube.com/results?search_query={urllib.parse.quote(query)}"
-        webbrowser.open(search_url)
-        self.jarvis.play("confirm")
-        self.respond_silent(f"▶️ YouTube: «{query[:50]}»")
-        return True
-
-    # ═══════════════════════════════════════════════════════════
-    # APP CLOSE — закрити програму голосом
-    # ═══════════════════════════════════════════════════════════
-
-    def _handle_app_close(self, lower: str, text: str) -> bool:
-        """Закрити програму голосом через psutil."""
-        kw = ["закрий", "вбий процес", "kill", "зупини програму",
-              "close app", "виключи", "заверши"]
-        if not any(k in lower for k in kw):
-            return False
-        # Не заважаємо командам типу "закрий діалог", "закрий сферу"
-        skip = ["діалог", "сферу", "панель", "вікно", "вкладку", "ютуб"]
-        if any(s in lower for s in skip):
-            return False
-        if not HAS_PSUTIL:
-            return False
-
-        app_name = text
-        for k in kw:
-            if k in lower:
-                idx = lower.find(k)
-                cand = text[idx + len(k):].strip()
-                if cand:
-                    app_name = cand
-                    break
-
-        app_name_l = app_name.lower().strip()
-        killed = []
-        try:
-            for proc in _psutil.process_iter(["pid", "name"]):
-                pname = proc.info["name"].lower()
-                if app_name_l in pname or pname.startswith(app_name_l[:4]):
-                    # Не вбиваємо системні процеси
-                    if pname not in ("explorer.exe", "svchost.exe",
-                                     "system", "csrss.exe", "winlogon.exe"):
-                        proc.terminate()
-                        killed.append(proc.info["name"])
-        except Exception:
-            pass
-
-        if killed:
-            self.jarvis.play("confirm")
-            self.respond_silent(f"💀 Закрито: {', '.join(set(killed))}")
-        else:
-            self.respond_silent(f"🔍 «{app_name[:30]}» не знайдено серед запущених")
-        return True
-
-    # ═══════════════════════════════════════════════════════════
-    # TEMPERATURE — CPU / GPU температура
-    # ═══════════════════════════════════════════════════════════
-
-    def _handle_temperature_query(self, lower: str, text: str) -> bool:
-        """Температура CPU та GPU."""
-        kw = ["температура", "перегрів", "температуру пк",
-              "cpu temperature", "gpu temperature", "скільки градусів",
-              "гаряче пк", "нагрів процесора"]
-        if not any(k in lower for k in kw):
-            return False
-
-        lines = ["🌡️ Температури:"]
-        got_any = False
-
-        if HAS_PSUTIL:
-            try:
-                temps = _psutil.sensors_temperatures()
-                if temps:
-                    for chip, entries in temps.items():
-                        for entry in entries[:2]:
-                            if entry.current and entry.current > 0:
-                                icon = "🔥" if entry.current > 80 else "✅"
-                                lines.append(f"{icon} {chip}/{entry.label or 'CPU'}: {entry.current:.0f}°C")
-                                got_any = True
-            except (AttributeError, Exception):
-                pass
-
-        # NVIDIA GPU через pynvml (якщо встановлено)
-        try:
-            import pynvml
-            pynvml.nvmlInit()
-            for i in range(pynvml.nvmlDeviceGetCount()):
-                h = pynvml.nvmlDeviceGetHandleByIndex(i)
-                name = pynvml.nvmlDeviceGetName(h)
-                temp = pynvml.nvmlDeviceGetTemperature(h, pynvml.NVML_TEMPERATURE_GPU)
-                icon = "🔥" if temp > 85 else "✅"
-                lines.append(f"{icon} GPU ({name}): {temp}°C")
-                got_any = True
-        except Exception:
-            pass
-
-        if not got_any:
-            # Fallback через WMI на Windows
-            try:
-                result = subprocess.run(
-                    ["powershell", "-Command",
-                     "Get-WmiObject MSAcpi_ThermalZoneTemperature "
-                     "-Namespace root/wmi | "
-                     "Select-Object -First 1 -ExpandProperty CurrentTemperature"],
-                    capture_output=True, text=True, timeout=5, creationflags=_NO_WINDOW)
-                if result.stdout.strip():
-                    kelvin = int(result.stdout.strip()) / 10
-                    celsius = kelvin - 273.15
-                    icon = "🔥" if celsius > 80 else "✅"
-                    lines.append(f"{icon} Thermal Zone: {celsius:.0f}°C")
-                    got_any = True
-            except Exception:
-                pass
-
-        if not got_any:
-            self.respond_silent("🌡️ Не вдалося зчитати температуру (можливо потрібен pynvml)")
-        else:
-            msg = "\n".join(lines)
-            self.respond_silent(msg[:200])
-            self._tg_send(msg)
-        return True
+    # └─ sphere/productivity.py ───────────────────────────────────────────────┘
 
     # ═══════════════════════════════════════════════════════════
     # CLIPBOARD MANAGER — менеджер буфера обміну
     # ═══════════════════════════════════════════════════════════
-
-    # └─ sphere/productivity.py ───────────────────────────────────────────────┘
     def _handle_clipboard_manager(self, lower: str, text: str) -> bool:
         """Показує/відновлює попередні скопійовані тексти."""
         show_kw = ["клапборд", "що я копіював", "буфер обміну",
