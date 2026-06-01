@@ -15,11 +15,11 @@ var activeFileIdx = 0;
 function initIde(){
   var tree = R('fileTree');
   if(tree) tree.innerHTML = ideFiles.map(function(f,i){
-    return '<div class="ide-file'+(i===0?' active':'')+'" onclick="openIdeFile('+i+')"><span style="font-size:12px;margin-right:4px;">'+f.ico+'</span>'+f.name+'</div>';
+    return '<div class="ide-file'+(i===0?' active':'')+'" onclick="openIdeFile('+i+')"><span style="font-size:12px;margin-right:4px;">'+f.ico+'</span>'+_ideEscAttr(f.name)+'</div>';
   }).join('');
   var tabs = R('ideTabs');
   if(tabs) tabs.innerHTML = ideFiles.map(function(f,i){
-    return '<div class="ide-tab'+(i===0?' active':'')+'" onclick="openIdeFile('+i+')">'+f.ico+' '+f.name+'</div>';
+    return '<div class="ide-tab'+(i===0?' active':'')+'" onclick="openIdeFile('+i+')">'+f.ico+' '+_ideEscAttr(f.name)+'</div>';
   }).join('');
   var wrap = R('ideEditorWrap');
   if(!wrap||ideEditor) return;
@@ -326,9 +326,9 @@ function _ideHandleNewFileResponse(text){
   ideFiles.push(newFile);
   var ni=ideFiles.length-1;
   var tree=R('fileTree');
-  if(tree) tree.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-file'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')"><span style="font-size:12px;margin-right:4px;">'+f.ico+'</span>'+f.name+'</div>'; }).join('');
+  if(tree) tree.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-file'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')"><span style="font-size:12px;margin-right:4px;">'+f.ico+'</span>'+_ideEscAttr(f.name)+'</div>'; }).join('');
   var tabs=R('ideTabs');
-  if(tabs) tabs.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-tab'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')">'+f.ico+' '+f.name+'</div>'; }).join('');
+  if(tabs) tabs.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-tab'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')">'+f.ico+' '+_ideEscAttr(f.name)+'</div>'; }).join('');
   openIdeFile(ni);
   showToast('✨ '+fname+' створено AI');
   ideSetStatusBar('✨ '+fname,'var(--accent)');
@@ -375,7 +375,7 @@ function _ideRenderRecentFiles(){
   var icoMap={py:'🐍',js:'📜',ts:'💙',html:'🌐',css:'🎨',json:'⚙',md:'📄',jsx:'⚛',tsx:'⚛'};
   el.innerHTML=_ideRecentHistory.map(function(r){
     var ext=r.name.split('.').pop().toLowerCase();
-    return '<div class="ide-file" style="font-size:10px;padding:3px 6px;" onclick="pyCall(\'open_file_path\',JSON.stringify({path:'+JSON.stringify(r.path)+'}));" title="'+_ideEscAttr(r.path)+'">'+(icoMap[ext]||'📄')+' '+r.name+'</div>';
+    return '<div class="ide-file" style="font-size:10px;padding:3px 6px;" onclick="pyCall(\'open_file_path\',JSON.stringify({path:'+JSON.stringify(r.path)+'}));" title="'+_ideEscAttr(r.path)+'">'+(icoMap[ext]||'📄')+' '+_ideEscAttr(r.name)+'</div>';
   }).join('');
 }
 _ideRenderRecentFiles();
@@ -490,7 +490,7 @@ function ideRenderRecent(list){
     var name = p.split(/[\/\\]/).pop() || p;
     return '<div class="idectl-recent-item" onclick="ideLaunchProject('+JSON.stringify(p)+')">'
       + '<span style="font-size:14px;">📁</span>'
-      + '<span class="idectl-recent-path" title="'+p+'">'+name+'</span>'
+      + '<span class="idectl-recent-path" title="'+_ideEscAttr(p)+'">'+_ideEscAttr(name)+'</span>'
       + '<span class="idectl-recent-open">Открыть</span></div>';
   }).join('');
 }

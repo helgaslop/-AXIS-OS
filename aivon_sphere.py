@@ -13700,6 +13700,10 @@ $w.Stop()
         # Remove non-safe chars — only allow digits, operators, parens, dot, space, 'e' (scientific notation),
         # and letters needed for math function names (math, sqrt, sin, cos, abs, pi, log, etc.)
         allowed = re.sub(r'[^0-9+\-*/(). eabcdfghijklmnopqrstuvwxyz_]', '', expr)
+        # Block dunder attributes to prevent sandbox escape via __class__.__mro__ etc.
+        if '__' in allowed:
+            self._respond_signal.emit(f"🔢 Не вдалось порахувати: {expr[:40]}")
+            return
         try:
             result = eval(allowed, {"__builtins__": {}, "math": _math})  # noqa: S307
             self._respond_signal.emit(f"🔢 {allowed.strip()} = <b>{result}</b>")

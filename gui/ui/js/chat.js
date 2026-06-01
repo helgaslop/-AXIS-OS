@@ -661,6 +661,10 @@ function handleChatToken(x) {
     _streamBubbleRaw = '';
   }
   _streamBubbleRaw += token;
+  // Hard cap on streamed content to prevent DOM/memory exhaustion
+  if (_streamBubbleRaw.length > 100000) {
+    _streamBubbleRaw = _streamBubbleRaw.slice(0, 100000) + '\n\n…[truncated]';
+  }
   // Render markdown incrementally — throttled to one rAF per frame
   if (!_markdownRafPending) {
     _markdownRafPending = true;
