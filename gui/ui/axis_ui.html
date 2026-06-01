@@ -655,7 +655,7 @@
       <!-- Keep legacy IDs for dashboard.js compatibility (hidden) -->
       <div style="display:none;">
         <span id="cpuSub"></span>
-        <span id="diskSub"></span>
+        <span id="diskSub_legacy"></span>
         <span id="recentCmdsList"></span>
       </div>
     </div>
@@ -1366,8 +1366,8 @@
           <div class="gen-right-tabs">
             <div class="gen-right-tab active" style="cursor:default;">🖼 Результат</div>
             <div style="flex:1;"></div>
-            <button class="btn btn-sm" style="margin:6px 0;font-size:10px;" id="imgDownBtn" onclick="downloadGenImage()" style="display:none;">📂 Відкрити папку</button>
-            <button class="btn btn-sm" style="margin:6px 0 6px 6px;font-size:10px;" id="imgUseAsRefBtn" onclick="useImageAsRef()" style="display:none;">🔄 Як референс</button>
+            <button class="btn btn-sm" style="margin:6px 0;font-size:10px;display:none;" id="imgDownBtn" onclick="downloadGenImage()">📂 Відкрити папку</button>
+            <button class="btn btn-sm" style="margin:6px 0 6px 6px;font-size:10px;display:none;" id="imgUseAsRefBtn" onclick="useImageAsRef()">🔄 Як референс</button>
             <div id="imgSourceLbl" style="display:none;font-size:10px;color:var(--text3);margin-top:2px;"></div>
           </div>
           <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto;" id="imgResultWrap">
@@ -1789,12 +1789,12 @@
               <div class="sgroup-title">🎙️ STT — Розпізнавання мови</div>
               <div class="srow">
                 <label>Провайдер STT</label>
-                <select id="sp_stt_provider" style="max-width:200px;" onchange="R('whisper_opts').style.display=this.value==='whisper'?'contents':'none'">
+                <select id="sp_stt_provider" style="max-width:200px;" onchange="R('whisper_opts').style.display=this.value==='whisper'?'flex':'none'">
                   <option value="google">☁️ Google (онлайн)</option>
                   <option value="whisper">🧠 Whisper (офлайн, GPU)</option>
                 </select>
               </div>
-              <span id="whisper_opts" style="display:none;contents">
+              <span id="whisper_opts" style="display:none">
                 <div class="srow">
                   <label>Whisper модель <small style="opacity:.5">(більше = точніше, але важче)</small></label>
                   <select id="sp_whisper_model" style="max-width:180px;">
@@ -2587,7 +2587,7 @@
         <!-- Activation section -->
         <div id="licActivateSection" class="lic-activate-section">
           <div class="lic-activate-row">
-            <input id="licKeyInput" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" maxlength="24">
+            <input id="licKeyInput2" class="lic-key-input" placeholder="AXIS-X-XXX-XXXXXXXX-XXXX" maxlength="24">
             <button class="btn btn-p" onclick="licActivate()">Активувати</button>
           </div>
           <div id="licActivateMsg" class="lic-activate-msg"></div>

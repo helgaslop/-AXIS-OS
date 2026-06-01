@@ -212,6 +212,8 @@ function handleQuickSearchResults(x) {
   if (!_qsOpen || !Array.isArray(x.results)) return;
   var inp = R('qsInput');
   var q = inp ? inp.value.trim() : '';
+  // Ignore stale results if query has changed
+  if (x.query && x.query.toLowerCase() !== q.toLowerCase()) return;
   // Merge python results into current
   var pyItems = x.results.map(function(r) {
     return {

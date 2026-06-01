@@ -150,6 +150,10 @@ function clearAllNotifs() {
   window.showToast = function(msg, dur) {
     _origShowToast && _origShowToast(msg, dur);
     if (!msg) return;
+    // Filter out short/trivial toasts from notification center
+    var _skipPrefixes = ['🔊','🔈','🔇','📋 Скопійовано','🎵','▶','⏸','⏭'];
+    var isNoise = msg.length < 20 || _skipPrefixes.some(function(p){ return String(msg).startsWith(p); });
+    if (isNoise) { return; }
     // Determine category from emoji prefix
     var cat = 'info';
     if (/^[✓✔☑]/.test(msg) || /^✓/.test(msg)) cat = 'ok';

@@ -18,6 +18,32 @@
   var _todayCount   = 0;
   var _todayMinutes = 0;
 
+  // ── Persistence ──────────────────────────────────────────────────────────────
+  var POMO_STORAGE_KEY = 'axis_pomodoro_state';
+
+  function _savePomoState() {
+    try {
+      localStorage.setItem(POMO_STORAGE_KEY, JSON.stringify({
+        mode: _mode, remaining: _remaining,
+        session: _session, todayCount: _todayCount,
+        todayMinutes: _todayMinutes, savedAt: Date.now()
+      }));
+    } catch(e) {}
+  }
+
+  function _loadPomoState() {
+    try {
+      var s = JSON.parse(localStorage.getItem(POMO_STORAGE_KEY) || 'null');
+      if (!s) return;
+      // Only restore if saved less than 2 hours ago and timer was NOT running
+      if (Date.now() - s.savedAt > 7200000) return;
+      _mode = s.mode || 'work'; _remaining = s.remaining || WORK_MIN * 60;
+      _session = s.session || 0; _todayCount = s.todayCount || 0;
+      _todayMinutes = s.todayMinutes || 0;
+      // Note: _running is NOT restored — user must manually restart
+    } catch(e) {}
+  }
+
   // Audio context (lazy-init)
   var _audioCtx = null;
   function _getAudioCtx() {
@@ -74,6 +100,7 @@
     clearInterval(_interval);
     _interval = null;
     _updateUI();
+    _savePomoState();
   }
 
   function _resetTimer() {
@@ -97,6 +124,7 @@
 
       _renderSessionDots();
       _renderStats();
+      _savePomoState();
 
       var nextMode = (_session % LONG_AFTER === 0) ? 'long' : 'short';
       var label = nextMode === 'long' ? 'Довга перерва (15 хв)' : 'Коротка перерва (5 хв)';
@@ -105,6 +133,7 @@
     } else {
       showToast('⏰ Перерва закінчилась — час працювати!');
       _setMode('work');
+      _savePomoState();
     }
   }
 
@@ -224,9 +253,15 @@
 
   // ── Init on page show ─────────────────────────────────────────────────────────
   function _initPomodoro() {
-    _setMode('work');
+    _loadPomoState();
+    // _total must align with the restored (or default) mode
+    if (_mode === 'work')  _total = WORK_MIN * 60;
+    if (_mode === 'short') _total = SHORT_MIN * 60;
+    if (_mode === 'long')  _total = LONG_MIN * 60;
+    _updateModeBtns();
     _renderSessionDots();
     _renderStats();
+    _updateUI();
     try { pyCall('get_pomodoro_stats', '{}'); } catch(e){}
   }
 

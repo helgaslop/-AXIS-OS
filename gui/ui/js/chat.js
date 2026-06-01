@@ -46,7 +46,12 @@ function newChatSession() {
   chatMessages = [];
   _streamBubble = null; _streamBubbleRaw = '';
   var body = R('chatBody'); if (body) body.innerHTML = '';
-  thinkingEl = null; pendingReqId = null;
+  thinkingEl = null;
+  // Cancel any in-flight AI request when switching sessions
+  if (typeof pendingReqId !== 'undefined' && pendingReqId) {
+    try { pyCall('ai_cancel', JSON.stringify({ id: pendingReqId })); } catch(e) {}
+  }
+  pendingReqId = null;
   _renderSessionList();
   var inp = R('chatInput'); if (inp) { inp.value = ''; inp.focus(); }
   showToast('💬 Новий чат');
@@ -54,6 +59,11 @@ function newChatSession() {
 
 function loadChatSession(id) {
   _saveCurrentSession();
+  // Cancel any in-flight AI request when switching sessions
+  if (typeof pendingReqId !== 'undefined' && pendingReqId) {
+    try { pyCall('ai_cancel', JSON.stringify({ id: pendingReqId })); } catch(e) {}
+  }
+  pendingReqId = null;
   var sessions = _loadSessions();
   var sess = sessions.find(function(s){ return s.id === id; });
   if (!sess) return;
@@ -448,6 +458,13 @@ function handleFileAttach(files) {
   var arr = Array.from(files);
   var pending = arr.length;
   arr.forEach(function(file) {
+    var MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      showToast('⚠️ Файл занадто великий (макс. 5МБ): ' + file.name);
+      pending--;
+      if (pending === 0) _renderAttachPreview();
+      return;
+    }
     var reader = new FileReader();
     var ext = (file.name.split('.').pop() || '').toLowerCase();
     var isImage = ['jpg','jpeg','png','gif','webp','bmp'].indexOf(ext) !== -1;
@@ -551,6 +568,11 @@ function sendChat(){
       if (f.isImage) return '[Зображення: ' + f.name + ']';
       return '--- Файл: ' + f.name + ' ---\n' + f.text;
     }).join('\n\n');
+  }
+
+  var MAX_ATTACH_TOTAL = 32000; // 32K chars total
+  if (attachCtx && attachCtx.length > MAX_ATTACH_TOTAL) {
+    attachCtx = attachCtx.slice(0, MAX_ATTACH_TOTAL) + '\n[...обрізано через ліміт розміру]';
   }
 
   if (!msg && !attachCtx) { _sendPending = false; return; }
@@ -1037,7 +1059,12 @@ function getSystemPrompt() {
     base += '\n\n' + _pendingMemoryCtx;
     _pendingMemoryCtx = '';
   }
-  return base;
+  var systemPrompt = base;
+  var MAX_SYSTEM_PROMPT = 4000; // chars
+  if (systemPrompt && systemPrompt.length > MAX_SYSTEM_PROMPT) {
+    systemPrompt = systemPrompt.slice(0, MAX_SYSTEM_PROMPT) + '...';
+  }
+  return systemPrompt;
 }
 
 // Load profile context for the personal assistant role

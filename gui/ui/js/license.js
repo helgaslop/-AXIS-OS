@@ -42,7 +42,7 @@ function handleLicenseResult(d) {
     el.style.color = d.ok ? 'var(--green)' : 'var(--red)';
   }
   if (d.ok) {
-    var inp = R('licKeyInput');
+    var inp = R('licKeyInput2');
     if (inp) inp.value = '';
     showToast(d.message || '✅ Активовано');
   }
@@ -112,7 +112,8 @@ function handleProxyStats(d) {
 
   // Breakdown
   var bd = d.breakdown || [];
-  var maxCost = bd.length ? Math.max(...bd.map(function(x){ return x.cost_usd; })) : 1;
+  // Safe: use reduce instead of spread to avoid stack overflow on large arrays
+  var maxCost = bd.reduce(function(acc, item) { return Math.max(acc, item.cost_usd || 0); }, 0) || 1;
   var html = bd.map(function(item) {
     var barW = maxCost > 0 ? (item.cost_usd / maxCost * 100).toFixed(1) : 0;
     var icon = PROV_ICONS[item.provider] || '🔗';
@@ -296,9 +297,17 @@ function aiSubModalSave() {
 
 // ── License activation ────────────────────────────────────────────────────────
 function licActivate() {
-  var inp = R('licKeyInput');
-  if (!inp || !inp.value.trim()) return;
-  pyCall('activate_license', JSON.stringify({ key: inp.value.trim() }));
+  var inp = document.getElementById('licKeyInput') || document.getElementById('licKeyInput2');
+  if (!inp) return;
+  var key = inp.value.trim().toUpperCase();
+  if (!key) return;
+  // Validate format: AXIS-XXXX-XXXX-XXXX-XXXX
+  if (!/^AXIS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
+    showToast('⚠️ Невірний формат ключа. Очікується: AXIS-XXXX-XXXX-XXXX-XXXX');
+    return;
+  }
+  inp.value = key; // normalize to uppercase
+  pyCall('activate_license', JSON.stringify({ key: key }));
 }
 
 function licCheckKeys() {

@@ -149,8 +149,9 @@ function _escHtml(s) {
 
 // ═══ UTILS ═══
 function showToast(msg, dur) {
-  dur = dur || (_toastDuration ? _toastDuration * 1000 : 2800);
   var t = document.getElementById('toast');
+  if (!t) { console.warn('[AXIS] showToast: no toast element yet:', msg); return; }
+  dur = dur || (_toastDuration ? _toastDuration * 1000 : 2800);
   t.textContent = msg; t.classList.add('show');
   clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('show'); }, dur);
 }

@@ -1,4 +1,8 @@
 /* AXIS OS ? Settings & API keys */
+
+// Local escH fallback in case commands.js loads late
+var _escH = typeof escH === 'function' ? escH : function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+
 // ═══ API KEYS ═══
 var apiProviders = {
   ai: [
@@ -291,7 +295,7 @@ function handleGithubUpdateStatus(d) {
           var sizeMb = a.size ? (a.size / 1024 / 1024).toFixed(1) + ' MB' : '';
           html += '<button class="btn btn-sm btn-p" onclick="downloadGhAsset(' +
             JSON.stringify(a.url) + ',' + JSON.stringify(a.name) + ')">' +
-            '⬇ ' + escH(a.name) + (sizeMb ? ' <span style="opacity:.6;font-size:10px;">(' + sizeMb + ')</span>' : '') +
+            '⬇ ' + _escH(a.name) + (sizeMb ? ' <span style="opacity:.6;font-size:10px;">(' + sizeMb + ')</span>' : '') +
             '</button>';
         });
         wrap.innerHTML = html;
@@ -561,10 +565,10 @@ function applyUiLanguage(lang) {
   _uiLang = lang || _uiLang;
   localStorage.setItem('axis_ui_lang', _uiLang);
   var L = _UI_LANGS[_uiLang] || _UI_LANGS.uk;
-  var tabs = document.querySelectorAll('#settingsPage .tabs .tab');
+  var tabs = document.querySelectorAll('#page-settings .tabs .tab');
   var keys = ['general','ai','sphere','appear','about'];
   tabs.forEach(function(t,i){ if(keys[i] && L[keys[i]]) t.textContent = L[keys[i]]; });
-  var title = document.querySelector('#settingsPage .page-title');
+  var title = document.querySelector('#page-settings .page-title');
   if (title) title.textContent = L.settings;
   if (R('uiLang')) R('uiLang').value = _uiLang;
 }
@@ -838,8 +842,8 @@ function _buildTestPanel() {
   window.axisPush = function(type, jsonStr) {
     try {
       var d = JSON.parse(jsonStr);
-      if (type === 'api_test_result') { handleApiTestResult(d); return; }
-      if (type === 'api_tests_done')  { handleApiTestsDone();   return; }
+      if (type === 'api_test_result') { handleApiTestResult(d); }
+      else if (type === 'api_tests_done')  { handleApiTestsDone(); }
     } catch(e) {}
     _orig && _orig(type, jsonStr);
   };

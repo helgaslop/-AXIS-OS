@@ -64,7 +64,12 @@ function renderPalette(items){
 function filterPalette(q){
   renderPalette(palCmds.filter(function(c){ return c.label.toLowerCase().includes(q.toLowerCase()); }));
 }
-function runPalCmd(i){ palCmds[i].fn(); R('paletteOverlay').classList.remove('show'); }
+function runPalCmd(idx) {
+  if (idx < 0 || idx >= palCmds.length) return; // guard against -1
+  var cmd = palCmds[idx];
+  if (!cmd) return;
+  cmd.fn(); R('paletteOverlay').classList.remove('show');
+}
 function paletteNav(e){
   if(e.key==='Escape'){ R('paletteOverlay').classList.remove('show'); return; }
   if(e.key==='Enter' && palFiltered.length){ palFiltered[palIdx].fn(); R('paletteOverlay').classList.remove('show'); }
@@ -776,8 +781,23 @@ function importCmds() {
       try {
         var arr = JSON.parse(ev.target.result);
         if (!Array.isArray(arr)) { showToast('⚠ Невірний формат'); return; }
+        var ALLOWED_CMD_TYPES = ['shell','python','url','internal','ai','macro','hotkey'];
+        var MAX_FIELD_LEN = 2000;
+        var imported = arr;
+        var safe = imported.filter(function(c) {
+          if (!c || typeof c !== 'object') return false;
+          if (!c.name || typeof c.name !== 'string') return false;
+          if (c.type && !ALLOWED_CMD_TYPES.includes(String(c.type))) {
+            console.warn('[AXIS] Blocked import of command with unknown type:', c.type);
+            return false;
+          }
+          // Truncate oversized fields
+          if (c.body && c.body.length > MAX_FIELD_LEN) c.body = c.body.slice(0, MAX_FIELD_LEN);
+          if (c.name && c.name.length > 200) c.name = c.name.slice(0, 200);
+          return true;
+        });
         var added = 0;
-        arr.forEach(function(c) {
+        safe.forEach(function(c) {
           if (c.name && c.body && !commands.find(function(x){ return x.id === c.id; })) {
             commands.push(c); added++;
           }
@@ -1157,13 +1177,20 @@ document.addEventListener('keydown', function(e) {
       if (k === ',') k = ',';
       parts.push(k.length === 1 ? k.toUpperCase() : k);
       var combo = parts.join('+');
+      var currentAction = _hotkeyCapturing.dataset.action;
+      // Warn if combo already used by another action
+      var existingAction = Object.keys(_hotkeys).find(function(a) { return _hotkeys[a] === combo && a !== currentAction; });
+      if (existingAction) {
+        showToast('⚠️ Клавіша ' + combo + ' вже використовується для: ' + existingAction);
+        // Still save (override) but warn the user
+      }
       _hotkeyCapturing.value = combo;
-      _hotkeys[_hotkeyCapturing.dataset.action] = combo;
+      _hotkeys[currentAction] = combo;
       localStorage.setItem('axis_hotkeys', JSON.stringify(_hotkeys));
       _hotkeyCapturing.classList.remove('recording');
       _hotkeyCapturing.dataset.listening = '0';
       _hotkeyCapturing = null;
-      showToast('✓ Клавішу збережено: ' + combo);
+      if (!existingAction) showToast('✓ Клавішу збережено: ' + combo);
     }
     return;
   }

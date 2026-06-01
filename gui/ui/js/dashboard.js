@@ -119,7 +119,9 @@ var _weatherTimer = null;
 
 function fetchWeather() {
   try {
-  var city = (_savedCfg && _savedCfg.weather_city) ? _savedCfg.weather_city : 'Kyiv';
+  var city = (typeof _savedCfg !== 'undefined' && _savedCfg && _savedCfg.weather_city)
+             ? _savedCfg.weather_city
+             : 'Kyiv';
   var el = R('weatherCity'); if(el) el.textContent = city;
   if (_weatherCache && _weatherCache.city === city && (Date.now() - _weatherCache.ts) < 1800000) {
     renderWeather(_weatherCache.data);

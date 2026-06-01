@@ -211,7 +211,6 @@
   window.axisPush = function (type, jsonStr) {
     if (type === 'quick_notes') {
       try { handleQuickNotes(JSON.parse(jsonStr)); } catch(e){}
-      return;
     }
     _prevPush2 && _prevPush2(type, jsonStr);
   };

@@ -46,8 +46,12 @@ function toggleSphere() {
 // Poll sphere status every 5 seconds
 var _sphereStatusTimer = setInterval(function() { if (typeof pyCall !== 'undefined') pyCall('sphere_status'); }, 5000);
 
+// Weather refresh timer (assigned in initApp)
+var _weatherTimer = null;
+
 window.addEventListener('beforeunload', function() {
   if (_sphereStatusTimer) { clearInterval(_sphereStatusTimer); _sphereStatusTimer = null; }
+  if (_weatherTimer) { clearInterval(_weatherTimer); _weatherTimer = null; }
 });
 
 // Close clipboard panel when clicking outside
@@ -68,7 +72,7 @@ function initApp(){
   _safeCall(loadCustomRoles,    'loadCustomRoles');
   _safeCall(initActivity,       'initActivity');
   _safeCall(fetchWeather,       'fetchWeather');
-  setInterval(fetchWeather, 1800000);
+  _weatherTimer = setInterval(fetchWeather, 1800000);
   _safeCall(renderTodos,        'renderTodos');
   _safeCall(initMacros,         'initMacros');
   _safeCall(initApi,            'initApi');
