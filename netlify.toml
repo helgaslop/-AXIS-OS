@@ -1,8 +1,8 @@
 [build]
-  base    = "website"
-  publish = "."
+  base      = "website"
+  publish   = "."
   functions = "../netlify/functions"
-  command = ""
+  command   = "cd .. && npm install"
 
 [build.environment]
   NODE_VERSION = "18"
