@@ -126,12 +126,62 @@ exports.handler = async (event) => {
 
   // ── POST revoke ─────────────────────────────────────────────────────────
   if (action === 'revoke') {
-    const { key } = body;
+    const { key, reason = '' } = body;
     const db = await getDb(store);
     if (!db.licenses[key]) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Key not found' }) };
-    db.licenses[key].status = 'revoked';
-    db.licenses[key].revokedAt = new Date().toISOString();
+    const lic = db.licenses[key];
+    lic.status    = 'revoked';
+    lic.revokedAt = new Date().toISOString();
+    lic.revokeReason = String(reason).slice(0, 200);
     await saveDb(store, db);
+
+    // ── Notify customer by email ──────────────────────────────────────────
+    if (lic.email && process.env.GMAIL_PASS) {
+      const gmailUser = process.env.GMAIL_USER || '';
+      const eKey  = escHtml(key);
+      const eName = escHtml(lic.name || '');
+      const eReason = escHtml(reason || 'Зверніться до служби підтримки для уточнення деталей.');
+      const greet = eName ? `Привіт, <strong>${eName}</strong>!` : 'Вітаємо!';
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{font-family:'Segoe UI',Arial,sans-serif;background:#080c14;color:#e6edf3;margin:0;padding:20px;}
+.wrap{max-width:520px;margin:0 auto;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:16px;overflow:hidden;}
+.hdr{background:linear-gradient(135deg,#f85149,#c0392b);padding:24px 32px;text-align:center;}
+.hdr h1{margin:0;font-size:22px;font-weight:900;color:#fff;}
+.body{padding:28px 32px;}
+.badge{display:inline-block;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.3);color:#f85149;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:16px;}
+h2{font-size:20px;font-weight:800;margin:0 0 12px;}
+p{color:#8b949e;font-size:14px;line-height:1.7;margin:0 0 12px;}
+.keybox{background:#161b22;border:1px solid rgba(248,81,73,.3);border-radius:10px;padding:14px 20px;margin:16px 0;font-family:monospace;font-size:16px;color:#f85149;text-align:center;font-weight:700;letter-spacing:.1em;}
+.cta{display:block;text-align:center;background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#000;font-weight:800;padding:13px;border-radius:10px;text-decoration:none;margin:20px 0 0;font-size:15px;}
+.foot{text-align:center;padding:14px 32px;font-size:12px;color:#484f58;border-top:1px solid rgba(255,255,255,.06);}
+</style></head><body>
+<div class="wrap">
+  <div class="hdr"><h1>⬡ AXIS OS</h1></div>
+  <div class="body">
+    <div class="badge">🚫 Ліцензійний ключ відкликано</div>
+    <h2>Ваш ключ більше не активний</h2>
+    <p>${greet} Ваш ліцензійний ключ AXIS OS було відкликано.</p>
+    <div class="keybox">${eKey}</div>
+    <p><strong style="color:#e6edf3;">Причина:</strong><br>${eReason}</p>
+    <p>Якщо ви вважаєте, що це помилка — зверніться до нашої служби підтримки. Ми розглянемо ваше звернення якнайшвидше.</p>
+    <a href="https://t.me/Helgaslopp" class="cta">Зв'язатися з підтримкою @Helgaslopp</a>
+  </div>
+  <div class="foot">AXIS OS &mdash; <a href="https://t.me/Helgaslopp" style="color:#00d4ff;text-decoration:none;">@Helgaslopp</a></div>
+</div></body></html>`;
+      try {
+        const transporter = nodemailer.createTransport({ service: 'gmail', auth: { user: gmailUser, pass: process.env.GMAIL_PASS } });
+        await transporter.sendMail({
+          from: `"AXIS OS" <${gmailUser}>`,
+          to: lic.email,
+          subject: `🚫 AXIS OS — Ваш ліцензійний ключ відкликано`,
+          html,
+        });
+        console.log(`[Revoke] Notification sent to ${lic.email}`);
+      } catch(e) {
+        console.error('[Revoke] Email failed:', e.message);
+      }
+    }
+
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true }) };
   }
 

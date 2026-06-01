@@ -445,11 +445,20 @@ async function quickSend(key, email) {
 }
 
 async function revokeKey(key) {
-  if (!confirm(`Відкликати ключ ${key}?\nКористувач більше не зможе ним активуватися.`)) return;
+  // Ask for reason — it will be included in the notification email to customer
+  const reason = prompt(
+    `Відкликати ключ ${key}?\n\nВкажіть причину (буде надіслана покупцю на email):\n` +
+    `Наприклад: "Платіж не підтверджено" або "Порушення умов використання"`,
+    'Зверніться до служби підтримки для уточнення деталей.'
+  );
+  if (reason === null) return; // cancelled
+
   try {
-    const data = await api('POST', { action: 'revoke', key });
-    if (data.ok) { toast('🚫 Ключ відкликано'); await loadLicenses(); }
-    else alert('Помилка відкликання: ' + (data.error || 'невідома'));
+    const data = await api('POST', { action: 'revoke', key, reason });
+    if (data.ok) {
+      toast('🚫 Ключ відкликано. Покупець отримав email-повідомлення.');
+      await loadLicenses();
+    } else alert('Помилка відкликання: ' + (data.error || 'невідома'));
   } catch(e) { alert('Помилка: ' + e.message); }
 }
 
