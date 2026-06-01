@@ -1162,8 +1162,12 @@ class AppLauncher:
     def launch(self, path):
         """Запустити додаток"""
         try:
-            if path.startswith("http"):
+            if path.startswith(("http://", "https://")):
                 webbrowser.open(path)
+            elif path.startswith("http"):
+                # Reject malformed or non-http(s) http-prefixed strings
+                print(f"[AXIS] Blocked non-http URL in launch: {path!r}")
+                return False
             elif path.endswith('.lnk'):
                 os.startfile(path)
             else:
@@ -1606,6 +1610,15 @@ class TelegramBotThread(QThread):
             cq_data = cq.get("data", "")
             chat_id = str(cq["message"]["chat"]["id"])
             msg_id  = cq["message"].get("message_id")
+            # Validate callback_data: must either be a known short ID in _cb_map
+            # or start with a known action prefix. Unknown raw values are rejected.
+            _VALID_CB_PREFIXES = ("__menu__", "__wait__:", "__submenu__:",
+                                  "__spotify_uri__:", "__topic__:", "/status",
+                                  "/start", "/menu", "/help")
+            if cq_data not in self._cb_map and not any(cq_data.startswith(p) for p in _VALID_CB_PREFIXES):
+                print(f"[Telegram] ⚠ Unknown callback_data ignored: {cq_data!r}")
+                self._answer_cb(cq_id, "")
+                return
             action  = self._cb_map.get(cq_data, cq_data)
 
             # Спеціальна дія — повернутись до головного меню
@@ -1813,7 +1826,8 @@ class TelegramBotThread(QThread):
                         payload2["reply_markup"] = reply_markup
                     r2 = self._sess.post(f"{self._base}/sendMessage", json=payload2, timeout=10)
                     if not r2.ok:
-                        print(f"[Telegram] sendMessage plain fallback {r2.status_code}: {r2.text[:100]}")
+                        _preview = (text[:100] + "…") if len(text) > 100 else text
+                        print(f"[Telegram] sendMessage plain fallback {r2.status_code}: {r2.text[:100]} | msg={_preview!r}")
         except Exception as e:
             err_str = str(e)
             _net_kw = ("getaddrinfo", "NameResolution", "ConnectionError",
@@ -2970,7 +2984,11 @@ class MacroEngine:
                 time.sleep(0.02)
 
         elif stype == "url":
-            webbrowser.open(value)
+            # Security: only allow http/https URLs in macros
+            if value.startswith(("http://", "https://")):
+                webbrowser.open(value)
+            else:
+                print(f"[Security] Macro 'url' step blocked — non-http URL: {value!r}")
 
         elif stype == "app":
             # Security: only run absolute paths to existing files, or resolve via app_launcher
@@ -11076,8 +11094,12 @@ $w.Stop()
         self._tg_chat_id = None
 
     # ── Telegram photo analysis ───────────────────────────────────────────────
+    _TG_MAX_DOWNLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
     def _tg_download_file(self, file_id: str) -> bytes | None:
-        """Download a file from Telegram by file_id. Returns bytes or None."""
+        """Download a file from Telegram by file_id. Returns bytes or None.
+        Rejects files larger than _TG_MAX_DOWNLOAD_BYTES (10 MB).
+        """
         if not (self._telegram_bot and HAS_REQUESTS):
             return None
         try:
@@ -11086,11 +11108,20 @@ $w.Stop()
                 f"https://api.telegram.org/bot{token}/getFile",
                 params={"file_id": file_id}, timeout=10)
             r.raise_for_status()
-            file_path = r.json()["result"]["file_path"]
+            result = r.json().get("result", {})
+            file_size = result.get("file_size", 0)
+            if file_size and file_size > self._TG_MAX_DOWNLOAD_BYTES:
+                print(f"[TG] download rejected — file too large: {file_size} bytes (max {self._TG_MAX_DOWNLOAD_BYTES})")
+                return None
+            file_path = result["file_path"]
             r2 = _requests.get(
                 f"https://api.telegram.org/file/bot{token}/{file_path}",
                 timeout=30)
             r2.raise_for_status()
+            # Double-check actual content length
+            if len(r2.content) > self._TG_MAX_DOWNLOAD_BYTES:
+                print(f"[TG] download rejected — content too large: {len(r2.content)} bytes")
+                return None
             return r2.content
         except Exception as e:
             print(f"[TG] download file error: {e}")

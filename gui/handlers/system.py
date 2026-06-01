@@ -51,10 +51,14 @@ class SystemHandlerMixin:
                 spotify_uri = self._to_spotify_uri(body)
                 if spotify_uri:
                     self._spotify_action({"action": "play_uri", "uri": spotify_uri})
-                else:
+                elif body.startswith(("http://", "https://")):
                     import webbrowser
                     webbrowser.open(body)
                     self.push_to_js.emit("toast", json.dumps({"msg": f"🌐 {name}"}))
+                else:
+                    print(f"[AXIS] Blocked non-http URL in run_command: {body!r}")
+                    self.push_to_js.emit("toast",
+                        json.dumps({"msg": f"⚠ Заблоковано: не http(s) URL"}))
             elif cmd_type == "python":
                 import tempfile
                 with tempfile.NamedTemporaryFile(suffix=".py", delete=False,
@@ -103,9 +107,14 @@ class SystemHandlerMixin:
         elif mtype == "url":
             try:
                 import webbrowser
-                webbrowser.open(cmd)
-                self.push_to_js.emit("toast",
-                    json.dumps({"msg": f"🌐 Відкрито: {cmd[:50]}"}))
+                if cmd.startswith(("http://", "https://")):
+                    webbrowser.open(cmd)
+                    self.push_to_js.emit("toast",
+                        json.dumps({"msg": f"🌐 Відкрито: {cmd[:50]}"}))
+                else:
+                    print(f"[AXIS] Blocked non-http URL in run_macro: {cmd!r}")
+                    self.push_to_js.emit("toast",
+                        json.dumps({"msg": f"⚠ Заблоковано: не http(s) URL"}))
             except Exception as e:
                 self.push_to_js.emit("toast",
                     json.dumps({"msg": f"URL помилка: {e}"}))

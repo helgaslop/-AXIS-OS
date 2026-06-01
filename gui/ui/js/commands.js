@@ -15,6 +15,7 @@ function initMacros(){
 }
 
 function runMacro(btn){
+  showToast('⚙️ Виконую...');
   pyCall('run_macro', JSON.stringify({command:btn.dataset.cmd, type:btn.dataset.type}));
   showToast('▶ '+btn.dataset.name);
 }
@@ -458,8 +459,15 @@ function duplicateCmd(id) {
 function quickTestCmd(id) {
   var c = commands.find(function(x){ return x.id === id; });
   if (!c) return;
-  pyCall('run_command', JSON.stringify({type: c.type, body: c.body, name: c.name}));
-  _updateCmdStats(id, true);
+  showToast('⚙️ Виконую...');
+  var result = pyCall('run_command', JSON.stringify({type: c.type, body: c.body, name: c.name}));
+  // Handle error field in response if pyCall returns a value synchronously
+  if (result && typeof result === 'object' && result.error) {
+    showToast('⚠ Помилка: ' + result.error);
+    _updateCmdStats(id, false);
+  } else {
+    _updateCmdStats(id, true);
+  }
 }
 
 // ── Recent commands widget ───────────────────────────────────────────────────

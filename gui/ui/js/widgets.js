@@ -40,15 +40,29 @@
 
   // ── Clock widget ──────────────────────────────────────────────────────────────
   function _updateWidgetClock() {
+    // Use timezone from config if set
+    var tz = (typeof _savedCfg !== 'undefined' && _savedCfg && _savedCfg.timezone) ? _savedCfg.timezone : undefined;
+    var timeOpts = { hour12: false };
+    var dateOpts = { weekday:'long', day:'numeric', month:'long' };
+    if (tz) { timeOpts.timeZone = tz; dateOpts.timeZone = tz; }
     var n = new Date();
     var el;
     el = R('wClockTime');
-    if (el) el.textContent = n.toLocaleTimeString('uk-UA', { hour12: false });
+    if (el) {
+      try { el.textContent = n.toLocaleTimeString('uk-UA', timeOpts); }
+      catch(e) { el.textContent = n.toLocaleTimeString('uk-UA', { hour12: false }); }
+    }
     el = R('wClockDate');
-    if (el) el.textContent = n.toLocaleDateString('uk-UA', { weekday:'long', day:'numeric', month:'long' });
+    if (el) {
+      try { el.textContent = n.toLocaleDateString('uk-UA', dateOpts); }
+      catch(e) { el.textContent = n.toLocaleDateString('uk-UA', { weekday:'long', day:'numeric', month:'long' }); }
+    }
     el = R('wClockGreet');
     if (el) {
-      var h = n.getHours();
+      var h;
+      try {
+        h = tz ? parseInt(n.toLocaleTimeString('en-US', { hour:'2-digit', hour12: false, timeZone: tz })) : n.getHours();
+      } catch(e) { h = n.getHours(); }
       var g = h < 6 ? '🌙 Доброї ночі' : h < 12 ? '🌅 Доброго ранку' : h < 18 ? '☀️ Доброго дня' : '🌆 Доброго вечора';
       el.textContent = g;
     }

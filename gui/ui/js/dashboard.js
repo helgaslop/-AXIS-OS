@@ -43,7 +43,7 @@ function handleSysStats(d) {
   var di=R('diskInfoList');
   if(di && d.disks && d.disks.length){
     di.innerHTML=d.disks.map(function(dk){
-      return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>'+dk.device+'</span><span style="color:var(--text3)">'+Math.round(dk.percent)+'% · '+dk.total+'</span></div><div class="prog"><div class="prog-bar prog-orange" style="width:'+dk.percent+'%"></div></div></div>';
+      return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>'+_escDash(dk.device)+'</span><span style="color:var(--text3)">'+Math.round(dk.percent||0)+'% · '+_escDash(dk.total||'')+'</span></div><div class="prog"><div class="prog-bar prog-orange" style="width:'+Math.round(dk.percent||0)+'%"></div></div></div>';
     }).join('');
   }
 
@@ -52,7 +52,7 @@ function handleSysStats(d) {
   if(pl && d.processes){
     var hdr='<div style="display:flex;font-size:10px;color:var(--text3);padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px;font-weight:700;"><span style="flex:1">Процес</span><span style="min-width:60px;text-align:right">CPU</span><span style="min-width:80px;text-align:right">Пам\'ять</span></div>';
     pl.innerHTML=hdr+d.processes.map(function(p){
-      return '<div class="proc-row"><span class="proc-name" style="font-family:var(--mono)">'+p.name+'</span><span class="proc-val">'+p.cpu+'%</span><span style="min-width:80px;text-align:right;font-size:11px;color:var(--text3)">'+p.mem+'</span></div>';
+      return '<div class="proc-row"><span class="proc-name" style="font-family:var(--mono)">'+_escDash(p.name)+'</span><span class="proc-val">'+_escDash(String(p.cpu||0))+'%</span><span style="min-width:80px;text-align:right;font-size:11px;color:var(--text3)">'+_escDash(p.mem||'')+'</span></div>';
     }).join('');
   }
 
@@ -60,7 +60,7 @@ function handleSysStats(d) {
   var dl=R('diskDetailList');
   if(dl && d.disks){
     dl.innerHTML=d.disks.map(function(dk){
-      return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.03);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-weight:600">'+dk.device+'</span><span class="badge badge-indigo">'+dk.fstype+'</span></div><div style="font-size:11px;color:var(--text3)">'+dk.total+' · Вільно: '+dk.free+'</div></div>';
+      return '<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,.03);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-weight:600">'+_escDash(dk.device)+'</span><span class="badge badge-indigo">'+_escDash(dk.fstype||'')+'</span></div><div style="font-size:11px;color:var(--text3)">'+_escDash(dk.total||'')+' · Вільно: '+_escDash(dk.free||'')+'</div></div>';
     }).join('');
   }
 
@@ -72,7 +72,7 @@ function handleSysStats(d) {
   var npl=R('netProcList');
   if(npl && d.processes){
     npl.innerHTML=d.processes.slice(0,5).map(function(p){
-      return '<div class="conn-row"><div class="activity-dot" style="background:var(--accent)"></div><div style="flex:1;font-size:11px;font-family:var(--mono)">'+p.name+'</div><span style="color:var(--accent);font-size:11px;">'+p.cpu+'%</span></div>';
+      return '<div class="conn-row"><div class="activity-dot" style="background:var(--accent)"></div><div style="flex:1;font-size:11px;font-family:var(--mono)">'+_escDash(p.name)+'</div><span style="color:var(--accent);font-size:11px;">'+_escDash(String(p.cpu||0))+'%</span></div>';
     }).join('');
   }
 
@@ -104,12 +104,18 @@ function addActivity(title, color) {
   initActivity();
 }
 
+function _escDash(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function initActivity(){
   var feed=R('activityFeed');
   if(!feed) return;
   var shown = activities.slice(0,8);
   feed.innerHTML=shown.map(function(a){
-    return '<div class="activity-item"><div class="activity-dot" style="background:'+a.color+'"></div><div><div class="activity-title">'+a.title+'</div><div class="activity-time">'+a.time+'</div></div></div>';
+    // Sanitize color: only allow CSS variable refs or safe color values
+    var safeColor = /^(var\(--[\w-]+\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))$/.test(a.color||'') ? a.color : 'var(--accent)';
+    return '<div class="activity-item"><div class="activity-dot" style="background:'+safeColor+'"></div><div><div class="activity-title">'+_escDash(a.title)+'</div><div class="activity-time">'+_escDash(a.time)+'</div></div></div>';
   }).join('');
 }
 
@@ -127,15 +133,29 @@ function fetchWeather() {
     renderWeather(_weatherCache.data);
     return;
   }
+  // Show loading state while fetching
+  var tempEl = R('weatherTemp');   if(tempEl)  tempEl.textContent  = '…';
+  var descEl = R('weatherDesc');   if(descEl)  descEl.textContent  = 'Завантаження…';
+  var windEl = R('weatherWind');   if(windEl)  windEl.textContent  = '';
+  var iconEl = R('weatherIcon');   if(iconEl)  iconEl.textContent  = '🌡️';
+
   fetch('https://wttr.in/' + encodeURIComponent(city) + '?format=j1')
-    .then(function(r){ return r.json(); })
+    .then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
     .then(function(d){
       _weatherCache = {city: city, data: d, ts: Date.now()};
       try { localStorage.setItem('axis_weather_cache', JSON.stringify(_weatherCache)); } catch(e){}
       renderWeather(d);
     })
-    .catch(function(){
-      var el = R('weatherDesc'); if(el) el.textContent = 'Немає з\'єднання';
+    .catch(function(err){
+      var eTemp = R('weatherTemp'); if(eTemp) eTemp.textContent = '—';
+      var eDesc = R('weatherDesc'); if(eDesc) eDesc.textContent = 'Немає з\'єднання';
+      var eWind = R('weatherWind'); if(eWind) eWind.textContent = '';
+      var eIcon = R('weatherIcon'); if(eIcon) eIcon.textContent = '⚠';
+      var eFc   = R('weatherForecast'); if(eFc) eFc.innerHTML = '';
+      console.warn('fetchWeather failed:', err);
     });
   } catch(e) { console.warn('fetchWeather error:', e); }
 }
@@ -193,7 +213,7 @@ function renderTodos() {
   list.innerHTML = todos.map(function(t, i){
     return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);">'
       + '<input type="checkbox"' + (t.done?' checked':'') + ' onchange="toggleTodo('+i+')" style="cursor:pointer;accent-color:var(--accent);">'
-      + '<span style="flex:1;font-size:12px;color:' + (t.done?'var(--text3)':'var(--text)') + ';' + (t.done?'text-decoration:line-through;':'') + '">' + t.text + '</span>'
+      + '<span style="flex:1;font-size:12px;color:' + (t.done?'var(--text3)':'var(--text)') + ';' + (t.done?'text-decoration:line-through;':'') + '">' + _escDash(t.text) + '</span>'
       + '<button onclick="deleteTodo('+i+')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;" title="Видалити">×</button>'
       + '</div>';
   }).join('') || '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px;">Завдань немає 🎉</div>';
@@ -249,11 +269,15 @@ function resetStats() {
 function renderStats() {
   var g = R('statsGrid'); var p = R('statsProviders');
   if (!g || !p) return;
+  var totalReqs  = (_stats.total  || 0);
+  var totalCmds  = (_stats.cmds   || 0);
+  var totalToks  = (_stats.tokens || 0);
+  var sessToday  = parseInt(localStorage.getItem('axis_sessions_today') || '0') || 0;
   var cards = [
-    {label:'Всього запитів',  val: _stats.total,  ico:'🤖'},
-    {label:'Команд виконано', val: _stats.cmds,   ico:'⚡'},
-    {label:'~Токени',        val: _stats.tokens > 1000 ? (_stats.tokens/1000).toFixed(1)+'k' : _stats.tokens, ico:'🔢'},
-    {label:'Сесій сьогодні', val: parseInt(localStorage.getItem('axis_sessions_today')||'0'), ico:'📅'},
+    {label:'Всього запитів',  val: totalReqs,  ico:'🤖'},
+    {label:'Команд виконано', val: totalCmds,  ico:'⚡'},
+    {label:'~Токени',        val: totalToks > 1000 ? (totalToks/1000).toFixed(1)+'k' : totalToks, ico:'🔢'},
+    {label:'Сесій сьогодні', val: sessToday, ico:'📅'},
   ];
   g.innerHTML = cards.map(function(c){
     return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">'

@@ -803,6 +803,7 @@ function toggleSphereAutostart() {
 
 // ═══ LIVE API KEY TESTS ═══════════════════════════════════════════════════════
 var _apiTestRunning = false;
+var _apiTestTimeout = null;
 
 function runApiTests() {
   if (_apiTestRunning) return;
@@ -814,6 +815,22 @@ function runApiTests() {
     row.querySelector('.atr-status').innerHTML = '<span class="atr-dot atr-wait"></span>';
     row.querySelector('.atr-msg').textContent = '—';
   });
+  // Safety timeout: if Python never replies in 30 s, unblock the UI
+  clearTimeout(_apiTestTimeout);
+  _apiTestTimeout = setTimeout(function() {
+    if (!_apiTestRunning) return;
+    document.querySelectorAll('.api-test-row').forEach(function(row) {
+      var msgEl = row.querySelector('.atr-msg');
+      var statusEl = row.querySelector('.atr-status');
+      if (msgEl && msgEl.textContent === '—') {
+        if (statusEl) statusEl.innerHTML = '<span class="atr-dot atr-err"></span>⏱';
+        msgEl.textContent = 'Час очікування вичерпано';
+      }
+    });
+    _apiTestRunning = false;
+    if (btn) { btn.disabled = false; btn.textContent = '🔬 Запустити тести'; }
+    showToast('⚠ Тести не відповіли за 30 с');
+  }, 30000);
   pyCall('run_api_tests', '{}');
 }
 
@@ -837,13 +854,27 @@ function handleApiTestResult(d) {
   else                             { dotClass = 'atr-wait';    icon = '—'; }
 
   statusEl.innerHTML = '<span class="atr-dot ' + dotClass + '"></span>' + icon;
-  msgEl.textContent  = d.msg || '';
+  // Always show a meaningful message for error/no_key cases
+  var msg = d.msg || '';
+  if (!msg && d.status === 'error')  msg = 'Помилка перевірки';
+  if (!msg && d.status === 'no_key') msg = 'Ключ не налаштовано';
+  msgEl.textContent = msg;
 }
 
 function handleApiTestsDone() {
+  clearTimeout(_apiTestTimeout);
   _apiTestRunning = false;
   var btn = R('runApiTestsBtn');
   if (btn) { btn.disabled = false; btn.textContent = '🔬 Запустити тести'; }
+  // Surface any rows that never got a result as "no response"
+  document.querySelectorAll('.api-test-row').forEach(function(row) {
+    var msgEl = row.querySelector('.atr-msg');
+    var statusEl = row.querySelector('.atr-status');
+    if (msgEl && msgEl.textContent === '—') {
+      if (statusEl) statusEl.innerHTML = '<span class="atr-dot atr-err"></span>❌';
+      msgEl.textContent = 'Немає відповіді';
+    }
+  });
   showToast('✅ Тести завершено');
 }
 
