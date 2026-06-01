@@ -34,7 +34,7 @@ async function saveOrder(order) {
 }
 
 const CORS = {
-  'Access-Control-Allow-Origin': process.env.URL || 'https://axis-os.netlify.app',
+  'Access-Control-Allow-Origin': process.env.URL || 'https://axis-os-app.netlify.app',
   'Access-Control-Allow-Headers': 'Content-Type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Content-Type': 'application/json'
@@ -53,7 +53,7 @@ exports.handler = async (event) => {
   const gmailUser  = process.env.GMAIL_USER  || 'axis.os.assistant@gmail.com';
   const gmailPass  = process.env.GMAIL_PASS;
   const ownerEmail = process.env.OWNER_EMAIL || gmailUser;
-  const siteUrl    = process.env.URL         || 'https://axis-os.netlify.app';
+  const siteUrl    = process.env.URL         || 'https://axis-os-app.netlify.app';
 
   if (!gmailPass) {
     console.log('GMAIL_PASS not set — skipping emails');

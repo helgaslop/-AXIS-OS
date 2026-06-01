@@ -2,7 +2,10 @@
   base      = "website"
   publish   = "."
   functions = "../netlify/functions"
-  command   = "cd .. && npm install"
+  command   = "cd .. && npm install --prefix . && cd website"
+
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
 
 [build.environment]
   NODE_VERSION = "18"

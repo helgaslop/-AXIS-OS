@@ -12,7 +12,7 @@ const crypto        = require('crypto');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const CORS = {
-  'Access-Control-Allow-Origin':  process.env.URL || 'https://axis-os.netlify.app',
+  'Access-Control-Allow-Origin':  process.env.URL || 'https://axis-os-app.netlify.app',
   'Access-Control-Allow-Headers': 'Content-Type, x-admin-secret',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Content-Type': 'application/json'
