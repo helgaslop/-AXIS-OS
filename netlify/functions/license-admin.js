@@ -14,7 +14,7 @@ const crypto        = require('crypto');
 function _store(name) {
   const opts = { name };
   const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID || '';
-  const token  = process.env.NETLIFY_TOKEN   || process.env.NETLIFY_API_TOKEN || '';
+  const token  = process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN || process.env.NETLIFY_API_TOKEN || '';
   if (siteID) opts.siteID = siteID;
   if (token)  opts.token  = token;
   return getStore(opts);
