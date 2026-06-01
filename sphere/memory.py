@@ -322,3 +322,19 @@ class SphereMemoryMixin:
             self._respond_with_ai(prompt, extra_system=ctx)
         except Exception as e:
             self.respond(f"Помилка пошуку пам'яті: {e}")
+
+    def _load_memory(self) -> list:
+        """Load conversation memories from disk on startup."""
+        try:
+            from core.convo_memory import _load
+            return _load()
+        except Exception:
+            return []
+
+    def _save_memory(self):
+        """Save conversation memories to disk (called on shutdown)."""
+        try:
+            from core.convo_memory import _save
+            _save(getattr(self, '_conversation_memory', []))
+        except Exception:
+            pass

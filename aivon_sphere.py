@@ -797,20 +797,8 @@ SOUND_DIR = APP_DIR / "assets" / "sounds"
 # JARVIS SOUND SYSTEM
 # ═══════════════════════════════════════════════════════════
 
-class JarvisSound:
-    # JarvisSound → sphere/sound.py
-    pass
-
-
-
-
-# ═══════════════════════════════════════════════════════════
-# APP LAUNCHER — Сканування та запуск додатків/ігор
-# ═══════════════════════════════════════════════════════════
-
-class AppLauncher:
-    # AppLauncher → sphere/launcher.py
-    pass
+# JarvisSound → imported from sphere/sound.py (line 165)
+# AppLauncher  → imported from sphere/launcher.py (line 166)
 
 
 
