@@ -2234,7 +2234,7 @@
                   <input id="licKeyInput" type="password" style="max-width:240px;font-family:monospace;letter-spacing:.06em;font-size:13px;"
                          placeholder="AXIS-XXXX-XXXX-XXXX-XXXX" autocomplete="off"
                          oninput="this.value=this.value.toUpperCase()">
-                  <button class="btn btn-sm" onclick="activateLicense()">✅ Активувати</button>
+                  <button id="licActivateBtn" class="btn btn-sm" onclick="licActivate()">✅ Активувати</button>
                 </div>
               </div>
               <div id="lic-msg" style="font-size:12px;margin-top:6px;color:var(--text3,#484f58);"></div>
@@ -2588,8 +2588,8 @@
         <!-- Activation section -->
         <div id="licActivateSection" class="lic-activate-section">
           <div class="lic-activate-row">
-            <input id="licKeyInput2" type="password" class="lic-key-input" placeholder="AXIS-XXXX-XXXX-XXXX-XXXX" maxlength="24" autocomplete="off">
-            <button class="btn btn-p" onclick="licActivate()">Активувати</button>
+            <input id="licKeyInput2" type="password" class="lic-key-input" placeholder="AXIS-XXXX-XXXX-XXXX-XXXX" maxlength="24" autocomplete="off" oninput="this.value=this.value.toUpperCase()">
+            <button id="licActivateBtn2" class="btn btn-p" onclick="licActivate()">Активувати</button>
           </div>
           <div id="licActivateMsg" class="lic-activate-msg"></div>
         </div>

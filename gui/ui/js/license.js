@@ -36,15 +36,45 @@ function handleLicenseStatus(d) {
 }
 
 function handleLicenseResult(d) {
+  // Re-enable activate buttons
+  ['licActivateBtn', 'licActivateBtn2'].forEach(function(id) {
+    var btn = R(id);
+    if (btn) { btn.disabled = false; btn.textContent = 'Активувати'; }
+  });
+
   var el = R('licActivateMsg');
   if (el) {
     el.textContent = d.message || '';
-    el.style.color = d.ok ? 'var(--green)' : 'var(--red)';
+    el.style.color = d.ok ? '#3fb950' : '#f85149';
+    el.style.display = 'block';
   }
+
   if (d.ok) {
-    var inp = R('licKeyInput2');
-    if (inp) inp.value = '';
-    showToast(d.message || '✅ Активовано');
+    // Clear key input
+    ['licKeyInput', 'licKeyInput2'].forEach(function(id) {
+      var inp = R(id); if (inp) inp.value = '';
+    });
+
+    // Big success toast
+    showToast('🎉 ' + (d.message || 'Ліцензію активовано!'));
+
+    // Refresh license status in UI immediately
+    pyCall('get_license_status', '{}');
+
+    // Show celebration overlay briefly
+    var tier = d.tier || 'monthly';
+    var tierNames = { monthly: 'Місячний', yearly: 'Річний', lifetime: 'Lifetime ♾️' };
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s';
+    overlay.innerHTML = '<div style="background:#0d1117;border:2px solid #3fb950;border-radius:20px;padding:40px 50px;text-align:center;max-width:420px;">'
+      + '<div style="font-size:60px;margin-bottom:12px">🎉</div>'
+      + '<div style="font-size:22px;font-weight:900;color:#3fb950;margin-bottom:8px">Ліцензію активовано!</div>'
+      + '<div style="font-size:15px;color:#8b949e;margin-bottom:20px">План: <strong style="color:#e6edf3">' + (tierNames[tier] || tier) + '</strong></div>'
+      + '<div style="font-size:13px;color:#484f58;margin-bottom:24px">На вашу пошту надіслано підтвердження</div>'
+      + '<button onclick="this.parentElement.parentElement.remove()" style="background:linear-gradient(135deg,#3fb950,#238636);color:#000;border:none;padding:12px 28px;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer">Розпочати роботу →</button>'
+      + '</div>';
+    document.body.appendChild(overlay);
+    setTimeout(function() { if (overlay.parentElement) overlay.remove(); }, 8000);
   }
 }
 
@@ -300,13 +330,26 @@ function licActivate() {
   var inp = document.getElementById('licKeyInput') || document.getElementById('licKeyInput2');
   if (!inp) return;
   var key = inp.value.trim().toUpperCase();
-  if (!key) return;
+  if (!key) { showToast('⚠️ Введіть ключ активації'); return; }
+
+  // Show loading state on button
+  ['licActivateBtn', 'licActivateBtn2'].forEach(function(id) {
+    var btn = R(id);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Перевірка...'; }
+  });
+  var el = R('licActivateMsg');
+  if (el) { el.textContent = '🔄 Перевіряємо ключ на сервері...'; el.style.color = '#8b949e'; el.style.display = 'block'; }
+
   // Validate format: AXIS-XXXX-XXXX-XXXX-XXXX
   if (!/^AXIS-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key)) {
-    showToast('⚠️ Невірний формат ключа. Очікується: AXIS-XXXX-XXXX-XXXX-XXXX');
+    // Reset loading state on format error
+    ['licActivateBtn', 'licActivateBtn2'].forEach(function(id) {
+      var btn = R(id); if (btn) { btn.disabled = false; btn.textContent = 'Активувати'; }
+    });
+    if (el) { el.textContent = '⚠️ Невірний формат. Формат: AXIS-XXXX-XXXX-XXXX-XXXX'; el.style.color = '#f85149'; }
     return;
   }
-  inp.value = key; // normalize to uppercase
+  inp.value = key;
   pyCall('activate_license', JSON.stringify({ key: key }));
 }
 
