@@ -327,7 +327,12 @@ function aiSubModalSave() {
 
 // ── License activation ────────────────────────────────────────────────────────
 function licActivate() {
-  var inp = document.getElementById('licKeyInput') || document.getElementById('licKeyInput2');
+  // Use whichever input has a value — licKeyInput2 (license page) or licKeyInput (settings)
+  var inp1 = document.getElementById('licKeyInput');
+  var inp2 = document.getElementById('licKeyInput2');
+  var inp = (inp2 && inp2.value.trim()) ? inp2
+          : (inp1 && inp1.value.trim()) ? inp1
+          : inp2 || inp1;
   if (!inp) return;
   var key = inp.value.trim().toUpperCase();
   if (!key) { showToast('⚠️ Введіть ключ активації'); return; }
