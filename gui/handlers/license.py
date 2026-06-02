@@ -13,7 +13,62 @@ class LicenseHandlerMixin:
         from core.license import LicenseManager
         from core.paths import USER_DATA_DIR
         mgr = LicenseManager(USER_DATA_DIR)
-        self.push_to_js.emit("license_status", json.dumps(mgr.get_status()))
+        # If key exists, validate with server in background (non-blocking)
+        status = mgr.get_status()
+        self.push_to_js.emit("license_status", json.dumps(status))
+        # Background server check (every 6h max)
+        if status.get("key") and status.get("tier") not in ("trial",):
+            threading.Thread(
+                target=self._server_validate_key,
+                args=(status["key"],),
+                daemon=True
+            ).start()
+
+    def _server_validate_key(self, key: str):
+        """Check revocation status with Netlify server. Non-blocking."""
+        from core.license import LicenseManager
+        from core.paths import USER_DATA_DIR
+        import time, json as _json
+        # Rate-limit: check at most once per 6 hours
+        cache_file = USER_DATA_DIR / ".last_license_check"
+        try:
+            if cache_file.exists():
+                last = float(cache_file.read_text())
+                if time.time() - last < 21600:  # 6 hours
+                    return
+        except Exception:
+            pass
+
+        try:
+            import urllib.request
+            url = "https://axis-os-app.netlify.app/.netlify/functions/license-check"
+            mgr = LicenseManager(USER_DATA_DIR)
+            payload = _json.dumps({
+                "key": key,
+                "deviceId": mgr._machine_id()
+            }).encode()
+            req = urllib.request.Request(
+                url, data=payload,
+                headers={"Content-Type": "application/json"}, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=8) as r:
+                data = _json.loads(r.read().decode())
+
+            # Update last check time
+            cache_file.write_text(str(time.time()))
+
+            if not data.get("valid"):
+                # Key revoked — downgrade to trial locally
+                mgr._data["tier"] = "trial"
+                mgr._data["key"]  = None
+                mgr._save()
+                self.push_to_js.emit("license_status", _json.dumps(mgr.get_status()))
+                self.push_to_js.emit("toast", _json.dumps({
+                    "msg": "⚠️ Ваш ключ відкликано. Зверніться до підтримки."
+                }))
+                print(f"[License] Key {key} revoked by server")
+        except Exception as e:
+            print(f"[License] Server check skipped: {e}")
 
     def _activate_license(self, p: dict):
         from core.license import LicenseManager
@@ -45,17 +100,25 @@ class LicenseHandlerMixin:
             ).start()
 
     def _send_activation_email(self, key: str, tier: str):
-        """Send activation welcome email via Gmail SMTP."""
+        """Send activation welcome email via Gmail SMTP.
+        Reads credentials from app config (data/config.json) or env vars.
+        """
         import os, smtplib
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
 
-        gmail_user = os.environ.get("GMAIL_USER", "")
-        gmail_pass = os.environ.get("GMAIL_PASS", "")
-        owner_email = os.environ.get("OWNER_EMAIL", gmail_user)
+        # Try app config first, then env vars
+        cfg = getattr(self, '_cfg', {})
+        api_keys = cfg.get("api_keys", {})
+        gmail_user = (api_keys.get("gmail_user") or cfg.get("gmail_user")
+                      or os.environ.get("GMAIL_USER", "axis.os.assistant@gmail.com"))
+        gmail_pass = (api_keys.get("gmail_pass") or cfg.get("gmail_pass")
+                      or os.environ.get("GMAIL_PASS", ""))
+        owner_email = (cfg.get("owner_email") or cfg.get("notification_email")
+                       or os.environ.get("OWNER_EMAIL", gmail_user))
 
-        if not gmail_pass or not owner_email:
-            print("[License] Email skipped — GMAIL_PASS or OWNER_EMAIL not set")
+        if not gmail_pass:
+            print("[License] Email skipped — gmail_pass not in config or env")
             return
 
         tier_names = {"monthly": "Місячний", "yearly": "Річний", "lifetime": "Lifetime ♾️"}

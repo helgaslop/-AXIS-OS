@@ -48,10 +48,15 @@ class ProfileHandlerMixin:
     # ── Onboarding ────────────────────────────────────────────────────────────
     def _get_onboarding_status(self, _):
         f = self._onboarding_file()
-        data = {"completed": False}
+        data = {"done": False, "completed": False}
         if f.exists():
             try:
-                data = json.loads(f.read_text(encoding="utf-8"))
+                saved = json.loads(f.read_text(encoding="utf-8"))
+                # Migrate old files that only have "completed" but not "done"
+                if saved.get("completed") and not saved.get("done"):
+                    saved["done"] = True
+                    f.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
+                data = saved
             except Exception:
                 pass
         self.push_to_js.emit("onboarding_status", json.dumps(data))
@@ -60,7 +65,8 @@ class ProfileHandlerMixin:
         f = self._onboarding_file()
         try:
             f.parent.mkdir(parents=True, exist_ok=True)
-            data = {"completed": True, **p}
+            # Both "done" and "completed" — JS checks "done", some code checks "completed"
+            data = {"done": True, "completed": True, **p}
             f.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             self.push_to_js.emit("onboarding_complete", json.dumps({"ok": True}))
         except Exception as e:
