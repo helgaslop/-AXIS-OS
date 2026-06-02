@@ -1,12 +1,12 @@
 [Setup]
 AppName=AXIS OS
-AppVersion=1.3.2
-AppVerName=AXIS OS 1.3.2
+AppVersion=1.3.3
+AppVerName=AXIS OS 1.3.3
 AppPublisher=AXIS
 DefaultDirName={autopf}\AXIS OS
 DefaultGroupName=AXIS OS
 OutputDir=dist
-OutputBaseFilename=AXIS_OS_Setup_1.3.2
+OutputBaseFilename=AXIS_OS_Setup_1.3.3
 SetupIconFile=data\icon_panel.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
