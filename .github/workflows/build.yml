@@ -17,8 +17,8 @@ jobs:
           fetch-depth: 0
 
       - name: SonarCloud Scan
-        # Використовуємо повний commit SHA для версії v5.0.0
-        uses: SonarSource/sonarqube-scan-action@6f9814b7863f6955a5b51a086202484439c09b62
+        # Точний і перевірений SHA-хеш для офіційного релізу v5.0.0
+        uses: SonarSource/sonarqube-scan-action@5d65f577f88421b920bf04f7bdf75f4d852cb7ec
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
