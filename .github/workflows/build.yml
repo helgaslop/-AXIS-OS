@@ -1,20 +1,24 @@
 name: Build
+
 on:
   push:
     branches:
       - main
       - master
+
 jobs:
   build:
     name: Build and analyze
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5.0.0
+        # Використовуємо повний commit SHA для версії v5.0.0
+        uses: SonarSource/sonarqube-scan-action@6f9814b7863f6955a5b51a086202484439c09b62
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
