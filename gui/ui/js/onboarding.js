@@ -32,7 +32,12 @@ function obNext() {
     var name = (R('obNameInput') || {}).value.trim();
     if (!name) { showToast('Введіть ваше ім\'я'); return; }
   }
-  if (_obStep < _obTotal) _goStep(_obStep + 1);
+  if (_obStep < _obTotal) {
+    _goStep(_obStep + 1);
+  } else {
+    // Last step — finish onboarding
+    obFinish();
+  }
 }
 
 function obBack() {

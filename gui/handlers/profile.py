@@ -62,7 +62,7 @@ class ProfileHandlerMixin:
             f.parent.mkdir(parents=True, exist_ok=True)
             data = {"completed": True, **p}
             f.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-            self.push_to_js.emit("onboarding_done", json.dumps({"ok": True}))
+            self.push_to_js.emit("onboarding_complete", json.dumps({"ok": True}))
         except Exception as e:
             print(f"[Onboarding] save error: {e}")
 
