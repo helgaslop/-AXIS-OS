@@ -5,7 +5,7 @@ AXIS OS — Release GUI Builder
 Запуск: python release_gui.py
 """
 
-import os, sys, re, json, ssl, shutil, zipfile, subprocess
+import os, sys, re, json, ssl, shutil, zipfile, subprocess, time
 import urllib.request, urllib.error, urllib.parse
 from pathlib import Path
 
@@ -333,51 +333,101 @@ class Worker(QThread):
         })
         return rel["html_url"], rel["upload_url"]
 
+    def _delete_asset_if_exists(self, upload_url: str, token: str, name: str):
+        """Після обірваного завантаження GitHub лишає битий asset з тим самим
+        іменем — наступна спроба тоді падає з 422. Видаляємо його перед retry."""
+        try:
+            # upload_url: https://uploads.github.com/repos/OWNER/REPO/releases/ID/assets{?name,label}
+            m = re.search(r"/repos/([^/]+/[^/]+)/releases/(\d+)", upload_url)
+            if not m:
+                return
+            repo, rel_id = m.group(1), m.group(2)
+            api = f"https://api.github.com/repos/{repo}/releases/{rel_id}/assets"
+            for a in self._gh("GET", api, token) or []:
+                if a.get("name") == name:
+                    self._log(f"Видаляю битий asset {name}...", "info")
+                    self._gh("DELETE",
+                             f"https://api.github.com/repos/{repo}/releases/assets/{a['id']}",
+                             token)
+        except Exception:
+            pass
+
     def _upload(self, upload_url: str, token: str, path: Path,
                 step_start: int, step_end: int):
         url = upload_url.split("{")[0] + f"?name={urllib.parse.quote(path.name)}"
 
         curl = shutil.which("curl") or r"C:\Windows\System32\curl.exe"
         if os.path.exists(curl):
-            cmd = [curl,
-                   "-X", "POST",
-                   "-H", f"Authorization: token {token}",
-                   "-H", "Content-Type: application/octet-stream",
-                   "-H", "User-Agent: AXIS-OS/release-gui",
-                   "--data-binary", f"@{path}",
-                   "--ssl-no-revoke",
-                   "--connect-timeout", "60",
-                   "-m", "7200",
-                   url]
-            self._log(f"$ curl ... {path.name}", "cmd")
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE, cwd=str(ROOT))
-            total_mb = path.stat().st_size / 1024 / 1024
-            while True:
-                if self._stop: proc.kill(); return
-                line = proc.stderr.readline()
-                if not line: break
-                line_s = line.decode("utf-8", errors="replace").strip()
-                if line_s:
-                    parts = line_s.split()
-                    if len(parts) >= 5:
-                        try:
-                            up_pct = int(parts[4])
-                            if 0 <= up_pct <= 100:
-                                mapped = step_start + int(
-                                    (step_end - step_start) * up_pct / 100)
-                                done_mb = total_mb * up_pct / 100
-                                self._step("upload", mapped,
-                                           f"{up_pct}%  ({done_mb:.0f}/{total_mb:.0f} MB)")
-                        except (ValueError, IndexError):
-                            pass
-            proc.wait()
-            if proc.returncode == 0:
-                self._log(f"✓ {path.name} завантажено", "ok")
-            else:
-                out = proc.stdout.read().decode("utf-8", errors="replace")
-                raise RuntimeError(f"curl помилка {proc.returncode}: {out[-200:]}")
-            return
+            last_err = ""
+            for attempt in range(1, 4):
+                if attempt > 1:
+                    self._log(f"Повторна спроба {attempt}/3 ({path.name})...", "info")
+                    self._delete_asset_if_exists(upload_url, token, path.name)
+                    time.sleep(3)
+                ok, last_err = self._curl_upload(curl, url, token, path,
+                                                 step_start, step_end)
+                if ok is None:      # зупинено користувачем
+                    return
+                if ok:
+                    self._log(f"✓ {path.name} завантажено", "ok")
+                    return
+                self._log(f"⚠ Спроба {attempt} невдала: {last_err[:160]}", "sub")
+            raise RuntimeError(f"curl помилка після 3 спроб: {last_err[:200]}")
+
+    def _curl_upload(self, curl, url, token, path, step_start, step_end):
+        """Одна спроба завантаження. Повертає (ok|None, err_text)."""
+        cmd = [curl,
+               "-X", "POST",
+               "-H", f"Authorization: token {token}",
+               "-H", "Content-Type: application/octet-stream",
+               "-H", "User-Agent: AXIS-OS/release-gui",
+               "-H", "Expect:",          # без 100-continue (проблеми на Windows)
+               "--http1.1",              # HTTP/2 upload часто дає curl 55
+               "--data-binary", f"@{path}",
+               "--ssl-no-revoke",
+               "--connect-timeout", "60",
+               "--retry", "3",           # вбудовані ретраї на транзієнтні збої
+               "--retry-delay", "2",
+               "--retry-all-errors",
+               "-m", "7200",
+               url]
+        self._log(f"$ curl ... {path.name}", "cmd")
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, cwd=str(ROOT))
+        total_mb = path.stat().st_size / 1024 / 1024
+        stderr_tail = []
+        while True:
+            if self._stop: proc.kill(); return None, ""
+            line = proc.stderr.readline()
+            if not line: break
+            line_s = line.decode("utf-8", errors="replace").strip()
+            if line_s:
+                stderr_tail.append(line_s)
+                if len(stderr_tail) > 8: stderr_tail.pop(0)
+                parts = line_s.split()
+                if len(parts) >= 5:
+                    try:
+                        up_pct = int(parts[4])
+                        if 0 <= up_pct <= 100:
+                            mapped = step_start + int(
+                                (step_end - step_start) * up_pct / 100)
+                            done_mb = total_mb * up_pct / 100
+                            self._step("upload", mapped,
+                                       f"{up_pct}%  ({done_mb:.0f}/{total_mb:.0f} MB)")
+                    except (ValueError, IndexError):
+                        pass
+        proc.wait()
+        out = proc.stdout.read().decode("utf-8", errors="replace")
+        if proc.returncode == 0:
+            # curl виходить з 0 навіть при HTTP 401/422 — перевіряємо тіло:
+            # успішний upload повертає JSON asset з "id"
+            if '"id"' in out:
+                return True, ""
+            if "already_exists" in out:
+                return False, "asset already_exists (битий залишок) — видалю і повторю"
+            return False, f"GitHub відповів: {out[:200]}"
+        err = " | ".join(stderr_tail[-3:]) or out[-200:]
+        return False, f"curl {proc.returncode}: {err}"
 
         # fallback: requests
         try:
