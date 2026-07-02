@@ -85,6 +85,12 @@ class AiHandlerMixin:
             p.get("system", "Ти корисний AI асистент AXIS OS."),
         )
 
+    def _ai_cancel(self, p: dict):
+        """Скасувати in-flight генерацію (зміна сесії чату / кнопка Stop)."""
+        req_id = p.get("id", "")
+        if req_id:
+            self._ai.cancel(req_id)
+
     def _generate_image(self, p: dict):
         result = _get_license().check("image_gen")
         if not result["ok"]:

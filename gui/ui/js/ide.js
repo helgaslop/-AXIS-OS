@@ -360,6 +360,24 @@ function ideRunInTerm(){
   } else { if(out) out.textContent='axis@os:~$ '+f.name+'\n⚠ Запуск підтримується для Python та JS\naxis@os:~$ _'; }
 }
 
+/* ── Open file pushed from Python (file_content event) ───── */
+function ideOpenExternalFile(d){
+  var path=d.path||'', content=d.content||'';
+  var fname=path.split(/[\\/]/).pop()||'file.txt';
+  var ext=fname.split('.').pop().toLowerCase();
+  var modeMap={py:'python',js:'javascript',ts:'javascript',jsx:'javascript',tsx:'javascript',html:'htmlmixed',htm:'htmlmixed',css:'css',json:'javascript',md:'python'};
+  var icoMap ={py:'🐍',js:'📜',ts:'💙',jsx:'⚛',tsx:'⚛',html:'🌐',htm:'🌐',css:'🎨',json:'⚙',md:'📄'};
+  ideFiles.push({name:fname, lang:modeMap[ext]||'python', ico:icoMap[ext]||'📄', code:content, path:path});
+  var ni=ideFiles.length-1;
+  var tree=R('fileTree');
+  if(tree) tree.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-file'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')"><span style="font-size:12px;margin-right:4px;">'+f.ico+'</span>'+_ideEscAttr(f.name)+'</div>'; }).join('');
+  var tabs=R('ideTabs');
+  if(tabs) tabs.innerHTML=ideFiles.map(function(f,i){ return '<div class="ide-tab'+(i===ni?' active':'')+'" onclick="openIdeFile('+i+')">'+f.ico+' '+_ideEscAttr(f.name)+'</div>'; }).join('');
+  openIdeFile(ni);
+  if(path && typeof ideAddRecentFile==='function') ideAddRecentFile(path, fname);
+  showToast('📄 '+fname);
+}
+
 /* ── Recent files sidebar ────────────────────────────────── */
 var _ideRecentHistory = (function(){ try{return JSON.parse(localStorage.getItem('axis_ide_recent')||'[]');}catch(e){return [];} })();
 function ideAddRecentFile(path, fname){

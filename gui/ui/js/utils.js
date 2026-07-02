@@ -111,6 +111,20 @@ window.axisPush = function(type, jsonStr) {
       log_line:        function(x) { appendLog(x.level, x.msg); },
       search_results:  function(x) { if(typeof handleQuickSearchResults==='function') handleQuickSearchResults(x); },
       backup_status:   function(x) { /* handled inline in HTML script block */ },
+      code_output:     function(x) {
+        var out = R('ideTermOut');
+        if (out) out.textContent = 'axis@os:~$ run\n' + (x.output || '(без виводу)') + '\naxis@os:~$ _';
+      },
+      file_content:    function(x) { if(typeof ideOpenExternalFile==='function') ideOpenExternalFile(x); },
+      file_saved:      function(x) { if(typeof ideAddRecentFile==='function' && x.path) ideAddRecentFile(x.path); },
+      file_selected:   function(x) { if(typeof handleFileSelected==='function') handleFileSelected(x); },
+      ide_status:      function(x) {
+        if(typeof ideSetStatus==='function') ideSetStatus(!!x.running);
+        var c = x.config || {};
+        var p = R('ideProvider'); if(p && c.provider) p.value = c.provider;
+        var m = R('ideModel');    if(m && c.model)    m.value = c.model;
+        var pr= R('idePrivacy');  if(pr && c.privacy_mode!==undefined) pr.checked = !!c.privacy_mode;
+      },
     };
     if (map[type]) map[type](d);
   } catch(e) { console.error('axisPush:', e); }

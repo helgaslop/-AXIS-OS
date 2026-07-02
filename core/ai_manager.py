@@ -92,6 +92,21 @@ class AIManager(QObject):
         self._license_tier: str = "trial"
         self.reload_license()
 
+        # Cancelled request ids — стрім перевіряє і зупиняється
+        self._cancelled: set = set()
+
+    # ── Cancellation ──────────────────────────────────────────────────────────
+    def cancel(self, request_id: str):
+        """Скасувати in-flight генерацію (кнопка Stop / зміна сесії чату)."""
+        if request_id:
+            self._cancelled.add(request_id)
+            # не даємо множині рости безмежно
+            if len(self._cancelled) > 50:
+                self._cancelled = set(list(self._cancelled)[-25:])
+
+    def _is_cancelled(self, request_id: str) -> bool:
+        return request_id in self._cancelled
+
     def reload_license(self):
         """Re-read license from disk. Call after activation."""
         try:
@@ -341,6 +356,10 @@ class AIManager(QObject):
         stream_resp = client.chat.completions.create(
             model=model, messages=msgs, stream=True, **self._openai_params(model))
         for chunk in stream_resp:
+            if self._is_cancelled(req_id):
+                try: stream_resp.close()
+                except Exception: pass
+                break
             delta = chunk.choices[0].delta.content if chunk.choices else None
             if delta:
                 self.response_token.emit(req_id, delta)
@@ -357,6 +376,8 @@ class AIManager(QObject):
             kw["system"] = system_prompt
         with client.messages.stream(**kw) as stream:
             for text in stream.text_stream:
+                if self._is_cancelled(req_id):
+                    break
                 self.response_token.emit(req_id, text)
         self.response_done.emit(req_id)
 
@@ -374,6 +395,8 @@ class AIManager(QObject):
         for chunk in client.models.generate_content_stream(
             model=model, contents=contents, config=cfg
         ):
+            if self._is_cancelled(req_id):
+                break
             if chunk.text:
                 self.response_token.emit(req_id, chunk.text)
         self.response_done.emit(req_id)
@@ -395,6 +418,10 @@ class AIManager(QObject):
             stream=True,
         )
         for chunk in stream:
+            if self._is_cancelled(req_id):
+                try: stream.close()
+                except Exception: pass
+                break
             delta = chunk.choices[0].delta.content
             if delta:
                 self.response_token.emit(req_id, delta)
@@ -413,6 +440,8 @@ class AIManager(QObject):
             resp.raise_for_status()
             import json as _json
             for line in resp.iter_lines():
+                if self._is_cancelled(req_id):
+                    break
                 if not line:
                     continue
                 line = line.decode("utf-8")
@@ -992,6 +1021,8 @@ class AIManager(QObject):
         )
         with urllib.request.urlopen(req, timeout=120) as resp:
             for raw_line in resp:
+                if self._is_cancelled(request_id):
+                    break
                 line = raw_line.decode("utf-8").strip()
                 if not line.startswith("data: "):
                     continue

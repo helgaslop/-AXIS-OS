@@ -29,8 +29,11 @@ from PyQt6.QtCore import QThread, QTimer, pyqtSignal
 
 class _DialogThread(QThread):
     """Multi-provider AI виклик для діалог режиму з пам'яттю"""
-    result = pyqtSignal(str)
-    error  = pyqtSignal(str)
+    result   = pyqtSignal(str)
+    sentence = pyqtSignal(str)   # streaming: кожне готове речення (тільки openai)
+    error    = pyqtSignal(str)
+
+    _SENT_RE = re.compile(r'(?<=[.!?…])\s+')
 
     def __init__(self, provider, key, messages, config=None):
         super().__init__()
@@ -38,6 +41,17 @@ class _DialogThread(QThread):
         self.key      = key
         self.messages = messages
         self.config   = config or {}
+
+    def _flush_sentences(self, buf: str) -> str:
+        """Емітить завершені речення з буфера, повертає залишок."""
+        while True:
+            m = self._SENT_RE.search(buf)
+            if not m:
+                return buf
+            s   = buf[:m.end()].strip()
+            buf = buf[m.end():]
+            if len(s) >= 3:
+                self.sentence.emit(s)
 
     def run(self):
         try:
@@ -57,15 +71,39 @@ class _DialogThread(QThread):
             self.error.emit(str(e)[:50])
 
     def _call_openai(self, requests):
-        print(f"[Dialog] GPT → {len(self.messages)} msgs...")
+        """OpenAI зі streaming — речення озвучуються по мірі генерації."""
+        import json as _j
+        print(f"[Dialog] GPT → {len(self.messages)} msgs (stream)...")
         r = requests.post("https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"},
-            json={"model": "gpt-4o-mini", "max_tokens": 300, "messages": self.messages},
-            timeout=15)
-        if r.status_code == 200:
-            self.result.emit(r.json()["choices"][0]["message"]["content"].strip())
-        else:
+            json={"model": "gpt-4o-mini", "max_tokens": 300,
+                  "messages": self.messages, "stream": True},
+            timeout=30, stream=True)
+        if r.status_code != 200:
             self.error.emit(f"GPT {r.status_code}")
+            return
+        buf, full = "", ""
+        for line in r.iter_lines(decode_unicode=True):
+            if not line or not line.startswith("data:"):
+                continue
+            payload = line[len("data:"):].strip()
+            if payload == "[DONE]":
+                break
+            try:
+                delta = (_j.loads(payload)["choices"][0]
+                         .get("delta", {}).get("content")) or ""
+            except Exception:
+                continue
+            if delta:
+                buf  += delta
+                full += delta
+                buf   = self._flush_sentences(buf)
+        if buf.strip():
+            self.sentence.emit(buf.strip())
+        if full.strip():
+            self.result.emit(full.strip())
+        else:
+            self.error.emit("GPT: порожня відповідь")
 
     def _call_anthropic(self, requests):
         print(f"[Dialog] Claude → {len(self.messages)} msgs...")
@@ -311,9 +349,10 @@ class AIThread(QThread):
                 self._long_response = True
             else:
                 self._long_response = False
-            # system_override completely replaces built system (for recall queries)
+            # system_override замінює базовий SYSTEM (персона/recall),
+            # але динамічний контекст (ПК, профіль, пам'ять) додаємо завжди
             if getattr(self, '_system_override', ''):
-                self.SYSTEM = self._system_override
+                self.SYSTEM = self._system_override + extra
             else:
                 self.SYSTEM = AIThread.SYSTEM + extra
         except Exception:
@@ -906,14 +945,26 @@ class SphereAIMixin:
         if hasattr(self, '_dialog_thread') and self._dialog_thread is not None:
             try:
                 self._dialog_thread.result.disconnect()
+                self._dialog_thread.sentence.disconnect()
                 self._dialog_thread.error.disconnect()
             except Exception:
                 pass
+        self._dialog_streamed = False
+        self._stream_generating = True
         self._dialog_thread = _DialogThread(provider, key, messages, _fresh_cfg)
+        self._dialog_thread.sentence.connect(self._on_dialog_sentence)
         self._dialog_thread.result.connect(
             lambda answer: self._on_dialog_response(answer, provider))
         self._dialog_thread.error.connect(self._on_dialog_error)
+        self._dialog_thread.finished.connect(self._on_stream_finished)
         self._dialog_thread.start()
+
+    def _on_dialog_sentence(self, sentence: str):
+        """Streaming діалог: озвучуємо речення одразу, не чекаючи повної відповіді.
+        Черга TTS грає їх послідовно; _on_all_tts_done продовжить слухання."""
+        self._dialog_streamed = True
+        self.state = self.SPEAKING
+        self.respond(sentence)
 
     def _on_dialog_response(self, answer: str, provider=None):
         """AI відповів — одразу голос (OpenAI TTS), слухаємо далі."""
@@ -924,6 +975,13 @@ class SphereAIMixin:
         if len(self.dialog_history) > mem_size:
             self.dialog_history = self.dialog_history[-(mem_size // 2):]
         print(f"[Dialog] → '{answer[:60]}...'")
+
+        # Streaming: речення вже озвучені по мірі генерації —
+        # черга TTS сама продовжить слухання після останнього речення
+        if getattr(self, '_dialog_streamed', False):
+            self._dialog_streamed = False
+            return
+
         self.response_text = "🔊"
         self.state         = self.SPEAKING
 
@@ -1036,7 +1094,9 @@ class SphereAIMixin:
 
     # ── Public ask_ai + fallbacks ─────────────────────────────────────────────
     def ask_ai(self, q: str):
-        from aivon_sphere import load_config, MemoryThread  # type: ignore
+        """AI-відповідь зі streaming: перше речення озвучується одразу,
+        не чекаючи повної генерації (як Gemini на телефоні)."""
+        from sphere.memory import MemoryThread
 
         has_key = any(self.config.get(k) for k in
                       ["anthropic_key", "openai_key", "google_key",
@@ -1054,22 +1114,50 @@ class SphereAIMixin:
 
         self.state         = self.THINKING
         self.response_text = "🧠 Думаю..."
+        self.update()
 
-        if self.memory_enabled and self.config.get("openai_key"):
-            _fresh_cfg = load_config()
-            mem = MemoryThread(
-                _fresh_cfg, q,
-                callback=lambda text: self._respond_signal.emit(text),
-                error_callback=lambda e: QTimer.singleShot(
-                    0, lambda: self._ai_fallback(q, e))
-            )
-            mem.start()
-        else:
-            self.ai_thread = AIThread(self.config, q)
-            self.ai_thread.response.connect(self.respond)
-            self.ai_thread.error.connect(
-                lambda e: self._ai_fallback_with_ollama(q, e))
-            self.ai_thread.start()
+        # Персона JARVIS (як раніше в MemoryThread), історія і tools — в AIThread
+        persona = MemoryThread.ASSISTANT_INSTRUCTIONS if self.memory_enabled else ""
+
+        # Telegram: речення не шлемо окремо — повний текст один раз наприкінці
+        self._tg_stream_suppress = True
+        # Поки триває генерація — _on_all_tts_done не вмикає мікрофон
+        self._stream_generating = True
+
+        t = AIThread(self.config, q, system_override=persona)
+        t.sentence_ready.connect(self._respond_signal)
+        t.response.connect(self._on_ai_stream_done)
+        t.error.connect(lambda e: self._on_ai_stream_error(q, e))
+        self._current_ai_thread = t
+        t.finished.connect(self._on_stream_finished)
+        self.ai_thread = t
+        t.start()
+
+    def _on_stream_finished(self):
+        """Streaming-генерація завершилась (успіх, помилка чи abort)."""
+        self._current_ai_thread  = None
+        self._stream_generating  = False
+        # Якщо TTS вже все проговорив поки ми генерували — продовжуємо слухання
+        with self._tts_lock:
+            _idle = not self._tts_busy and not self._tts_queue
+        _dlg_tts = getattr(self, '_dialog_tts', None)
+        if _dlg_tts is not None and _dlg_tts.isRunning():
+            _idle = False   # діалоговий TTS ще говорить — він сам продовжить
+        if _idle:
+            self._on_all_tts_done()
+
+    def _on_ai_stream_done(self, full: str):
+        """Streaming завершено — показуємо повний текст і шлемо в Telegram раз."""
+        self._tg_stream_suppress = False
+        self.response_text = full[:120]
+        try:
+            self._tg_send(full)
+        except Exception:
+            pass
+
+    def _on_ai_stream_error(self, q: str, error: str):
+        self._tg_stream_suppress = False
+        self._ai_fallback_with_ollama(q, error)
 
     def _ai_fallback(self, q: str, error: str):
         """Fallback до звичайного AI якщо Assistants не працює."""

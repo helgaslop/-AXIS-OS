@@ -214,6 +214,7 @@ class SphereTTSMixin:
         """Зупинити поточне озвучення (очистити чергу TTS)."""
         self._tts_queue.clear()
         self._tts_busy = False
+        getattr(self, '_tts_prefetch', {}).clear()
         # Stop any currently playing audio
         try:
             import pygame
@@ -245,6 +246,8 @@ class SphereTTSMixin:
         self._stop_interrupt_monitor()
         self._tts_queue.clear()
         self._tts_busy = False
+        getattr(self, '_tts_prefetch', {}).clear()
+        self._tg_stream_suppress = False
 
     def respond(self, text):
         """Додає відповідь у чергу TTS — виконує послідовно, не накладаючи"""
@@ -285,7 +288,9 @@ class SphereTTSMixin:
         if _should_play:
             self._play_next_tts()
         # Telegram: відправляємо повну відповідь в чат
-        self._tg_send(text)
+        # (при streaming речення не шлемо окремо — повний текст піде наприкінці)
+        if not getattr(self, '_tg_stream_suppress', False):
+            self._tg_send(text)
 
     def respond_silent(self, text):
         """Показує текст на сфері БЕЗ озвучки TTS (для дій/команд)"""
@@ -308,11 +313,9 @@ class SphereTTSMixin:
         self.state = self.SPEAKING
         self.response_text = text
 
-        # Task 8: interrupt monitor — only if enabled in config (disabled by default
-        # because a second pyaudio stream during TTS causes PortAudio segfault on
-        # some Windows setups; enable with config "tts_interrupt_vad": true)
-        if self.config.get("tts_interrupt_vad", False):
-            self._start_interrupt_monitor()
+        # Task 8: interrupt monitor стартує НЕ тут, а в TTS-движку одразу після
+        # початку відтворення (pygame.play) — щоб baseline RMS замірявся під час
+        # реального звучання TTS, інакше сфера переб'є сама себе.
 
         # Пауза wake word під час говоріння (щоб не чула сама себе)
         if self.wake_thread:
@@ -423,6 +426,8 @@ class SphereTTSMixin:
                 pygame.mixer.init(frequency=24000)
                 pygame.mixer.music.load(path)
                 pygame.mixer.music.play()
+                if self.config.get("tts_interrupt_vad", False):
+                    QTimer.singleShot(0, self._start_interrupt_monitor)
                 _tts_deadline = time.time() + 120
                 while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
                     time.sleep(0.05)
@@ -539,29 +544,71 @@ class SphereTTSMixin:
             return  # Пропускаємо finally нижче
         QTimer.singleShot(0, self._on_single_tts_done)
 
+    def _generate_openai_mp3(self, text, key) -> bytes:
+        """Генерує MP3 через OpenAI TTS API (без відтворення)."""
+        import requests
+        voice = self.config.get("voice", "onyx")
+        speed = self.config.get("tts_speed", 1.15)
+        r = requests.post("https://api.openai.com/v1/audio/speech",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": "tts-1", "input": text[:4096], "voice": voice,
+                  "response_format": "mp3", "speed": speed}, timeout=15)
+        if r.status_code != 200:
+            raise Exception(f"TTS HTTP {r.status_code}: {r.text[:100]}")
+        return r.content
+
+    def _prefetch_next_tts(self, key):
+        """Поки грає поточне речення — генеруємо MP3 наступного (без пауз)."""
+        try:
+            with self._tts_lock:
+                nxt = self._tts_queue[0] if self._tts_queue else None
+            if not nxt:
+                return
+            nxt = self._strip_html_for_tts(nxt)
+            if not nxt:
+                return
+            if not hasattr(self, '_tts_prefetch'):
+                self._tts_prefetch = {}
+            if nxt in self._tts_prefetch:
+                return
+            def _gen(t=nxt):
+                try:
+                    self._tts_prefetch[t] = self._generate_openai_mp3(t, key)
+                    print(f"[TTS] ⏩ prefetched next: '{t[:40]}...'")
+                except Exception:
+                    pass
+            threading.Thread(target=_gen, daemon=True).start()
+        except Exception:
+            pass
+
     def _openai_tts(self, text, key):
         """OpenAI TTS — високоякісний голос"""
         try:
-            import requests, tempfile
-            voice = self.config.get("voice", "onyx")
-            speed = self.config.get("tts_speed", 1.15)
-            print(f"[TTS] OpenAI voice={voice}, speed={speed}, text={text[:50]}...")
-            r = requests.post("https://api.openai.com/v1/audio/speech",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": "tts-1", "input": text[:4096], "voice": voice,
-                      "response_format": "mp3", "speed": speed}, timeout=15)
-            if r.status_code != 200:
-                raise Exception(f"TTS HTTP {r.status_code}: {r.text[:100]}")
+            import tempfile
+            print(f"[TTS] OpenAI text={text[:50]}...")
+            data = None
+            if hasattr(self, '_tts_prefetch'):
+                data = self._tts_prefetch.pop(text, None)
+            if data is not None:
+                print("[TTS] ⚡ using prefetched MP3")
+            else:
+                data = self._generate_openai_mp3(text, key)
             tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-            tmp.write(r.content)
+            tmp.write(data)
             tmp.close()
-            print(f"[TTS] MP3 saved: {len(r.content)} bytes")
+            print(f"[TTS] MP3 saved: {len(data)} bytes")
+            # Поки це речення грає — заздалегідь генеруємо наступне з черги
+            self._prefetch_next_tts(key)
             try:
                 import pygame
                 if pygame.mixer.get_init(): pygame.mixer.quit()
                 pygame.mixer.init(frequency=24000)
                 pygame.mixer.music.load(tmp.name)
                 pygame.mixer.music.play()
+                # Barge-in: монітор стартує коли TTS РЕАЛЬНО звучить,
+                # щоб baseline включав гучність власного голосу з динаміків
+                if self.config.get("tts_interrupt_vad", False):
+                    QTimer.singleShot(0, self._start_interrupt_monitor)
                 _tts_deadline = time.time() + 120
                 while pygame.mixer.music.get_busy() and time.time() < _tts_deadline:
                     time.sleep(0.05)
@@ -595,6 +642,11 @@ class SphereTTSMixin:
 
     def _on_all_tts_done(self):
         """Вся черга TTS завершена — можна слухати далі"""
+        # Streaming: AI ще генерує наступні речення — не вмикаємо мікрофон,
+        # інакше сфера почне слухати посеред власної відповіді.
+        # Після завершення генерації _on_stream_finished викличе нас знову.
+        if getattr(self, '_stream_generating', False):
+            return
         self.state = self.IDLE
 
         # ═══ ДІАЛОГ РЕЖИМ: бесшовний loop ═══

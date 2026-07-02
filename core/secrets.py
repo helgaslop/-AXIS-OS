@@ -105,12 +105,20 @@ def migrate_from_config(api_keys: dict) -> int:
     """Move API keys from plaintext dict into Credential Manager.
 
     Returns count of successfully migrated keys.
-    Call once on startup; after migration the keys are wiped from the dict.
+    Skips keys that already exist in Credential Manager to avoid
+    overwriting newer keys with stale values from config.json.
     """
     count = 0
     for name, value in list(api_keys.items()):
-        if value and isinstance(value, str) and set_key(name, value):
-            api_keys[name] = ""   # wipe from plaintext
+        if not (value and isinstance(value, str)):
+            continue
+        existing = get_key(name)
+        if existing:
+            api_keys[name] = ""  # wipe from plaintext, keyring already has it
+            count += 1
+            continue
+        if set_key(name, value):
+            api_keys[name] = ""  # wipe from plaintext
             count += 1
     return count
 

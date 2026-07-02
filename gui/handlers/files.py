@@ -126,28 +126,63 @@ class FilesHandlerMixin:
         return {"path": path, "filename": name, "name": display,
                 "ico": ico, "type": cmd_type, "body": body, "desc": desc}
 
+    # ── Open folder in Explorer ────────────────────────────────────────────────
+    def _open_folder(self, p: dict):
+        """Відкрити папку у Провіднику (кнопка «відкрити папку» після генерації)."""
+        path = p.get("path", "")
+        if not path:
+            return
+        folder = path if os.path.isdir(path) else os.path.dirname(path)
+        if not os.path.isdir(folder):
+            self.push_to_js.emit("toast", json.dumps({"msg": "⚠ Папку не знайдено"}))
+            return
+        try:
+            if os.path.isfile(path):
+                subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
+            else:
+                os.startfile(folder)
+        except Exception as e:
+            self.push_to_js.emit("toast", json.dumps({"msg": f"⚠ {e}"}))
+
     # ── Run code in terminal ───────────────────────────────────────────────────
+    _RUNNERS = {
+        "python":     (".py", lambda: [__import__("sys").executable]),
+        "js":         (".js", lambda: ["node"]),
+        "javascript": (".js", lambda: ["node"]),
+    }
+
     def _run_code(self, p: dict):
         code = p.get("code", "")
         lang = p.get("lang", "python")
-        if lang == "python" and code:
-            import tempfile, sys
-            with tempfile.NamedTemporaryFile(suffix=".py", delete=False,
-                                             mode="w", encoding="utf-8") as tmp:
-                tmp.write(code)
-                tmp_path = tmp.name
-            try:
-                result = subprocess.run(
-                    [sys.executable, tmp_path],
-                    capture_output=True, text=True, timeout=10,
-                    creationflags=_NO_WINDOW,
-                )
-                output = result.stdout + (result.stderr or "")
-            except subprocess.TimeoutExpired:
-                output = "⚠ Час виконання вичерпано (10 сек)"
-            except Exception as e:
-                output = str(e)
-            finally:
-                try: os.unlink(tmp_path)
-                except Exception: pass
-            self.push_to_js.emit("code_output", json.dumps({"output": output}))
+        if not code:
+            return
+        runner = self._RUNNERS.get(lang)
+        if runner is None:
+            self.push_to_js.emit("code_output", json.dumps(
+                {"output": f"⚠ Мова «{lang}» не підтримується (python, js)"}))
+            return
+        suffix, argv_fn = runner
+        import tempfile, shutil
+        if suffix == ".js" and shutil.which("node") is None:
+            self.push_to_js.emit("code_output", json.dumps(
+                {"output": "⚠ Node.js не знайдено. Встановіть з nodejs.org щоб запускати JS."}))
+            return
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False,
+                                         mode="w", encoding="utf-8") as tmp:
+            tmp.write(code)
+            tmp_path = tmp.name
+        try:
+            result = subprocess.run(
+                argv_fn() + [tmp_path],
+                capture_output=True, text=True, timeout=10,
+                creationflags=_NO_WINDOW,
+            )
+            output = result.stdout + (result.stderr or "")
+        except subprocess.TimeoutExpired:
+            output = "⚠ Час виконання вичерпано (10 сек)"
+        except Exception as e:
+            output = str(e)
+        finally:
+            try: os.unlink(tmp_path)
+            except Exception: pass
+        self.push_to_js.emit("code_output", json.dumps({"output": output}))

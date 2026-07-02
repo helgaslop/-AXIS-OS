@@ -103,6 +103,8 @@ class ProfileHandlerMixin:
                 except Exception:
                     pass
             if isinstance(existing, list):
+                from datetime import datetime
+                p.setdefault("dt", datetime.now().strftime("%d.%m.%Y %H:%M"))
                 existing.append(p)
                 existing = existing[-200:]  # keep last 200
             f.write_text(json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -110,29 +112,51 @@ class ProfileHandlerMixin:
             print(f"[ChatMemory] save error: {e}")
 
     def _recall_chat_memory(self, p: dict):
+        """Пошук у збережених розмовах. JS чекає тип 'chat_memory_recall'
+        з {context: str, results: [{topic, dt}]} (chat.js)."""
         query = p.get("query", "").lower()
+        # прибираємо стоп-слова запиту ("пам'ятаєш ми говорили про X" → шукаємо по X)
+        stop = ["пам'ятаєш", "памятаєш", "ми", "говорили", "про", "як",
+                "обговорювали", "remember", "when", "we", "talked", "about"]
+        words = [w for w in query.split() if w not in stop and len(w) > 2]
         f = self._chat_memory_file()
-        results = []
+        matched = []
         if f.exists():
             try:
                 items = json.loads(f.read_text(encoding="utf-8"))
                 if isinstance(items, list):
-                    results = [i for i in items
-                                if query in json.dumps(i, ensure_ascii=False).lower()][-10:]
+                    for i in items:
+                        blob = json.dumps(i, ensure_ascii=False).lower()
+                        if not words or any(w in blob for w in words):
+                            matched.append(i)
+                    matched = matched[-5:]
             except Exception:
                 pass
-        self.push_to_js.emit("chat_memory_results", json.dumps(results))
+
+        results = [{"topic": (m.get("topic") or "розмова без назви"),
+                    "dt":    m.get("dt", "")} for m in matched]
+        ctx_parts = []
+        for m in matched:
+            msgs = m.get("messages", [])[-10:]
+            convo = "\n".join(f"{x.get('role','')}: {x.get('text') or x.get('content','')}"
+                              for x in msgs if isinstance(x, dict))
+            ctx_parts.append(f"[Розмова «{m.get('topic','')}» {m.get('dt','')}]\n{convo}")
+        context = ("\n\n".join(ctx_parts))[:4000]
+
+        self.push_to_js.emit("chat_memory_recall",
+                             json.dumps({"context": context, "results": results}))
 
     # ── AI Style ──────────────────────────────────────────────────────────────
     def _get_ai_style(self, _):
         f = self._ai_style_file()
-        data = {"style": "balanced", "tone": "friendly", "length": "medium"}
+        data = {"style": ""}
         if f.exists():
             try:
                 data.update(json.loads(f.read_text(encoding="utf-8")))
             except Exception:
                 pass
-        self.push_to_js.emit("ai_style", json.dumps(data))
+        # JS слухає 'ai_style_data' (chat.js), не 'ai_style'
+        self.push_to_js.emit("ai_style_data", json.dumps(data))
 
     def _set_ai_style(self, p: dict):
         f = self._ai_style_file()

@@ -144,13 +144,32 @@ def load_config() -> dict:
                 data = json.load(f)
 
             # ── Axis OS зберігає ключі вкладено: api_keys.openai → openai_key ──
-            api_keys = data.get("api_keys", {})
+            # Після міграції в Credential Manager значення в api_keys порожні,
+            # тому добираємо їх з керінга (core.secrets).
+            api_keys = dict(data.get("api_keys", {}))
+            try:
+                from core.secrets import get_key as _get_secret
+            except Exception:
+                _get_secret = None
+            if _get_secret:
+                for _name in ("openai", "anthropic", "google", "xai", "perplexity",
+                              "spotify_client_id", "spotify_client_secret"):
+                    if not api_keys.get(_name):
+                        _v = _get_secret(_name)
+                        if _v:
+                            api_keys[_name] = _v
             if api_keys:
-                data.setdefault("openai_key",     api_keys.get("openai",     ""))
-                data.setdefault("anthropic_key",  api_keys.get("anthropic",  ""))
-                data.setdefault("google_key",     api_keys.get("google",     ""))
-                data.setdefault("xai_key",        api_keys.get("xai",        ""))
-                data.setdefault("perplexity_key", api_keys.get("perplexity", ""))
+                for _cfg_key, _src in (
+                    ("openai_key",            "openai"),
+                    ("anthropic_key",         "anthropic"),
+                    ("google_key",            "google"),
+                    ("xai_key",               "xai"),
+                    ("perplexity_key",        "perplexity"),
+                    ("spotify_client_id",     "spotify_client_id"),
+                    ("spotify_client_secret", "spotify_client_secret"),
+                ):
+                    if not data.get(_cfg_key):
+                        data[_cfg_key] = api_keys.get(_src, "")
 
             # ── Axis OS зберігає ai провайдера вкладено: ai.default_provider ──
             ai_block = data.get("ai", {})

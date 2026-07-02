@@ -17,7 +17,30 @@
 
 from __future__ import annotations
 
+import threading
+
 from PyQt6.QtCore import QThread, QTimer, pyqtSignal
+
+
+# ═══════════════════════════════════════════════════════════
+# Shared PyAudio singleton
+# ═══════════════════════════════════════════════════════════
+# PortAudio Pa_Initialize/Pa_Terminate НЕ потокобезпечні: одночасне створення
+# PyAudio() у wake-потоці, VoiceThread та InterruptMonitor викликає access
+# violation (segfault). Тому ОДИН спільний екземпляр на весь процес,
+# Pa_Terminate не викликаємо ніколи — стріми відкриваються/закриваються вільно.
+
+_pa_lock   = threading.Lock()
+_pa_shared = None
+
+
+def get_shared_pyaudio():
+    global _pa_shared
+    import pyaudio
+    with _pa_lock:
+        if _pa_shared is None:
+            _pa_shared = pyaudio.PyAudio()
+    return _pa_shared
 
 
 # ═══════════════════════════════════════════════════════════
@@ -157,7 +180,7 @@ class VoiceThread(QThread):
     _RATE         = 16000
     _CHUNK_MS     = 30
     _CHUNK_FRAMES = _RATE * _CHUNK_MS // 1000   # 480 samples
-    _SILENCE_END  = 18   # ×30 ms = 540 ms silence → end of phrase
+    _SILENCE_END  = 15   # ×30 ms = 450 ms silence → end of phrase
     _MIN_SPEECH   = 3    # ×30 ms = 90 ms minimum speech to accept
     _MAX_CHUNKS   = 500  # ×30 ms = 15 s hard limit
     _PRE_ROLL     = 5    # keep N silent chunks before speech onset
@@ -198,7 +221,7 @@ class VoiceThread(QThread):
         from aivon_sphere import _open_mic_stream, _to_mono  # type: ignore
 
         bridge   = self.live_bridge
-        pa       = pyaudio.PyAudio()
+        pa       = get_shared_pyaudio()
         stream   = None
         channels = 1
         try:
@@ -241,26 +264,39 @@ class VoiceThread(QThread):
             if stream:
                 try: stream.stop_stream(); stream.close()
                 except Exception: pass
-            pa.terminate()
+            # спільний PyAudio не терминуємо
 
     # ── Task 7: streaming VAD capture ────────────────────────────────────────
     def _run_streaming(self) -> bool:
-        """Stream mic with VAD. Returns True if ran (even on no_speech)."""
+        """Stream mic with VAD + Vosk live recognition. Returns True if ran."""
         try:
             import pyaudio
         except ImportError:
             return False
 
         try:
-            from core.silero_vad import is_speech
+            from core.silero_vad import is_speech, reset as _vad_reset
         except Exception:
             return False
 
         from aivon_sphere import _open_mic_stream, _to_mono  # type: ignore
 
-        pa       = pyaudio.PyAudio()
+        # ── Vosk: локальне потокове розпізнавання (текст ПОКИ говорите) ──────
+        rec = None
+        if self.config.get("stt_provider", "google") != "whisper":
+            try:
+                from core import vosk_stt
+                if vosk_stt.available():
+                    rec = vosk_stt.recognizer(self._RATE)
+            except Exception as e:
+                print(f"[VoiceThread] vosk unavailable: {e}")
+                rec = None
+
+        _vad_reset()
+        pa       = get_shared_pyaudio()
         stream   = None
         channels = 1
+        last_partial = ""
         try:
             stream, channels = _open_mic_stream(pa, self._RATE, self._CHUNK_FRAMES)
             self.partial.emit("🎤 Слухаю...")
@@ -279,6 +315,18 @@ class VoiceThread(QThread):
                 total += 1
                 mono   = _to_mono(raw, channels)
                 voiced = is_speech(mono, self._RATE)
+
+                # Vosk отримує ВСІ chunks — live-субтитри на сфері
+                if rec is not None:
+                    try:
+                        rec.AcceptWaveform(mono)
+                        from core import vosk_stt
+                        pt = vosk_stt.partial_text(rec)
+                        if pt and pt != last_partial:
+                            last_partial = pt
+                            self.partial.emit(f"💬 {pt}")
+                    except Exception:
+                        rec = None
 
                 if voiced:
                     if not in_speech:
@@ -304,18 +352,54 @@ class VoiceThread(QThread):
                     stream.close()
                 except Exception:
                     pass
-            pa.terminate()
+            # спільний PyAudio не терминуємо
 
         if speech_cnt < self._MIN_SPEECH:
             self.error.emit("no_speech")
             return True
 
         audio_bytes = b"".join(speech_buf)
-        self._transcribe(audio_bytes)
+
+        # ── Vosk final: текст готовий МИТТЄВО (без HTTP round-trip) ──────────
+        # Режими (stt_provider):
+        #   "vosk"   — завжди беремо текст Vosk (максимальна швидкість)
+        #   "hybrid" — Vosk лише якщо ВПЕВНЕНИЙ (conf ≥ 0.85), інакше Google
+        #   "google" — Vosk дає тільки live-субтитри, фінал завжди Google
+        vosk_text, vosk_conf = "", 0.0
+        if rec is not None:
+            try:
+                from core import vosk_stt
+                vosk_text, vosk_conf = vosk_stt.final_with_conf(rec)
+                vosk_text = vosk_text.strip()
+            except Exception:
+                vosk_text, vosk_conf = "", 0.0
+
+        provider = self.config.get("stt_provider", "hybrid") or "hybrid"
+        _CONF_OK = float(self.config.get("vosk_conf_threshold", 0.85))
+        if len(vosk_text) >= 2 and (
+                provider == "vosk"
+                or (provider == "hybrid" and vosk_conf >= _CONF_OK)):
+            print(f"[Vosk] instant: '{vosk_text}' (conf={vosk_conf:.2f})")
+            self._emit_recognized(vosk_text, audio_bytes, max(vosk_conf, 0.5))
+            return True
+
+        if vosk_text:
+            print(f"[Vosk] low conf {vosk_conf:.2f}: '{vosk_text}' → Google")
+        # Google точніший; текст Vosk — запасний варіант якщо Google недоступний
+        self._transcribe(audio_bytes, fallback_text=vosk_text)
         return True
 
-    def _transcribe(self, audio_bytes: bytes):
-        """Transcribe raw 16-bit PCM bytes via Whisper or Google STT."""
+    def _emit_recognized(self, text: str, audio_bytes: bytes, confidence: float):
+        try:
+            self.recognized_with_audio.emit(text, audio_bytes)
+        except Exception:
+            pass
+        self.recognized.emit(text)
+        self.recognized_with_conf.emit(text, confidence)
+
+    def _transcribe(self, audio_bytes: bytes, fallback_text: str = ""):
+        """Transcribe raw 16-bit PCM bytes via Whisper or Google STT.
+        fallback_text — текст Vosk, використовується якщо хмарне STT недоступне."""
         from aivon_sphere import load_config, save_config  # type: ignore
 
         use_whisper = (
@@ -373,19 +457,22 @@ class VoiceThread(QThread):
                     text       = sr.Recognizer().recognize_google(audio_data, language=self.lang)
                     confidence = 0.85
                 except Exception:
+                    if fallback_text:
+                        print(f"[STT] Google недоступний → vosk fallback: '{fallback_text}'")
+                        self._emit_recognized(fallback_text, audio_bytes, 0.5)
+                        return
                     self.error.emit("no_speech")
                     return
 
         if not text:
+            if fallback_text:
+                print(f"[STT] Google порожньо → vosk fallback: '{fallback_text}'")
+                self._emit_recognized(fallback_text, audio_bytes, 0.5)
+                return
             self.error.emit("no_speech")
             return
 
-        try:
-            self.recognized_with_audio.emit(text, audio_bytes)
-        except Exception:
-            pass
-        self.recognized.emit(text)
-        self.recognized_with_conf.emit(text, confidence)
+        self._emit_recognized(text, audio_bytes, confidence)
 
     # ── Legacy fallback (no pyaudio) ─────────────────────────────────────────
     def _run_legacy(self):
@@ -500,8 +587,9 @@ class InterruptMonitorThread(QThread):
     _RATE           = 16000
     _CHUNK_MS       = 30
     _CHUNK_FRAMES   = _RATE * _CHUNK_MS // 1000   # 480 samples
-    _SPEECH_CONFIRM = 4    # consecutive voiced chunks (~120 ms)
+    _SPEECH_CONFIRM = 8    # consecutive voiced chunks (~240 ms)
     _MAX_SECONDS    = 30   # give up after 30 s of TTS (safety)
+    _BASELINE_CHUNKS = 15  # ~450 ms заміру фонового рівня (TTS з динаміків)
 
     def __init__(self):
         super().__init__()
@@ -514,13 +602,14 @@ class InterruptMonitorThread(QThread):
     def run(self):
         try:
             import pyaudio
-            from core.silero_vad import is_speech
+            from core.silero_vad import is_speech, rms_level, reset as _vad_reset
         except ImportError:
             return
 
         from aivon_sphere import _open_mic_stream, _to_mono  # type: ignore
 
-        pa       = pyaudio.PyAudio()
+        _vad_reset()
+        pa       = get_shared_pyaudio()
         stream   = None
         channels = 1
         try:
@@ -529,6 +618,21 @@ class InterruptMonitorThread(QThread):
             total_chunks = 0
             limit        = self._MAX_SECONDS * 1000 // self._CHUNK_MS
 
+            # ── Фаза 1: заміряємо фоновий рівень (свій TTS у динаміках) ──────
+            # Щоб сфера не переривала САМА СЕБЕ: голос користувача має бути
+            # помітно гучнішим за відлуння TTS у мікрофоні.
+            baseline = []
+            while self._active and len(baseline) < self._BASELINE_CHUNKS:
+                if self.isInterruptionRequested():
+                    return
+                raw = stream.read(self._CHUNK_FRAMES, exception_on_overflow=False)
+                baseline.append(rms_level(_to_mono(raw, channels)))
+                total_chunks += 1
+            baseline.sort()
+            base_rms  = baseline[len(baseline) // 2] if baseline else 0.0
+            gate_rms  = max(base_rms * 2.5, 400.0)
+
+            # ── Фаза 2: слухаємо гучну мову поверх TTS ───────────────────────
             while self._active and total_chunks < limit:
                 if self.isInterruptionRequested():
                     break
@@ -536,14 +640,14 @@ class InterruptMonitorThread(QThread):
                 total_chunks += 1
                 mono = _to_mono(raw, channels)
 
-                if is_speech(mono, self._RATE):
+                if rms_level(mono) >= gate_rms and is_speech(mono, self._RATE):
                     voiced_run += 1
                     if voiced_run >= self._SPEECH_CONFIRM:
                         stream.stop_stream()
                         stream.close()
                         stream = None
-                        pa.terminate()
-                        pa = None
+                        print(f"[InterruptMonitor] 🛑 barge-in "
+                              f"(gate={gate_rms:.0f}, base={base_rms:.0f})")
                         self.interrupted.emit()
                         return
                 else:
@@ -557,8 +661,7 @@ class InterruptMonitorThread(QThread):
                     stream.close()
                 except Exception:
                     pass
-            if pa:
-                pa.terminate()
+            # спільний PyAudio не терминуємо
 
 
 # ═══════════════════════════════════════════════════════════
@@ -584,7 +687,127 @@ class WakeWordThread(QThread):
         print(f"[Wake] ✏️ Нове ім'я: '{name}' → wake слів: "
               f"{len(self.greeting_words) + len(self.quick_words)}")
 
+    # ── Fuzzy-збіг wake-фрази у розпізнаному тексті ──────────────────────────
+    @staticmethod
+    def _fuzzy_contains(text: str, phrase: str, threshold: float = 0.70) -> bool:
+        """True якщо phrase (можливо спотворена STT) присутня у text."""
+        import difflib
+        if phrase in text:
+            return True
+        t_words = text.split()
+        p_words = phrase.split()
+        n = len(p_words)
+        if not t_words or n == 0 or n > len(t_words):
+            return False
+        for i in range(len(t_words) - n + 1):
+            window = " ".join(t_words[i:i + n])
+            if difflib.SequenceMatcher(None, window, phrase).ratio() >= threshold:
+                return True
+        return False
+
+    def _match_wake(self, text: str) -> str | None:
+        """'greeting' | 'quick' | None для розпізнаного тексту."""
+        if not text:
+            return None
+        text = text.lower()
+        for wake in self.greeting_words:
+            if self._fuzzy_contains(text, wake):
+                return 'greeting'
+        for wake in self.quick_words:
+            if self._fuzzy_contains(text, wake):
+                return 'quick'
+        return None
+
     def run(self):
+        # ── Локальний Vosk (миттєво, офлайн) → fallback на Google STT ────────
+        try:
+            from core import vosk_stt
+            if vosk_stt.available():
+                if self._run_vosk_wake():
+                    return
+        except Exception as e:
+            print(f"[Wake] vosk wake error: {e} — fallback на Google")
+        self._run_google_wake()
+
+    def _run_vosk_wake(self) -> bool:
+        """Безперервне локальне прослуховування wake word через Vosk.
+        Мікрофон звільняється на час paused (щоб не конфліктувати з VoiceThread).
+        """
+        try:
+            import pyaudio
+        except ImportError:
+            return False
+        from core import vosk_stt
+        from aivon_sphere import _open_mic_stream, _to_mono  # type: ignore
+
+        rec = vosk_stt.recognizer(16000)
+        if rec is None:
+            return False
+
+        print(f"[Wake] 🎧 Vosk local wake listener (мова: {self.lang})")
+        pa       = get_shared_pyaudio()
+        stream   = None
+        channels = 1
+        FRAMES   = 480   # 30 ms
+        try:
+            while self.running:
+                if self.paused:
+                    if stream is not None:
+                        try:
+                            stream.stop_stream(); stream.close()
+                        except Exception:
+                            pass
+                        stream = None
+                    self.msleep(100)
+                    continue
+
+                if stream is None:
+                    try:
+                        stream, channels = _open_mic_stream(pa, 16000, FRAMES)
+                        rec = vosk_stt.recognizer(16000)  # свіжий стан
+                    except Exception as e:
+                        print(f"[Wake] mic open error: {e}")
+                        self.msleep(3000)
+                        continue
+
+                try:
+                    raw  = stream.read(FRAMES, exception_on_overflow=False)
+                except Exception as e:
+                    print(f"[Wake] mic read error: {e}")
+                    try:
+                        stream.stop_stream(); stream.close()
+                    except Exception:
+                        pass
+                    stream = None
+                    self.msleep(1000)
+                    continue
+
+                mono = _to_mono(raw, channels)
+                mode = None
+                if rec.AcceptWaveform(mono):
+                    text = vosk_stt.result_text(rec)
+                    if text:
+                        print(f"[Wake] Почув: '{text}'")
+                        mode = self._match_wake(text)
+                else:
+                    # Partial — реакція ще ДО кінця фрази
+                    mode = self._match_wake(vosk_stt.partial_text(rec))
+
+                if mode:
+                    print(f"[Wake] ✅ {mode.upper()} (vosk)")
+                    self.wake_detected.emit(mode)
+                    rec = vosk_stt.recognizer(16000)   # скинути залишки фрази
+                    self.msleep(1800)
+        finally:
+            if stream is not None:
+                try:
+                    stream.stop_stream(); stream.close()
+                except Exception:
+                    pass
+            # спільний PyAudio не терминуємо
+        return True
+
+    def _run_google_wake(self):
         try:
             import speech_recognition as sr
         except ImportError:

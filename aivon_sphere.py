@@ -4419,6 +4419,20 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, SphereProductivityMixin, Sp
     # └─ sphere/audio.py ───────────────────────────────────────────────────────┘
             
     def on_recognized(self, text):
+        """Безпечна обгортка: помилка в будь-якому обробнику не вбиває додаток.
+        (Необроблений виняток у Qt-слоті → qFatal → миттєвий краш процесу.)"""
+        try:
+            self._on_recognized_impl(text)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            try:
+                self.state = self.IDLE
+                self.respond_silent(f"⚠ Помилка обробки команди: {e}")
+            except Exception:
+                pass
+
+    def _on_recognized_impl(self, text):
         # ── Voice filter: skip if non-owner speaker ──────────────────────────
         if getattr(self, '_voice_rejected', False):
             self._voice_rejected = False
@@ -4831,9 +4845,7 @@ class AivonSphere(SphereTTSMixin, SphereSystemMixin, SphereProductivityMixin, Sp
         if self._handle_file_search(text, lower): return
         if self._handle_daily_summary(text, lower): return
         if self._handle_focus_mode(text, lower): return
-        if self._handle_memory_query(text, lower): return
         if self._handle_calendar(text, lower): return
-        if self._handle_pomodoro(text, lower): return
         if self._handle_screenshot_tg(text, lower): return
 
         # ── Нічого не знайшли ────────────────────────────────────────────────────

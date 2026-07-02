@@ -70,11 +70,13 @@ class AxisBridge(
         handlers = {
             # Window
             "minimize":                 self._minimize,
+            "minimize_window":          self._minimize,   # auto-sleep (settings.js)
             "maximize":                 self._maximize,
             "close_app":                self._close,
             # AI
             "ai_send":                  self._ai_send,
             "ai_send_stream":           self._ai_send_stream,
+            "ai_cancel":                self._ai_cancel,
             "generate_image":           self._generate_image,
             "generate_video":           self._generate_video,
             "save_api_key":             self._save_api_key,
@@ -93,7 +95,9 @@ class AxisBridge(
             # Files
             "open_file":                self._open_file,
             "open_file_path":           self._open_file_path,
+            "open_folder":              self._open_folder,
             "run_code":                 self._run_code,
+            "ide_run_code":             self._run_code,   # IDE JS runner (ide.js)
             "open_file_dialog":         self._open_file_dialog,
             "open_ide_file":            self._open_ide_file,
             "save_file":                self._save_file,

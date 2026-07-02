@@ -50,3 +50,6 @@ data/license.json
 Thumbs.db
 .DS_Store
 .mise.toml
+
+# ── ML models (великі бінарні файли — завантажуються локально) ──────────────
+data/models/
