@@ -399,6 +399,238 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\aifc.py',
    'PYMODULE'),
+  ('aiohappyeyeballs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\__init__.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs._staggered',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\_staggered.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.impl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\impl.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.types',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\types.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\utils.py',
+   'PYMODULE'),
+  ('aiohttp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\__init__.py',
+   'PYMODULE'),
+  ('aiohttp._cookie_helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_cookie_helpers.py',
+   'PYMODULE'),
+  ('aiohttp._websocket',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\__init__.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\helpers.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.models',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\models.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.reader',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\reader.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.reader_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\reader_py.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.writer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\writer.py',
+   'PYMODULE'),
+  ('aiohttp.abc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\abc.py',
+   'PYMODULE'),
+  ('aiohttp.base_protocol',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\base_protocol.py',
+   'PYMODULE'),
+  ('aiohttp.client',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client.py',
+   'PYMODULE'),
+  ('aiohttp.client_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.client_middleware_digest_auth',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_middleware_digest_auth.py',
+   'PYMODULE'),
+  ('aiohttp.client_middlewares',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_middlewares.py',
+   'PYMODULE'),
+  ('aiohttp.client_proto',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_proto.py',
+   'PYMODULE'),
+  ('aiohttp.client_reqrep',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_reqrep.py',
+   'PYMODULE'),
+  ('aiohttp.client_ws',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_ws.py',
+   'PYMODULE'),
+  ('aiohttp.compression_utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\compression_utils.py',
+   'PYMODULE'),
+  ('aiohttp.connector',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\connector.py',
+   'PYMODULE'),
+  ('aiohttp.cookiejar',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\cookiejar.py',
+   'PYMODULE'),
+  ('aiohttp.formdata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\formdata.py',
+   'PYMODULE'),
+  ('aiohttp.hdrs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\hdrs.py',
+   'PYMODULE'),
+  ('aiohttp.helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\helpers.py',
+   'PYMODULE'),
+  ('aiohttp.http',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http.py',
+   'PYMODULE'),
+  ('aiohttp.http_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.http_parser',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_parser.py',
+   'PYMODULE'),
+  ('aiohttp.http_websocket',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_websocket.py',
+   'PYMODULE'),
+  ('aiohttp.http_writer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_writer.py',
+   'PYMODULE'),
+  ('aiohttp.log',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\log.py',
+   'PYMODULE'),
+  ('aiohttp.multipart',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\multipart.py',
+   'PYMODULE'),
+  ('aiohttp.payload',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\payload.py',
+   'PYMODULE'),
+  ('aiohttp.payload_streamer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\payload_streamer.py',
+   'PYMODULE'),
+  ('aiohttp.resolver',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\resolver.py',
+   'PYMODULE'),
+  ('aiohttp.streams',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\streams.py',
+   'PYMODULE'),
+  ('aiohttp.tcp_helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\tcp_helpers.py',
+   'PYMODULE'),
+  ('aiohttp.tracing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\tracing.py',
+   'PYMODULE'),
+  ('aiohttp.typedefs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\typedefs.py',
+   'PYMODULE'),
+  ('aiohttp.web',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web.py',
+   'PYMODULE'),
+  ('aiohttp.web_app',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_app.py',
+   'PYMODULE'),
+  ('aiohttp.web_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.web_fileresponse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_fileresponse.py',
+   'PYMODULE'),
+  ('aiohttp.web_log',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_log.py',
+   'PYMODULE'),
+  ('aiohttp.web_middlewares',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_middlewares.py',
+   'PYMODULE'),
+  ('aiohttp.web_protocol',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_protocol.py',
+   'PYMODULE'),
+  ('aiohttp.web_request',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_request.py',
+   'PYMODULE'),
+  ('aiohttp.web_response',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_response.py',
+   'PYMODULE'),
+  ('aiohttp.web_routedef',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_routedef.py',
+   'PYMODULE'),
+  ('aiohttp.web_runner',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_runner.py',
+   'PYMODULE'),
+  ('aiohttp.web_server',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_server.py',
+   'PYMODULE'),
+  ('aiohttp.web_urldispatcher',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_urldispatcher.py',
+   'PYMODULE'),
+  ('aiohttp.web_ws',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_ws.py',
+   'PYMODULE'),
+  ('aiohttp.worker',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\worker.py',
+   'PYMODULE'),
+  ('aiosignal',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiosignal\\__init__.py',
+   'PYMODULE'),
   ('annotated_doc',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\annotated_doc\\__init__.py',
@@ -2853,6 +3085,58 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\asyncio\\windows_utils.py',
    'PYMODULE'),
+  ('attr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\__init__.py',
+   'PYMODULE'),
+  ('attr._cmp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_cmp.py',
+   'PYMODULE'),
+  ('attr._compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_compat.py',
+   'PYMODULE'),
+  ('attr._config',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_config.py',
+   'PYMODULE'),
+  ('attr._funcs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_funcs.py',
+   'PYMODULE'),
+  ('attr._make',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_make.py',
+   'PYMODULE'),
+  ('attr._next_gen',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_next_gen.py',
+   'PYMODULE'),
+  ('attr._version_info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_version_info.py',
+   'PYMODULE'),
+  ('attr.converters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\converters.py',
+   'PYMODULE'),
+  ('attr.exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\exceptions.py',
+   'PYMODULE'),
+  ('attr.filters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\filters.py',
+   'PYMODULE'),
+  ('attr.setters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\setters.py',
+   'PYMODULE'),
+  ('attr.validators',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\validators.py',
+   'PYMODULE'),
   ('av',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\av\\__init__.py',
@@ -3828,6 +4112,10 @@
   ('fractions',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\fractions.py',
+   'PYMODULE'),
+  ('frozenlist',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\frozenlist\\__init__.py',
    'PYMODULE'),
   ('fsspec',
    'C:\\Users\\Acer Nitro '
@@ -7815,6 +8103,22 @@
   ('mss.windows.gdi',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\mss\\windows\\gdi.py',
+   'PYMODULE'),
+  ('multidict',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\__init__.py',
+   'PYMODULE'),
+  ('multidict._abc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_abc.py',
+   'PYMODULE'),
+  ('multidict._compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_compat.py',
+   'PYMODULE'),
+  ('multidict._multidict_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_multidict_py.py',
    'PYMODULE'),
   ('multiprocessing',
    'C:\\Users\\Acer Nitro '
@@ -12860,6 +13164,22 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\pprint.py',
    'PYMODULE'),
+  ('propcache',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\__init__.py',
+   'PYMODULE'),
+  ('propcache._helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\_helpers.py',
+   'PYMODULE'),
+  ('propcache._helpers_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\_helpers_py.py',
+   'PYMODULE'),
+  ('propcache.api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\api.py',
+   'PYMODULE'),
   ('proto',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\proto\\__init__.py',
@@ -16533,6 +16853,10 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sqlite3\\dump.py',
    'PYMODULE'),
+  ('srt',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\srt.py',
+   'PYMODULE'),
   ('ssl',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ssl.py',
@@ -17112,6 +17436,14 @@
   ('uuid',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\uuid.py',
+   'PYMODULE'),
+  ('vosk',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\vosk\\__init__.py',
+   'PYMODULE'),
+  ('vosk.vosk_cffi',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\vosk\\vosk_cffi.py',
    'PYMODULE'),
   ('watchdog',
    'C:\\Users\\Acer Nitro '
@@ -17820,6 +18152,38 @@
   ('yaml.tokens',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yaml\\tokens.py',
+   'PYMODULE'),
+  ('yarl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\__init__.py',
+   'PYMODULE'),
+  ('yarl._parse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_parse.py',
+   'PYMODULE'),
+  ('yarl._path',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_path.py',
+   'PYMODULE'),
+  ('yarl._query',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_query.py',
+   'PYMODULE'),
+  ('yarl._quoters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoters.py',
+   'PYMODULE'),
+  ('yarl._quoting',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoting.py',
+   'PYMODULE'),
+  ('yarl._quoting_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoting_py.py',
+   'PYMODULE'),
+  ('yarl._url',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_url.py',
    'PYMODULE'),
   ('zipfile',
    'C:\\Users\\Acer Nitro '

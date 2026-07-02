@@ -399,6 +399,238 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\aifc.py',
    'PYMODULE'),
+  ('aiohappyeyeballs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\__init__.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs._staggered',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\_staggered.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.impl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\impl.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.types',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\types.py',
+   'PYMODULE'),
+  ('aiohappyeyeballs.utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohappyeyeballs\\utils.py',
+   'PYMODULE'),
+  ('aiohttp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\__init__.py',
+   'PYMODULE'),
+  ('aiohttp._cookie_helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_cookie_helpers.py',
+   'PYMODULE'),
+  ('aiohttp._websocket',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\__init__.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\helpers.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.models',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\models.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.reader',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\reader.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.reader_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\reader_py.py',
+   'PYMODULE'),
+  ('aiohttp._websocket.writer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\writer.py',
+   'PYMODULE'),
+  ('aiohttp.abc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\abc.py',
+   'PYMODULE'),
+  ('aiohttp.base_protocol',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\base_protocol.py',
+   'PYMODULE'),
+  ('aiohttp.client',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client.py',
+   'PYMODULE'),
+  ('aiohttp.client_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.client_middleware_digest_auth',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_middleware_digest_auth.py',
+   'PYMODULE'),
+  ('aiohttp.client_middlewares',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_middlewares.py',
+   'PYMODULE'),
+  ('aiohttp.client_proto',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_proto.py',
+   'PYMODULE'),
+  ('aiohttp.client_reqrep',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_reqrep.py',
+   'PYMODULE'),
+  ('aiohttp.client_ws',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\client_ws.py',
+   'PYMODULE'),
+  ('aiohttp.compression_utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\compression_utils.py',
+   'PYMODULE'),
+  ('aiohttp.connector',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\connector.py',
+   'PYMODULE'),
+  ('aiohttp.cookiejar',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\cookiejar.py',
+   'PYMODULE'),
+  ('aiohttp.formdata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\formdata.py',
+   'PYMODULE'),
+  ('aiohttp.hdrs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\hdrs.py',
+   'PYMODULE'),
+  ('aiohttp.helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\helpers.py',
+   'PYMODULE'),
+  ('aiohttp.http',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http.py',
+   'PYMODULE'),
+  ('aiohttp.http_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.http_parser',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_parser.py',
+   'PYMODULE'),
+  ('aiohttp.http_websocket',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_websocket.py',
+   'PYMODULE'),
+  ('aiohttp.http_writer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\http_writer.py',
+   'PYMODULE'),
+  ('aiohttp.log',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\log.py',
+   'PYMODULE'),
+  ('aiohttp.multipart',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\multipart.py',
+   'PYMODULE'),
+  ('aiohttp.payload',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\payload.py',
+   'PYMODULE'),
+  ('aiohttp.payload_streamer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\payload_streamer.py',
+   'PYMODULE'),
+  ('aiohttp.resolver',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\resolver.py',
+   'PYMODULE'),
+  ('aiohttp.streams',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\streams.py',
+   'PYMODULE'),
+  ('aiohttp.tcp_helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\tcp_helpers.py',
+   'PYMODULE'),
+  ('aiohttp.tracing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\tracing.py',
+   'PYMODULE'),
+  ('aiohttp.typedefs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\typedefs.py',
+   'PYMODULE'),
+  ('aiohttp.web',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web.py',
+   'PYMODULE'),
+  ('aiohttp.web_app',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_app.py',
+   'PYMODULE'),
+  ('aiohttp.web_exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_exceptions.py',
+   'PYMODULE'),
+  ('aiohttp.web_fileresponse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_fileresponse.py',
+   'PYMODULE'),
+  ('aiohttp.web_log',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_log.py',
+   'PYMODULE'),
+  ('aiohttp.web_middlewares',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_middlewares.py',
+   'PYMODULE'),
+  ('aiohttp.web_protocol',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_protocol.py',
+   'PYMODULE'),
+  ('aiohttp.web_request',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_request.py',
+   'PYMODULE'),
+  ('aiohttp.web_response',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_response.py',
+   'PYMODULE'),
+  ('aiohttp.web_routedef',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_routedef.py',
+   'PYMODULE'),
+  ('aiohttp.web_runner',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_runner.py',
+   'PYMODULE'),
+  ('aiohttp.web_server',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_server.py',
+   'PYMODULE'),
+  ('aiohttp.web_urldispatcher',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_urldispatcher.py',
+   'PYMODULE'),
+  ('aiohttp.web_ws',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\web_ws.py',
+   'PYMODULE'),
+  ('aiohttp.worker',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\worker.py',
+   'PYMODULE'),
+  ('aiosignal',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiosignal\\__init__.py',
+   'PYMODULE'),
   ('aivon_sphere',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\aivon_sphere.py',
    'PYMODULE'),
@@ -2856,6 +3088,58 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\asyncio\\windows_utils.py',
    'PYMODULE'),
+  ('attr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\__init__.py',
+   'PYMODULE'),
+  ('attr._cmp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_cmp.py',
+   'PYMODULE'),
+  ('attr._compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_compat.py',
+   'PYMODULE'),
+  ('attr._config',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_config.py',
+   'PYMODULE'),
+  ('attr._funcs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_funcs.py',
+   'PYMODULE'),
+  ('attr._make',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_make.py',
+   'PYMODULE'),
+  ('attr._next_gen',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_next_gen.py',
+   'PYMODULE'),
+  ('attr._version_info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\_version_info.py',
+   'PYMODULE'),
+  ('attr.converters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\converters.py',
+   'PYMODULE'),
+  ('attr.exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\exceptions.py',
+   'PYMODULE'),
+  ('attr.filters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\filters.py',
+   'PYMODULE'),
+  ('attr.setters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\setters.py',
+   'PYMODULE'),
+  ('attr.validators',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attr\\validators.py',
+   'PYMODULE'),
   ('av',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\av\\__init__.py',
@@ -3396,6 +3680,15 @@
   ('core.paths',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\core\\paths.py',
    'PYMODULE'),
+  ('core.secrets',
+   'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\core\\secrets.py',
+   'PYMODULE'),
+  ('core.silero_vad',
+   'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\core\\silero_vad.py',
+   'PYMODULE'),
+  ('core.vosk_stt',
+   'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\core\\vosk_stt.py',
+   'PYMODULE'),
   ('cryptography',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\cryptography\\__init__.py',
@@ -3852,6 +4145,50 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\duckduckgo_search\\version.py',
    'PYMODULE'),
+  ('edge_tts',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\__init__.py',
+   'PYMODULE'),
+  ('edge_tts.communicate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\communicate.py',
+   'PYMODULE'),
+  ('edge_tts.constants',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\constants.py',
+   'PYMODULE'),
+  ('edge_tts.data_classes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\data_classes.py',
+   'PYMODULE'),
+  ('edge_tts.drm',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\drm.py',
+   'PYMODULE'),
+  ('edge_tts.exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\exceptions.py',
+   'PYMODULE'),
+  ('edge_tts.srt_composer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\srt_composer.py',
+   'PYMODULE'),
+  ('edge_tts.submaker',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\submaker.py',
+   'PYMODULE'),
+  ('edge_tts.typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\typing.py',
+   'PYMODULE'),
+  ('edge_tts.version',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\version.py',
+   'PYMODULE'),
+  ('edge_tts.voices',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\edge_tts\\voices.py',
+   'PYMODULE'),
   ('email',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\email\\__init__.py',
@@ -4043,6 +4380,10 @@
   ('fractions',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\fractions.py',
+   'PYMODULE'),
+  ('frozenlist',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\frozenlist\\__init__.py',
    'PYMODULE'),
   ('fsspec',
    'C:\\Users\\Acer Nitro '
@@ -6684,6 +7025,14 @@
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ipaddress.py',
    'PYMODULE'),
   ('jaraco', '-', 'PYMODULE'),
+  ('jaraco.classes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\jaraco\\classes\\__init__.py',
+   'PYMODULE'),
+  ('jaraco.classes.properties',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\jaraco\\classes\\properties.py',
+   'PYMODULE'),
   ('jaraco.context',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\jaraco\\context\\__init__.py',
@@ -6803,6 +7152,86 @@
   ('json.scanner',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\json\\scanner.py',
+   'PYMODULE'),
+  ('keyring',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\__init__.py',
+   'PYMODULE'),
+  ('keyring.backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backend.py',
+   'PYMODULE'),
+  ('keyring.backends',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\__init__.py',
+   'PYMODULE'),
+  ('keyring.backends.SecretService',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\SecretService.py',
+   'PYMODULE'),
+  ('keyring.backends.Windows',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\Windows.py',
+   'PYMODULE'),
+  ('keyring.backends.chainer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\chainer.py',
+   'PYMODULE'),
+  ('keyring.backends.fail',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\fail.py',
+   'PYMODULE'),
+  ('keyring.backends.kwallet',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\kwallet.py',
+   'PYMODULE'),
+  ('keyring.backends.libsecret',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\libsecret.py',
+   'PYMODULE'),
+  ('keyring.backends.macOS',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\macOS\\__init__.py',
+   'PYMODULE'),
+  ('keyring.backends.macOS.api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\macOS\\api.py',
+   'PYMODULE'),
+  ('keyring.backends.null',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\backends\\null.py',
+   'PYMODULE'),
+  ('keyring.compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\compat\\__init__.py',
+   'PYMODULE'),
+  ('keyring.compat.properties',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\compat\\properties.py',
+   'PYMODULE'),
+  ('keyring.compat.py312',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\compat\\py312.py',
+   'PYMODULE'),
+  ('keyring.core',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\core.py',
+   'PYMODULE'),
+  ('keyring.credentials',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\credentials.py',
+   'PYMODULE'),
+  ('keyring.errors',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\errors.py',
+   'PYMODULE'),
+  ('keyring.util',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\util\\__init__.py',
+   'PYMODULE'),
+  ('keyring.util.platform_',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring\\util\\platform_.py',
    'PYMODULE'),
   ('logging',
    'C:\\Users\\Acer Nitro '
@@ -7551,6 +7980,22 @@
   ('mss.windows.gdi',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\mss\\windows\\gdi.py',
+   'PYMODULE'),
+  ('multidict',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\__init__.py',
+   'PYMODULE'),
+  ('multidict._abc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_abc.py',
+   'PYMODULE'),
+  ('multidict._compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_compat.py',
+   'PYMODULE'),
+  ('multidict._multidict_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_multidict_py.py',
    'PYMODULE'),
   ('multiprocessing',
    'C:\\Users\\Acer Nitro '
@@ -12604,6 +13049,22 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\primp\\__init__.py',
    'PYMODULE'),
+  ('propcache',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\__init__.py',
+   'PYMODULE'),
+  ('propcache._helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\_helpers.py',
+   'PYMODULE'),
+  ('propcache._helpers_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\_helpers_py.py',
+   'PYMODULE'),
+  ('propcache.api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\api.py',
+   'PYMODULE'),
   ('proto',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\proto\\__init__.py',
@@ -15673,6 +16134,1984 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\runpy.py',
    'PYMODULE'),
+  ('scipy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\__init__.py',
+   'PYMODULE'),
+  ('scipy.__config__',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\__config__.py',
+   'PYMODULE'),
+  ('scipy._distributor_init',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_distributor_init.py',
+   'PYMODULE'),
+  ('scipy._external', '-', 'PYMODULE'),
+  ('scipy._external._array_api_compat_vendor',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\_array_api_compat_vendor.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat._internal',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\_internal.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\common\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.common._aliases',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\common\\_aliases.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.common._helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\common\\_helpers.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.common._linalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\common\\_linalg.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.common._typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\common\\_typing.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.cupy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\cupy\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.cupy._aliases',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\cupy\\_aliases.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.cupy._info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\cupy\\_info.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.cupy._typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\cupy\\_typing.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.dask',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\dask\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.dask.array',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\dask\\array\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.dask.array._aliases',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\dask\\array\\_aliases.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.dask.array._info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\dask\\array\\_info.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.numpy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\numpy\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.numpy._aliases',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\numpy\\_aliases.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.numpy._info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\numpy\\_info.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.numpy._typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\numpy\\_typing.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.numpy.linalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\numpy\\linalg.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.torch',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\torch\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.torch._aliases',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\torch\\_aliases.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.torch._info',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\torch\\_info.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_compat.torch._typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_compat\\torch\\_typing.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._delegation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_delegation.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._at',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_at.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._funcs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_funcs.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._lazy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_lazy.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_utils\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._utils._compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_utils\\_compat.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._utils._helpers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_utils\\_helpers.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra._lib._utils._typing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\_lib\\_utils\\_typing.py',
+   'PYMODULE'),
+  ('scipy._external.array_api_extra.testing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\array_api_extra\\testing.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.framework',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\framework.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.main',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\main.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.models',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\models.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.problem',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\problem.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.settings',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\settings.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.subsolvers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\subsolvers\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.subsolvers.geometry',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\subsolvers\\geometry.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.subsolvers.optim',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\subsolvers\\optim.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\utils\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.utils.exceptions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\utils\\exceptions.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.utils.math',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\utils\\math.py',
+   'PYMODULE'),
+  ('scipy._external.cobyqa.utils.versions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\cobyqa\\utils\\versions.py',
+   'PYMODULE'),
+  ('scipy._external.packaging_version', '-', 'PYMODULE'),
+  ('scipy._external.packaging_version._structures',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\packaging_version\\_structures.py',
+   'PYMODULE'),
+  ('scipy._external.packaging_version.version',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\packaging_version\\version.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.cobyla',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\cobyla.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.cobylb',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\cobylb.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.geometry',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\geometry.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.initialize',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\initialize.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.trustregion',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\trustregion.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.cobyla.update',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\cobyla\\update.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\__init__.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common._bounds',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\_bounds.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common._linear_constraints',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\_linear_constraints.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common._nonlinear_constraints',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\_nonlinear_constraints.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common._project',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\_project.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.checkbreak',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\checkbreak.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.consts',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\consts.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.evaluate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\evaluate.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.history',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\history.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.infos',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\infos.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.linalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\linalg.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.message',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\message.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.powalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\powalg.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.preproc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\preproc.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.present',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\present.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.ratio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\ratio.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.redrho',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\redrho.py',
+   'PYMODULE'),
+  ('scipy._external.pyprima.common.selectx',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_external\\pyprima\\common\\selectx.py',
+   'PYMODULE'),
+  ('scipy._lib',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\__init__.py',
+   'PYMODULE'),
+  ('scipy._lib._array_api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_array_api.py',
+   'PYMODULE'),
+  ('scipy._lib._array_api_override',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_array_api_override.py',
+   'PYMODULE'),
+  ('scipy._lib._bunch',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_bunch.py',
+   'PYMODULE'),
+  ('scipy._lib._ccallback',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_ccallback.py',
+   'PYMODULE'),
+  ('scipy._lib._docscrape',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_docscrape.py',
+   'PYMODULE'),
+  ('scipy._lib._elementwise_iterative_method',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_elementwise_iterative_method.py',
+   'PYMODULE'),
+  ('scipy._lib._sparse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_sparse.py',
+   'PYMODULE'),
+  ('scipy._lib._testutils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_testutils.py',
+   'PYMODULE'),
+  ('scipy._lib._uarray',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_uarray\\__init__.py',
+   'PYMODULE'),
+  ('scipy._lib._uarray._backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_uarray\\_backend.py',
+   'PYMODULE'),
+  ('scipy._lib._util',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_util.py',
+   'PYMODULE'),
+  ('scipy._lib.deprecation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\deprecation.py',
+   'PYMODULE'),
+  ('scipy._lib.doccer',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\doccer.py',
+   'PYMODULE'),
+  ('scipy._lib.uarray',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\uarray.py',
+   'PYMODULE'),
+  ('scipy.constants',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\constants\\__init__.py',
+   'PYMODULE'),
+  ('scipy.constants._codata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\constants\\_codata.py',
+   'PYMODULE'),
+  ('scipy.constants._constants',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\constants\\_constants.py',
+   'PYMODULE'),
+  ('scipy.constants.codata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\constants\\codata.py',
+   'PYMODULE'),
+  ('scipy.constants.constants',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\constants\\constants.py',
+   'PYMODULE'),
+  ('scipy.fft',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\__init__.py',
+   'PYMODULE'),
+  ('scipy.fft._backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_backend.py',
+   'PYMODULE'),
+  ('scipy.fft._basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_basic.py',
+   'PYMODULE'),
+  ('scipy.fft._basic_backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_basic_backend.py',
+   'PYMODULE'),
+  ('scipy.fft._duccfft',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_duccfft\\__init__.py',
+   'PYMODULE'),
+  ('scipy.fft._duccfft.basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_duccfft\\basic.py',
+   'PYMODULE'),
+  ('scipy.fft._duccfft.helper',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_duccfft\\helper.py',
+   'PYMODULE'),
+  ('scipy.fft._duccfft.realtransforms',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_duccfft\\realtransforms.py',
+   'PYMODULE'),
+  ('scipy.fft._fftlog',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_fftlog.py',
+   'PYMODULE'),
+  ('scipy.fft._fftlog_backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_fftlog_backend.py',
+   'PYMODULE'),
+  ('scipy.fft._helper',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_helper.py',
+   'PYMODULE'),
+  ('scipy.fft._realtransforms',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_realtransforms.py',
+   'PYMODULE'),
+  ('scipy.fft._realtransforms_backend',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_realtransforms_backend.py',
+   'PYMODULE'),
+  ('scipy.integrate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\__init__.py',
+   'PYMODULE'),
+  ('scipy.integrate._bvp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_bvp.py',
+   'PYMODULE'),
+  ('scipy.integrate._cubature',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_cubature.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\__init__.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.base',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\base.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.bdf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\bdf.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\common.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.dop853_coefficients',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\dop853_coefficients.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.ivp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\ivp.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.lsoda',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\lsoda.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.radau',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\radau.py',
+   'PYMODULE'),
+  ('scipy.integrate._ivp.rk',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ivp\\rk.py',
+   'PYMODULE'),
+  ('scipy.integrate._lebedev',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_lebedev.py',
+   'PYMODULE'),
+  ('scipy.integrate._ode',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_ode.py',
+   'PYMODULE'),
+  ('scipy.integrate._odepack_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_odepack_py.py',
+   'PYMODULE'),
+  ('scipy.integrate._quad_vec',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_quad_vec.py',
+   'PYMODULE'),
+  ('scipy.integrate._quadpack_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_quadpack_py.py',
+   'PYMODULE'),
+  ('scipy.integrate._quadrature',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_quadrature.py',
+   'PYMODULE'),
+  ('scipy.integrate._rules',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_rules\\__init__.py',
+   'PYMODULE'),
+  ('scipy.integrate._rules._base',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_rules\\_base.py',
+   'PYMODULE'),
+  ('scipy.integrate._rules._gauss_kronrod',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_rules\\_gauss_kronrod.py',
+   'PYMODULE'),
+  ('scipy.integrate._rules._gauss_legendre',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_rules\\_gauss_legendre.py',
+   'PYMODULE'),
+  ('scipy.integrate._rules._genz_malik',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_rules\\_genz_malik.py',
+   'PYMODULE'),
+  ('scipy.integrate._tanhsinh',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_tanhsinh.py',
+   'PYMODULE'),
+  ('scipy.integrate.dop',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\dop.py',
+   'PYMODULE'),
+  ('scipy.integrate.lsoda',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\lsoda.py',
+   'PYMODULE'),
+  ('scipy.integrate.odepack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\odepack.py',
+   'PYMODULE'),
+  ('scipy.integrate.quadpack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\quadpack.py',
+   'PYMODULE'),
+  ('scipy.integrate.vode',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\vode.py',
+   'PYMODULE'),
+  ('scipy.interpolate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\__init__.py',
+   'PYMODULE'),
+  ('scipy.interpolate._bary_rational',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_bary_rational.py',
+   'PYMODULE'),
+  ('scipy.interpolate._bsplines',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_bsplines.py',
+   'PYMODULE'),
+  ('scipy.interpolate._cubic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_cubic.py',
+   'PYMODULE'),
+  ('scipy.interpolate._fitpack2',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_fitpack2.py',
+   'PYMODULE'),
+  ('scipy.interpolate._fitpack_impl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_fitpack_impl.py',
+   'PYMODULE'),
+  ('scipy.interpolate._fitpack_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_fitpack_py.py',
+   'PYMODULE'),
+  ('scipy.interpolate._fitpack_repro',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_fitpack_repro.py',
+   'PYMODULE'),
+  ('scipy.interpolate._interpolate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_interpolate.py',
+   'PYMODULE'),
+  ('scipy.interpolate._ndbspline',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_ndbspline.py',
+   'PYMODULE'),
+  ('scipy.interpolate._ndgriddata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_ndgriddata.py',
+   'PYMODULE'),
+  ('scipy.interpolate._pade',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_pade.py',
+   'PYMODULE'),
+  ('scipy.interpolate._polyint',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_polyint.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rbf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbf.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rbfinterp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbfinterp.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rbfinterp_common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbfinterp_common.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rbfinterp_np',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbfinterp_np.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rbfinterp_xp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbfinterp_xp.py',
+   'PYMODULE'),
+  ('scipy.interpolate._rgi',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rgi.py',
+   'PYMODULE'),
+  ('scipy.interpolate.fitpack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\fitpack.py',
+   'PYMODULE'),
+  ('scipy.interpolate.fitpack2',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\fitpack2.py',
+   'PYMODULE'),
+  ('scipy.interpolate.interpnd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\interpnd.py',
+   'PYMODULE'),
+  ('scipy.interpolate.interpolate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\interpolate.py',
+   'PYMODULE'),
+  ('scipy.interpolate.ndgriddata',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\ndgriddata.py',
+   'PYMODULE'),
+  ('scipy.interpolate.polyint',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\polyint.py',
+   'PYMODULE'),
+  ('scipy.interpolate.rbf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\rbf.py',
+   'PYMODULE'),
+  ('scipy.io',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\__init__.py',
+   'PYMODULE'),
+  ('scipy.io._fast_matrix_market',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_fast_matrix_market\\__init__.py',
+   'PYMODULE'),
+  ('scipy.io._fortran',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_fortran.py',
+   'PYMODULE'),
+  ('scipy.io._harwell_boeing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_harwell_boeing\\__init__.py',
+   'PYMODULE'),
+  ('scipy.io._harwell_boeing._fortran_format_parser',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_harwell_boeing\\_fortran_format_parser.py',
+   'PYMODULE'),
+  ('scipy.io._harwell_boeing.hb',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_harwell_boeing\\hb.py',
+   'PYMODULE'),
+  ('scipy.io._idl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_idl.py',
+   'PYMODULE'),
+  ('scipy.io._mmio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_mmio.py',
+   'PYMODULE'),
+  ('scipy.io._netcdf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_netcdf.py',
+   'PYMODULE'),
+  ('scipy.io.arff',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\arff\\__init__.py',
+   'PYMODULE'),
+  ('scipy.io.arff._arffread',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\arff\\_arffread.py',
+   'PYMODULE'),
+  ('scipy.io.arff.arffread',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\arff\\arffread.py',
+   'PYMODULE'),
+  ('scipy.io.harwell_boeing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\harwell_boeing.py',
+   'PYMODULE'),
+  ('scipy.io.idl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\idl.py',
+   'PYMODULE'),
+  ('scipy.io.matlab',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\__init__.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._byteordercodes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_byteordercodes.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._mio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._mio4',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio4.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._mio5',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio5.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._mio5_params',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio5_params.py',
+   'PYMODULE'),
+  ('scipy.io.matlab._miobase',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_miobase.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.byteordercodes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\byteordercodes.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio4',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio4.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio5',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio5.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio5_params',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio5_params.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio5_utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio5_utils.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.mio_utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\mio_utils.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.miobase',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\miobase.py',
+   'PYMODULE'),
+  ('scipy.io.matlab.streams',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\streams.py',
+   'PYMODULE'),
+  ('scipy.io.mmio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\mmio.py',
+   'PYMODULE'),
+  ('scipy.io.netcdf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\netcdf.py',
+   'PYMODULE'),
+  ('scipy.io.wavfile',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\wavfile.py',
+   'PYMODULE'),
+  ('scipy.linalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\__init__.py',
+   'PYMODULE'),
+  ('scipy.linalg._basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_basic.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_cholesky',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_cholesky.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_cossin',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_cossin.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_ldl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_ldl.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_lu',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_lu.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_polar',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_polar.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_qr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_qr.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_qz',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_qz.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_schur',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_schur.py',
+   'PYMODULE'),
+  ('scipy.linalg._decomp_svd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_svd.py',
+   'PYMODULE'),
+  ('scipy.linalg._expm_frechet',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_expm_frechet.py',
+   'PYMODULE'),
+  ('scipy.linalg._matfuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_matfuncs.py',
+   'PYMODULE'),
+  ('scipy.linalg._matfuncs_inv_ssq',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_matfuncs_inv_ssq.py',
+   'PYMODULE'),
+  ('scipy.linalg._matfuncs_sqrtm',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_matfuncs_sqrtm.py',
+   'PYMODULE'),
+  ('scipy.linalg._misc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_misc.py',
+   'PYMODULE'),
+  ('scipy.linalg._procrustes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_procrustes.py',
+   'PYMODULE'),
+  ('scipy.linalg._sketches',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_sketches.py',
+   'PYMODULE'),
+  ('scipy.linalg._solvers',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_solvers.py',
+   'PYMODULE'),
+  ('scipy.linalg._special_matrices',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_special_matrices.py',
+   'PYMODULE'),
+  ('scipy.linalg.basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\basic.py',
+   'PYMODULE'),
+  ('scipy.linalg.blas',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\blas.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp_cholesky',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp_cholesky.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp_lu',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp_lu.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp_qr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp_qr.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp_schur',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp_schur.py',
+   'PYMODULE'),
+  ('scipy.linalg.decomp_svd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\decomp_svd.py',
+   'PYMODULE'),
+  ('scipy.linalg.interpolative',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\interpolative.py',
+   'PYMODULE'),
+  ('scipy.linalg.lapack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\lapack.py',
+   'PYMODULE'),
+  ('scipy.linalg.matfuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\matfuncs.py',
+   'PYMODULE'),
+  ('scipy.linalg.misc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\misc.py',
+   'PYMODULE'),
+  ('scipy.linalg.special_matrices',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\special_matrices.py',
+   'PYMODULE'),
+  ('scipy.ndimage',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\__init__.py',
+   'PYMODULE'),
+  ('scipy.ndimage._delegators',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_delegators.py',
+   'PYMODULE'),
+  ('scipy.ndimage._filters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_filters.py',
+   'PYMODULE'),
+  ('scipy.ndimage._fourier',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_fourier.py',
+   'PYMODULE'),
+  ('scipy.ndimage._interpolation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_interpolation.py',
+   'PYMODULE'),
+  ('scipy.ndimage._measurements',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_measurements.py',
+   'PYMODULE'),
+  ('scipy.ndimage._morphology',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_morphology.py',
+   'PYMODULE'),
+  ('scipy.ndimage._ndimage_api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_ndimage_api.py',
+   'PYMODULE'),
+  ('scipy.ndimage._ni_docstrings',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_ni_docstrings.py',
+   'PYMODULE'),
+  ('scipy.ndimage._ni_support',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_ni_support.py',
+   'PYMODULE'),
+  ('scipy.ndimage._support_alternative_backends',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_support_alternative_backends.py',
+   'PYMODULE'),
+  ('scipy.ndimage.filters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\filters.py',
+   'PYMODULE'),
+  ('scipy.ndimage.fourier',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\fourier.py',
+   'PYMODULE'),
+  ('scipy.ndimage.interpolation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\interpolation.py',
+   'PYMODULE'),
+  ('scipy.ndimage.measurements',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\measurements.py',
+   'PYMODULE'),
+  ('scipy.ndimage.morphology',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\morphology.py',
+   'PYMODULE'),
+  ('scipy.optimize',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._basinhopping',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_basinhopping.py',
+   'PYMODULE'),
+  ('scipy.optimize._bracket',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_bracket.py',
+   'PYMODULE'),
+  ('scipy.optimize._chandrupatla',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_chandrupatla.py',
+   'PYMODULE'),
+  ('scipy.optimize._cobyla_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_cobyla_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._cobyqa_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_cobyqa_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._constraints',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_constraints.py',
+   'PYMODULE'),
+  ('scipy.optimize._dcsrch',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_dcsrch.py',
+   'PYMODULE'),
+  ('scipy.optimize._differentiable_functions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_differentiable_functions.py',
+   'PYMODULE'),
+  ('scipy.optimize._differentialevolution',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_differentialevolution.py',
+   'PYMODULE'),
+  ('scipy.optimize._direct_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_direct_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._dual_annealing',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_dual_annealing.py',
+   'PYMODULE'),
+  ('scipy.optimize._elementwise',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_elementwise.py',
+   'PYMODULE'),
+  ('scipy.optimize._hessian_update_strategy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_hessian_update_strategy.py',
+   'PYMODULE'),
+  ('scipy.optimize._highspy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_highspy\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._highspy._highs_wrapper',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_highspy\\_highs_wrapper.py',
+   'PYMODULE'),
+  ('scipy.optimize._isotonic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_isotonic.py',
+   'PYMODULE'),
+  ('scipy.optimize._lbfgsb_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lbfgsb_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._linesearch',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linesearch.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_doc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_doc.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_highs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_highs.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_ip',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_ip.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_rs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_rs.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_simplex',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_simplex.py',
+   'PYMODULE'),
+  ('scipy.optimize._linprog_util',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_linprog_util.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.bvls',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\bvls.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\common.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.dogbox',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\dogbox.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.least_squares',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\least_squares.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.lsq_linear',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\lsq_linear.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.trf',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\trf.py',
+   'PYMODULE'),
+  ('scipy.optimize._lsq.trf_linear',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\trf_linear.py',
+   'PYMODULE'),
+  ('scipy.optimize._milp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_milp.py',
+   'PYMODULE'),
+  ('scipy.optimize._minimize',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_minimize.py',
+   'PYMODULE'),
+  ('scipy.optimize._minpack_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_minpack_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._nnls',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_nnls.py',
+   'PYMODULE'),
+  ('scipy.optimize._nonlin',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_nonlin.py',
+   'PYMODULE'),
+  ('scipy.optimize._numdiff',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_numdiff.py',
+   'PYMODULE'),
+  ('scipy.optimize._optimize',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_optimize.py',
+   'PYMODULE'),
+  ('scipy.optimize._qap',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_qap.py',
+   'PYMODULE'),
+  ('scipy.optimize._remove_redundancy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_remove_redundancy.py',
+   'PYMODULE'),
+  ('scipy.optimize._root',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_root.py',
+   'PYMODULE'),
+  ('scipy.optimize._root_scalar',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_root_scalar.py',
+   'PYMODULE'),
+  ('scipy.optimize._shgo',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_shgo.py',
+   'PYMODULE'),
+  ('scipy.optimize._shgo_lib',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_shgo_lib\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._shgo_lib._complex',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_shgo_lib\\_complex.py',
+   'PYMODULE'),
+  ('scipy.optimize._shgo_lib._vertex',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_shgo_lib\\_vertex.py',
+   'PYMODULE'),
+  ('scipy.optimize._slsqp_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_slsqp_py.py',
+   'PYMODULE'),
+  ('scipy.optimize._spectral',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_spectral.py',
+   'PYMODULE'),
+  ('scipy.optimize._tnc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_tnc.py',
+   'PYMODULE'),
+  ('scipy.optimize._trlib',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trlib\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\__init__.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.canonical_constraint',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\canonical_constraint.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.equality_constrained_sqp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\equality_constrained_sqp.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.minimize_trustregion_constr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\minimize_trustregion_constr.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.projections',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\projections.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.qp_subproblem',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\qp_subproblem.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.report',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\report.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_constr.tr_interior_point',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_constr\\tr_interior_point.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_dogleg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_dogleg.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_exact',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_exact.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_krylov',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_krylov.py',
+   'PYMODULE'),
+  ('scipy.optimize._trustregion_ncg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trustregion_ncg.py',
+   'PYMODULE'),
+  ('scipy.optimize._zeros_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_zeros_py.py',
+   'PYMODULE'),
+  ('scipy.optimize.cobyla',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\cobyla.py',
+   'PYMODULE'),
+  ('scipy.optimize.elementwise',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\elementwise.py',
+   'PYMODULE'),
+  ('scipy.optimize.lbfgsb',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\lbfgsb.py',
+   'PYMODULE'),
+  ('scipy.optimize.linesearch',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\linesearch.py',
+   'PYMODULE'),
+  ('scipy.optimize.minpack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\minpack.py',
+   'PYMODULE'),
+  ('scipy.optimize.minpack2',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\minpack2.py',
+   'PYMODULE'),
+  ('scipy.optimize.moduleTNC',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\moduleTNC.py',
+   'PYMODULE'),
+  ('scipy.optimize.nonlin',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\nonlin.py',
+   'PYMODULE'),
+  ('scipy.optimize.optimize',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\optimize.py',
+   'PYMODULE'),
+  ('scipy.optimize.slsqp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\slsqp.py',
+   'PYMODULE'),
+  ('scipy.optimize.tnc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\tnc.py',
+   'PYMODULE'),
+  ('scipy.optimize.zeros',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\zeros.py',
+   'PYMODULE'),
+  ('scipy.sparse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse._base',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_base.py',
+   'PYMODULE'),
+  ('scipy.sparse._bsr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_bsr.py',
+   'PYMODULE'),
+  ('scipy.sparse._compressed',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_compressed.py',
+   'PYMODULE'),
+  ('scipy.sparse._construct',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_construct.py',
+   'PYMODULE'),
+  ('scipy.sparse._coo',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_coo.py',
+   'PYMODULE'),
+  ('scipy.sparse._csc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_csc.py',
+   'PYMODULE'),
+  ('scipy.sparse._csr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_csr.py',
+   'PYMODULE'),
+  ('scipy.sparse._data',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_data.py',
+   'PYMODULE'),
+  ('scipy.sparse._dia',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_dia.py',
+   'PYMODULE'),
+  ('scipy.sparse._dok',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_dok.py',
+   'PYMODULE'),
+  ('scipy.sparse._extract',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_extract.py',
+   'PYMODULE'),
+  ('scipy.sparse._index',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_index.py',
+   'PYMODULE'),
+  ('scipy.sparse._lil',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_lil.py',
+   'PYMODULE'),
+  ('scipy.sparse._matrix',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_matrix.py',
+   'PYMODULE'),
+  ('scipy.sparse._matrix_io',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_matrix_io.py',
+   'PYMODULE'),
+  ('scipy.sparse._spfuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_spfuncs.py',
+   'PYMODULE'),
+  ('scipy.sparse._sputils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_sputils.py',
+   'PYMODULE'),
+  ('scipy.sparse.base',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\base.py',
+   'PYMODULE'),
+  ('scipy.sparse.bsr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\bsr.py',
+   'PYMODULE'),
+  ('scipy.sparse.compressed',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\compressed.py',
+   'PYMODULE'),
+  ('scipy.sparse.construct',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\construct.py',
+   'PYMODULE'),
+  ('scipy.sparse.coo',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\coo.py',
+   'PYMODULE'),
+  ('scipy.sparse.csc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csc.py',
+   'PYMODULE'),
+  ('scipy.sparse.csgraph',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.csgraph._laplacian',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_laplacian.py',
+   'PYMODULE'),
+  ('scipy.sparse.csgraph._validation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_validation.py',
+   'PYMODULE'),
+  ('scipy.sparse.csr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csr.py',
+   'PYMODULE'),
+  ('scipy.sparse.data',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\data.py',
+   'PYMODULE'),
+  ('scipy.sparse.dia',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\dia.py',
+   'PYMODULE'),
+  ('scipy.sparse.dok',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\dok.py',
+   'PYMODULE'),
+  ('scipy.sparse.extract',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\extract.py',
+   'PYMODULE'),
+  ('scipy.sparse.lil',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\lil.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._dsolve',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_dsolve\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._dsolve._add_newdocs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_dsolve\\_add_newdocs.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._dsolve.linsolve',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_dsolve\\linsolve.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen._svds',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\_svds.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen.arpack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\arpack\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen.arpack.arpack',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\arpack\\arpack.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen.lobpcg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\lobpcg\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._eigen.lobpcg.lobpcg',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\lobpcg\\lobpcg.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._expm_multiply',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_expm_multiply.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._funm_multiply_krylov',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_funm_multiply_krylov.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._interface',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_interface.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\__init__.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve._gcrotmk',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\_gcrotmk.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.iterative',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\iterative.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.lgmres',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\lgmres.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.lsmr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\lsmr.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.lsqr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\lsqr.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.minres',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\minres.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.tfqmr',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\tfqmr.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._isolve.utils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_isolve\\utils.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._matfuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_matfuncs.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._norm',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_norm.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._onenormest',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_onenormest.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._special_sparse_arrays',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_special_sparse_arrays.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg._svdp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_svdp.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg.dsolve',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\dsolve.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg.eigen',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\eigen.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg.interface',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\interface.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg.isolve',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\isolve.py',
+   'PYMODULE'),
+  ('scipy.sparse.linalg.matfuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\matfuncs.py',
+   'PYMODULE'),
+  ('scipy.sparse.sparsetools',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\sparsetools.py',
+   'PYMODULE'),
+  ('scipy.sparse.sputils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\sputils.py',
+   'PYMODULE'),
+  ('scipy.spatial',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\__init__.py',
+   'PYMODULE'),
+  ('scipy.spatial._geometric_slerp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_geometric_slerp.py',
+   'PYMODULE'),
+  ('scipy.spatial._kdtree',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_kdtree.py',
+   'PYMODULE'),
+  ('scipy.spatial._plotutils',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_plotutils.py',
+   'PYMODULE'),
+  ('scipy.spatial._procrustes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_procrustes.py',
+   'PYMODULE'),
+  ('scipy.spatial._spherical_voronoi',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_spherical_voronoi.py',
+   'PYMODULE'),
+  ('scipy.spatial.ckdtree',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\ckdtree.py',
+   'PYMODULE'),
+  ('scipy.spatial.distance',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\distance.py',
+   'PYMODULE'),
+  ('scipy.spatial.kdtree',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\kdtree.py',
+   'PYMODULE'),
+  ('scipy.spatial.qhull',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\qhull.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\__init__.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rigid_transform',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rigid_transform.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rigid_transform_xp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rigid_transform_xp.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rotation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rotation.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rotation_groups',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rotation_groups.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rotation_spline',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rotation_spline.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform._rotation_xp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rotation_xp.py',
+   'PYMODULE'),
+  ('scipy.spatial.transform.rotation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\rotation.py',
+   'PYMODULE'),
+  ('scipy.special',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\__init__.py',
+   'PYMODULE'),
+  ('scipy.special._basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_basic.py',
+   'PYMODULE'),
+  ('scipy.special._ellip_harm',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_ellip_harm.py',
+   'PYMODULE'),
+  ('scipy.special._input_validation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_input_validation.py',
+   'PYMODULE'),
+  ('scipy.special._lambertw',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_lambertw.py',
+   'PYMODULE'),
+  ('scipy.special._logsumexp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_logsumexp.py',
+   'PYMODULE'),
+  ('scipy.special._multiufuncs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_multiufuncs.py',
+   'PYMODULE'),
+  ('scipy.special._orthogonal',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_orthogonal.py',
+   'PYMODULE'),
+  ('scipy.special._sf_error',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_sf_error.py',
+   'PYMODULE'),
+  ('scipy.special._spfun_stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_spfun_stats.py',
+   'PYMODULE'),
+  ('scipy.special._spherical_bessel',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_spherical_bessel.py',
+   'PYMODULE'),
+  ('scipy.special._support_alternative_backends',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_support_alternative_backends.py',
+   'PYMODULE'),
+  ('scipy.special._ufunc_tools',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_ufunc_tools.py',
+   'PYMODULE'),
+  ('scipy.special.add_newdocs',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\add_newdocs.py',
+   'PYMODULE'),
+  ('scipy.special.basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\basic.py',
+   'PYMODULE'),
+  ('scipy.special.orthogonal',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\orthogonal.py',
+   'PYMODULE'),
+  ('scipy.special.sf_error',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\sf_error.py',
+   'PYMODULE'),
+  ('scipy.special.specfun',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\specfun.py',
+   'PYMODULE'),
+  ('scipy.special.spfun_stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\spfun_stats.py',
+   'PYMODULE'),
+  ('scipy.stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\__init__.py',
+   'PYMODULE'),
+  ('scipy.stats._axis_nan_policy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_axis_nan_policy.py',
+   'PYMODULE'),
+  ('scipy.stats._binned_statistic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_binned_statistic.py',
+   'PYMODULE'),
+  ('scipy.stats._binomtest',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_binomtest.py',
+   'PYMODULE'),
+  ('scipy.stats._bws_test',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_bws_test.py',
+   'PYMODULE'),
+  ('scipy.stats._censored_data',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_censored_data.py',
+   'PYMODULE'),
+  ('scipy.stats._common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_common.py',
+   'PYMODULE'),
+  ('scipy.stats._constants',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_constants.py',
+   'PYMODULE'),
+  ('scipy.stats._continuous_distns',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_continuous_distns.py',
+   'PYMODULE'),
+  ('scipy.stats._correlation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_correlation.py',
+   'PYMODULE'),
+  ('scipy.stats._covariance',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_covariance.py',
+   'PYMODULE'),
+  ('scipy.stats._crosstab',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_crosstab.py',
+   'PYMODULE'),
+  ('scipy.stats._discrete_distns',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_discrete_distns.py',
+   'PYMODULE'),
+  ('scipy.stats._distn_infrastructure',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_distn_infrastructure.py',
+   'PYMODULE'),
+  ('scipy.stats._distr_params',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_distr_params.py',
+   'PYMODULE'),
+  ('scipy.stats._distribution_infrastructure',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_distribution_infrastructure.py',
+   'PYMODULE'),
+  ('scipy.stats._entropy',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_entropy.py',
+   'PYMODULE'),
+  ('scipy.stats._finite_differences',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_finite_differences.py',
+   'PYMODULE'),
+  ('scipy.stats._fit',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_fit.py',
+   'PYMODULE'),
+  ('scipy.stats._hypotests',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_hypotests.py',
+   'PYMODULE'),
+  ('scipy.stats._kde',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_kde.py',
+   'PYMODULE'),
+  ('scipy.stats._ksstats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_ksstats.py',
+   'PYMODULE'),
+  ('scipy.stats._levy_stable',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_levy_stable\\__init__.py',
+   'PYMODULE'),
+  ('scipy.stats._mannwhitneyu',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_mannwhitneyu.py',
+   'PYMODULE'),
+  ('scipy.stats._mgc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_mgc.py',
+   'PYMODULE'),
+  ('scipy.stats._morestats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_morestats.py',
+   'PYMODULE'),
+  ('scipy.stats._mstats_basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_mstats_basic.py',
+   'PYMODULE'),
+  ('scipy.stats._mstats_extras',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_mstats_extras.py',
+   'PYMODULE'),
+  ('scipy.stats._multicomp',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_multicomp.py',
+   'PYMODULE'),
+  ('scipy.stats._multivariate',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_multivariate.py',
+   'PYMODULE'),
+  ('scipy.stats._new_distributions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_new_distributions.py',
+   'PYMODULE'),
+  ('scipy.stats._odds_ratio',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_odds_ratio.py',
+   'PYMODULE'),
+  ('scipy.stats._page_trend_test',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_page_trend_test.py',
+   'PYMODULE'),
+  ('scipy.stats._probability_distribution',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_probability_distribution.py',
+   'PYMODULE'),
+  ('scipy.stats._qmc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_qmc.py',
+   'PYMODULE'),
+  ('scipy.stats._qmvnt',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_qmvnt.py',
+   'PYMODULE'),
+  ('scipy.stats._quantile',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_quantile.py',
+   'PYMODULE'),
+  ('scipy.stats._rcont',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_rcont\\__init__.py',
+   'PYMODULE'),
+  ('scipy.stats._relative_risk',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_relative_risk.py',
+   'PYMODULE'),
+  ('scipy.stats._resampling',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_resampling.py',
+   'PYMODULE'),
+  ('scipy.stats._sensitivity_analysis',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_sensitivity_analysis.py',
+   'PYMODULE'),
+  ('scipy.stats._stats_mstats_common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_stats_mstats_common.py',
+   'PYMODULE'),
+  ('scipy.stats._stats_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_stats_py.py',
+   'PYMODULE'),
+  ('scipy.stats._survival',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_survival.py',
+   'PYMODULE'),
+  ('scipy.stats._tukeylambda_stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_tukeylambda_stats.py',
+   'PYMODULE'),
+  ('scipy.stats._variation',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_variation.py',
+   'PYMODULE'),
+  ('scipy.stats._warnings_errors',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_warnings_errors.py',
+   'PYMODULE'),
+  ('scipy.stats._wilcoxon',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_wilcoxon.py',
+   'PYMODULE'),
+  ('scipy.stats.biasedurn',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\biasedurn.py',
+   'PYMODULE'),
+  ('scipy.stats.contingency',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\contingency.py',
+   'PYMODULE'),
+  ('scipy.stats.distributions',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\distributions.py',
+   'PYMODULE'),
+  ('scipy.stats.kde',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\kde.py',
+   'PYMODULE'),
+  ('scipy.stats.morestats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\morestats.py',
+   'PYMODULE'),
+  ('scipy.stats.mstats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\mstats.py',
+   'PYMODULE'),
+  ('scipy.stats.mstats_basic',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\mstats_basic.py',
+   'PYMODULE'),
+  ('scipy.stats.mstats_extras',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\mstats_extras.py',
+   'PYMODULE'),
+  ('scipy.stats.mvn',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\mvn.py',
+   'PYMODULE'),
+  ('scipy.stats.qmc',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\qmc.py',
+   'PYMODULE'),
+  ('scipy.stats.stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\stats.py',
+   'PYMODULE'),
+  ('scipy.version',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\version.py',
+   'PYMODULE'),
   ('secrets',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\secrets.py',
@@ -16406,6 +18845,10 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\sqlite3\\dump.py',
    'PYMODULE'),
+  ('srt',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\srt.py',
+   'PYMODULE'),
   ('ssl',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\ssl.py',
@@ -16445,6 +18888,10 @@
   ('threading',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\threading.py',
+   'PYMODULE'),
+  ('threadpoolctl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\threadpoolctl.py',
    'PYMODULE'),
   ('token',
    'C:\\Users\\Acer Nitro '
@@ -16938,6 +19385,14 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\uuid.py',
    'PYMODULE'),
+  ('vosk',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\vosk\\__init__.py',
+   'PYMODULE'),
+  ('vosk.vosk_cffi',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\vosk\\vosk_cffi.py',
+   'PYMODULE'),
   ('watchdog',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\watchdog\\__init__.py',
@@ -17406,6 +19861,114 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\werkzeug\\wsgi.py',
    'PYMODULE'),
+  ('win32ctypes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\__init__.py',
+   'PYMODULE'),
+  ('win32ctypes.core',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\__init__.py',
+   'PYMODULE'),
+  ('win32ctypes.core._winerrors',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\_winerrors.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\__init__.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._authentication',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_authentication.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_common.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._dll',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_dll.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._nl_support',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_nl_support.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._resource',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_resource.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._system_information',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_system_information.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._time',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_time.py',
+   'PYMODULE'),
+  ('win32ctypes.core.cffi._util',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\cffi\\_util.py',
+   'PYMODULE'),
+  ('win32ctypes.core.compat',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\compat.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\__init__.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._authentication',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_authentication.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._common',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_common.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._dll',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_dll.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._nl_support',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_nl_support.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._resource',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_resource.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._system_information',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_system_information.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._time',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_time.py',
+   'PYMODULE'),
+  ('win32ctypes.core.ctypes._util',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\core\\ctypes\\_util.py',
+   'PYMODULE'),
+  ('win32ctypes.pywin32',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\pywin32\\__init__.py',
+   'PYMODULE'),
+  ('win32ctypes.pywin32.pywintypes',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\pywin32\\pywintypes.py',
+   'PYMODULE'),
+  ('win32ctypes.pywin32.win32api',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\pywin32\\win32api.py',
+   'PYMODULE'),
+  ('win32ctypes.pywin32.win32cred',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\pywin32\\win32cred.py',
+   'PYMODULE'),
+  ('win32ctypes.version',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32ctypes\\version.py',
+   'PYMODULE'),
   ('xml',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\xml\\__init__.py',
@@ -17537,6 +20100,38 @@
   ('yaml.tokens',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yaml\\tokens.py',
+   'PYMODULE'),
+  ('yarl',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\__init__.py',
+   'PYMODULE'),
+  ('yarl._parse',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_parse.py',
+   'PYMODULE'),
+  ('yarl._path',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_path.py',
+   'PYMODULE'),
+  ('yarl._query',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_query.py',
+   'PYMODULE'),
+  ('yarl._quoters',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoters.py',
+   'PYMODULE'),
+  ('yarl._quoting',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoting.py',
+   'PYMODULE'),
+  ('yarl._quoting_py',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoting_py.py',
+   'PYMODULE'),
+  ('yarl._url',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_url.py',
    'PYMODULE'),
   ('zipfile',
    'C:\\Users\\Acer Nitro '

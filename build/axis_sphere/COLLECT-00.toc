@@ -14570,6 +14570,22 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\_zoneinfo.pyd',
    'EXTENSION'),
+  ('aiohttp\\_http_parser.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_http_parser.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('aiohttp\\_http_writer.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_http_writer.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('aiohttp\\_websocket\\mask.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\mask.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('aiohttp\\_websocket\\reader_c.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\aiohttp\\_websocket\\reader_c.cp312-win_amd64.pyd',
+   'EXTENSION'),
   ('anthropic\\lib\\.keep',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\anthropic\\lib\\.keep',
@@ -14583,134 +14599,138 @@
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\anthropic\\py.typed',
    'DATA'),
   ('api-ms-win-core-console-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-console-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-console-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-datetime-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-datetime-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-datetime-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-debug-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-debug-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-debug-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-errorhandling-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-errorhandling-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-errorhandling-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-fibers-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-fibers-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-fibers-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-fibers-l1-1-1.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-fibers-l1-1-1.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-fibers-l1-1-1.dll',
    'BINARY'),
   ('api-ms-win-core-file-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-file-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-file-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-file-l1-2-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-file-l1-2-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-file-l1-2-0.dll',
    'BINARY'),
   ('api-ms-win-core-file-l2-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-file-l2-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-file-l2-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-handle-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-handle-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-handle-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-heap-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-heap-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-heap-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-interlocked-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-interlocked-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-interlocked-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-kernel32-legacy-l1-1-1.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-kernel32-legacy-l1-1-1.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-kernel32-legacy-l1-1-1.dll',
    'BINARY'),
   ('api-ms-win-core-libraryloader-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-libraryloader-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-libraryloader-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-localization-l1-2-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-localization-l1-2-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-localization-l1-2-0.dll',
    'BINARY'),
   ('api-ms-win-core-memory-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-memory-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-memory-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-namedpipe-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-namedpipe-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-namedpipe-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-path-l1-1-0.dll',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\api-ms-win-core-path-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-processenvironment-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-processenvironment-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-processenvironment-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-processthreads-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-processthreads-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-processthreads-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-processthreads-l1-1-1.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-processthreads-l1-1-1.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-processthreads-l1-1-1.dll',
    'BINARY'),
   ('api-ms-win-core-profile-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-profile-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-profile-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-rtlsupport-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-rtlsupport-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-rtlsupport-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-string-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-string-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-string-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-synch-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-synch-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-synch-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-synch-l1-2-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-synch-l1-2-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-synch-l1-2-0.dll',
    'BINARY'),
   ('api-ms-win-core-sysinfo-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-sysinfo-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-sysinfo-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-sysinfo-l1-2-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-sysinfo-l1-2-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-sysinfo-l1-2-0.dll',
    'BINARY'),
   ('api-ms-win-core-timezone-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-timezone-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-timezone-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-core-util-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-core-util-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-core-util-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-conio-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-conio-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-conio-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-convert-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-convert-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-convert-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-environment-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-environment-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-environment-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-filesystem-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-filesystem-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-filesystem-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-heap-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-heap-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-heap-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-locale-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-locale-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-locale-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-math-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-math-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-math-l1-1-0.dll',
+   'BINARY'),
+  ('api-ms-win-crt-private-l1-1-0.dll',
+   'C:\\Program Files\\Eclipse '
+   'Adoptium\\jdk-17.0.18.8-hotspot\\bin\\api-ms-win-crt-private-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-process-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-process-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-process-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-runtime-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-runtime-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-runtime-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-stdio-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-stdio-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-stdio-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-string-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-string-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-string-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-time-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-time-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-time-l1-1-0.dll',
    'BINARY'),
   ('api-ms-win-crt-utility-l1-1-0.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\api-ms-win-crt-utility-l1-1-0.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\api-ms-win-crt-utility-l1-1-0.dll',
    'BINARY'),
   ('assets\\sounds\\звук\\1науч.wav',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\assets\\sounds\\звук\\1науч.wav',
@@ -15046,6 +15066,26 @@
    'элементами.wav',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\assets\\sounds\\звук\\Я провел '
    'симуляции со всеми известными элементами.wav',
+   'DATA'),
+  ('attrs-26.1.0.dist-info\\INSTALLER',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attrs-26.1.0.dist-info\\INSTALLER',
+   'DATA'),
+  ('attrs-26.1.0.dist-info\\METADATA',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attrs-26.1.0.dist-info\\METADATA',
+   'DATA'),
+  ('attrs-26.1.0.dist-info\\RECORD',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attrs-26.1.0.dist-info\\RECORD',
+   'DATA'),
+  ('attrs-26.1.0.dist-info\\WHEEL',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attrs-26.1.0.dist-info\\WHEEL',
+   'DATA'),
+  ('attrs-26.1.0.dist-info\\licenses\\LICENSE',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\attrs-26.1.0.dist-info\\licenses\\LICENSE',
    'DATA'),
   ('av.libs\\avcodec-62-3940774d70936a4a2ea89886c85e9317.dll',
    'C:\\Users\\Acer Nitro '
@@ -15548,6 +15588,73 @@
   ('data\\macros.json',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\data\\macros.json',
    'DATA'),
+  ('data\\models\\silero_vad.onnx',
+   'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\data\\models\\silero_vad.onnx',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\COPYING',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\COPYING',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\am\\final.mdl',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\am\\final.mdl',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\conf\\mfcc.conf',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\conf\\mfcc.conf',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\conf\\model.conf',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\conf\\model.conf',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\graph\\Gr.fst',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\graph\\Gr.fst',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\graph\\HCLr.fst',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\graph\\HCLr.fst',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\graph\\disambig_tid.int',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\graph\\disambig_tid.int',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\graph\\phones\\word_boundary.int',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\graph\\phones\\word_boundary.int',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\graph\\words.txt',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\graph\\words.txt',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.dubm',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.dubm',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.ie',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.ie',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.mat',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\final.mat',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\global_cmvn.stats',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\global_cmvn.stats',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\online_cmvn.conf',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\online_cmvn.conf',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\splice.conf',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\splice.conf',
+   'DATA'),
+  ('data\\models\\vosk-model-small-uk-v3-small\\ivector\\splice_opts',
+   'C:\\Users\\Acer Nitro '
+   '5\\Desktop\\Axis_OS\\data\\models\\vosk-model-small-uk-v3-small\\ivector\\splice_opts',
+   'DATA'),
   ('data\\release.cfg',
    'C:\\Users\\Acer Nitro 5\\Desktop\\Axis_OS\\data\\release.cfg',
    'DATA'),
@@ -15570,6 +15677,10 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\pygame\\freetype.dll',
    'BINARY'),
+  ('frozenlist\\_frozenlist.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\frozenlist\\_frozenlist.cp312-win_amd64.pyd',
+   'EXTENSION'),
   ('google\\_upb\\_message.pyd',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\google\\_upb\\_message.pyd',
@@ -17978,6 +18089,38 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\jiter\\jiter.cp312-win_amd64.pyd',
    'EXTENSION'),
+  ('keyring-25.7.0.dist-info\\INSTALLER',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\INSTALLER',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\METADATA',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\METADATA',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\RECORD',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\RECORD',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\REQUESTED',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\REQUESTED',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\WHEEL',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\WHEEL',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\entry_points.txt',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\entry_points.txt',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\licenses\\LICENSE',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\licenses\\LICENSE',
+   'DATA'),
+  ('keyring-25.7.0.dist-info\\top_level.txt',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\keyring-25.7.0.dist-info\\top_level.txt',
+   'DATA'),
   ('libcrypto-3.dll',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\libcrypto-3.dll',
@@ -18115,8 +18258,12 @@
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\markupsafe\\_speedups.cp312-win_amd64.pyd',
    'EXTENSION'),
   ('msvcp140.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\PyQt6\\Qt6\\bin\\msvcp140.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\PyQt6\\Qt6\\bin\\msvcp140.dll',
    'BINARY'),
+  ('multidict\\_multidict.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\multidict\\_multidict.cp312-win_amd64.pyd',
+   'EXTENSION'),
   ('onnxruntime\\capi\\onnxruntime.dll',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\onnxruntime\\capi\\onnxruntime.dll',
@@ -18160,6 +18307,10 @@
   ('primp\\primp.pyd',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\primp\\primp.pyd',
+   'EXTENSION'),
+  ('propcache\\_helpers_c.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\propcache\\_helpers_c.cp312-win_amd64.pyd',
    'EXTENSION'),
   ('psutil\\_psutil_windows.pyd',
    'C:\\Users\\Acer Nitro '
@@ -18389,6 +18540,354 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\redis-7.4.0.dist-info\\licenses\\LICENSE',
    'DATA'),
+  ('scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll',
+   'BINARY'),
+  ('scipy\\_cyutility.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_cyutility.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_ccallback_c.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\_lib\\_fpumode.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_fpumode.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\_lib\\_uarray\\_uarray.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\_uarray\\_uarray.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\_lib\\messagestream.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\_lib\\messagestream.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\fft\\_duccfft\\pyduccfft.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\fft\\_duccfft\\pyduccfft.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\integrate\\_dop.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_dop.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\integrate\\_odepack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_odepack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\integrate\\_quadpack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_quadpack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\integrate\\_vode.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\integrate\\_vode.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_dierckx.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_dierckx.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_fitpack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_fitpack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_interpnd.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_interpnd.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_ppoly.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_ppoly.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_rbfinterp_pythran.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rbfinterp_pythran.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\interpolate\\_rgi_cython.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\interpolate\\_rgi_cython.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\io\\_fast_matrix_market\\_fmm_core.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\_fast_matrix_market\\_fmm_core.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\io\\matlab\\_mio5_utils.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio5_utils.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\io\\matlab\\_mio_utils.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_mio_utils.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\io\\matlab\\_streams.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\io\\matlab\\_streams.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_batched_linalg.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_batched_linalg.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_cythonized_array_utils.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_cythonized_array_utils.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_decomp_interpolative.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_interpolative.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_decomp_update.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_decomp_update.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_fblas.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_fblas.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_flapack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_flapack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_internal_matfuncs.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_internal_matfuncs.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_linalg_pythran.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_linalg_pythran.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_matfuncs_sqrtm_triu.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_matfuncs_sqrtm_triu.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\_solve_toeplitz.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\_solve_toeplitz.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\cython_blas.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\cython_blas.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\linalg\\cython_lapack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\linalg\\cython_lapack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\ndimage\\_nd_image.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_nd_image.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\ndimage\\_ni_label.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_ni_label.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\ndimage\\_rank_filter_1d.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\ndimage\\_rank_filter_1d.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_bglu_dense.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_bglu_dense.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_direct.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_direct.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_group_columns.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_group_columns.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_highspy\\_core.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_highspy\\_core.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_highspy\\_highs_options.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_highspy\\_highs_options.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_lbfgsb.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lbfgsb.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_lsap.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsap.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_lsq\\givens_elimination.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_lsq\\givens_elimination.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_minpack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_minpack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_moduleTNC.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_moduleTNC.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_pava_pybind.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_pava_pybind.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_slsqplib.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_slsqplib.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_trlib\\_trlib.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_trlib\\_trlib.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\optimize\\_zeros.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\optimize\\_zeros.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\_csparsetools.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_csparsetools.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\_sparsetools.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\_sparsetools.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_flow.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_flow.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_matching.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_matching.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_min_spanning_tree.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_min_spanning_tree.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_reordering.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_reordering.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_shortest_path.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_shortest_path.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_tools.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_tools.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\csgraph\\_traversal.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\csgraph\\_traversal.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\linalg\\_dsolve\\_superlu.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_dsolve\\_superlu.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\linalg\\_eigen\\arpack\\_arpacklib.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_eigen\\arpack\\_arpacklib.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\sparse\\linalg\\_propack.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\sparse\\linalg\\_propack.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_ckdtree.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_ckdtree.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_distance_pybind.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_distance_pybind.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_distance_wrap.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_distance_wrap.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_hausdorff.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_hausdorff.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_qhull.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_qhull.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\_voronoi.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\_voronoi.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\transform\\_rigid_transform_cy.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rigid_transform_cy.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\spatial\\transform\\_rotation_cy.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\spatial\\transform\\_rotation_cy.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_comb.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_comb.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_ellip_harm_2.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_ellip_harm_2.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_gufuncs.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_gufuncs.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_specfun.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_specfun.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_special_ufuncs.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_special_ufuncs.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_ufuncs.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_ufuncs.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\_ufuncs_cxx.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\_ufuncs_cxx.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\special\\cython_special.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\special\\cython_special.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_ansari_swilk_statistics.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_ansari_swilk_statistics.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_biasedurn.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_biasedurn.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_levy_stable\\levyst.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_levy_stable\\levyst.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_qmc_cy.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_qmc_cy.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_qmvnt_cy.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_qmvnt_cy.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_rcont\\rcont.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_rcont\\rcont.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_sobol.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_sobol.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_stats.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_stats.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('scipy\\stats\\_stats_pythran.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\scipy\\stats\\_stats_pythran.cp312-win_amd64.pyd',
+   'EXTENSION'),
   ('select.pyd',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\DLLs\\select.pyd',
@@ -20947,7 +21446,7 @@
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\tzdata\\zones',
    'DATA'),
   ('ucrtbase.dll',
-   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI50282\\ucrtbase.dll',
+   'C:\\Users\\ACERNI~1\\AppData\\Local\\Temp\\_MEI74642\\ucrtbase.dll',
    'BINARY'),
   ('unicodedata.pyd',
    'C:\\Users\\Acer Nitro '
@@ -21020,9 +21519,17 @@
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32\\_win32sysloader.pyd',
    'EXTENSION'),
+  ('win32\\win32cred.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32\\win32cred.pyd',
+   'EXTENSION'),
   ('yaml\\_yaml.cp312-win_amd64.pyd',
    'C:\\Users\\Acer Nitro '
    '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yaml\\_yaml.cp312-win_amd64.pyd',
+   'EXTENSION'),
+  ('yarl\\_quoting_c.cp312-win_amd64.pyd',
+   'C:\\Users\\Acer Nitro '
+   '5\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\yarl\\_quoting_c.cp312-win_amd64.pyd',
    'EXTENSION'),
   ('zlib1.dll',
    'C:\\Users\\Acer Nitro '
